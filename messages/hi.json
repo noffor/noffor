@@ -1,0 +1,97 @@
+{
+  "common": {
+    "search": "खोजें",
+    "categories": "श्रेणियाँ",
+    "map": "नक्शा",
+    "profile": "प्रोफ़ाइल",
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "register": "रजिस्टर",
+    "home": "होम",
+    "create": "बनाएं",
+    "dashboard": "डैशबोर्ड",
+    "findWorkers": "श्रमिक खोजें",
+    "viewProfile": "प्रोफ़ाइल देखें",
+    "comingSoon": "जल्द आ रहा है..."
+  },
+  "home": {
+    "title": "अपने आस-पास कुशल श्रमिक खोजें",
+    "subtitle": "काम और श्रमिक एक जगह",
+    "browseCategories": "श्रेणी के अनुसार ब्राउज़ करें",
+    "browseDesc": "अपने काम के लिए सही श्रमिक खोजें",
+    "featured": "फीचर्ड प्रोफाइल",
+    "popular": "लोकप्रिय श्रेणियाँ"
+  },
+  "search": {
+    "phone": "फ़ोन",
+    "name": "नाम",
+    "photo": "फ़ोटो",
+    "searchPlaceholder": "मोबाइल नंबर दर्ज करें...",
+    "namePlaceholder": "नाम से खोजें...",
+    "photoPlaceholder": "खोजने के लिए फोटो अपलोड करें",
+    "uploadPhoto": "फोटो अपलोड करें",
+    "noResults": "कोई श्रमिक नहीं मिला",
+    "tryAgain": "दूसरी खोज करें"
+  },
+  "area": {
+    "allQatar": "संपूर्ण कतर",
+    "selectArea": "क्षेत्र चुनें",
+    "allAreas": "सभी क्षेत्र",
+    "doha": "दोहा",
+    "alRayyan": "अल रेयान",
+    "alWakrah": "अल वकराह",
+    "alKhor": "अल खोर"
+  },
+  "category": {
+    "driver": "चालक",
+    "electrician": "इलेक्ट्रीशियन",
+    "plumber": "प्लंबर",
+    "mason": "राजमिस्त्री",
+    "acTechnician": "एसी तकनीशियन",
+    "painter": "पेंटर",
+    "carpenter": "बढ़ई",
+    "welder": "वेल्डर",
+    "cleaner": "सफाई कर्मचारी",
+    "cook": "रसोइया",
+    "helper": "सहायक",
+    "gardener": "माली"
+  },
+  "profile": {
+    "experience": "अनुभव",
+    "years": "साल",
+    "rating": "रेटिंग",
+    "reviews": "समीक्षा",
+    "skills": "कौशल",
+    "workPhotos": "काम की तस्वीरें",
+    "bio": "परिचय",
+    "expectedSalary": "अपेक्षित वेतन",
+    "online": "ऑनलाइन",
+    "offline": "ऑफलाइन",
+    "whatsapp": "WhatsApp",
+    "call": "कॉल",
+    "jobOffer": "जॉब ऑफर",
+    "share": "शेयर",
+    "report": "रिपोर्ट",
+    "save": "सेव",
+    "liveActivity": "लाइव गतिविधि"
+  },
+  "map": {
+    "title": "लाइव नक्शा",
+    "onlineWorkers": "ऑनलाइन श्रमिक",
+    "listView": "सूची दृश्य",
+    "mapView": "नक्शा दृश्य",
+    "distance": "दूरी",
+    "km5": "५ किमी",
+    "km10": "१० किमी",
+    "km20": "२० किमी",
+    "all": "सभी"
+  },
+  "country": {
+    "qa": "कतर",
+    "sa": "सऊदी अरब",
+    "ae": "UAE",
+    "kw": "कुवैत",
+    "om": "ओमान",
+    "bh": "बहरीन"
+  }
+}

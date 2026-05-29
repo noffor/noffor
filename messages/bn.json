@@ -1,0 +1,97 @@
+{
+  "common": {
+    "search": "খুঁজুন",
+    "categories": "ক্যাটাগরি",
+    "map": "ম্যাপ",
+    "profile": "প্রোফাইল",
+    "login": "লগইন",
+    "logout": "লগআউট",
+    "register": "রেজিস্ট্রেশন",
+    "home": "হোম",
+    "create": "তৈরি করুন",
+    "dashboard": "ড্যাশবোর্ড",
+    "findWorkers": "লেবার খুঁজুন",
+    "viewProfile": "প্রোফাইল দেখুন",
+    "comingSoon": "শীঘ্রই আসছে..."
+  },
+  "home": {
+    "title": "আপনার কাছাকাছি দক্ষ লেবার খুঁজুন",
+    "subtitle": "কাজ ও লেবার এক জায়গায়",
+    "browseCategories": "ক্যাটাগরি অনুযায়ী ব্রাউজ করুন",
+    "browseDesc": "আপনার কাজের জন্য সঠিক লেবার খুঁজুন",
+    "featured": "ফিচার্ড প্রোফাইল",
+    "popular": "জনপ্রিয় ক্যাটাগরি"
+  },
+  "search": {
+    "phone": "ফোন",
+    "name": "নাম",
+    "photo": "ছবি",
+    "searchPlaceholder": "মোবাইল নাম্বার লিখুন...",
+    "namePlaceholder": "নাম দিয়ে খুঁজুন...",
+    "photoPlaceholder": "ছবি আপলোড করে খুঁজুন",
+    "uploadPhoto": "ছবি আপলোড করুন",
+    "noResults": "কোনো লেবার পাওয়া যায়নি",
+    "tryAgain": "অন্য সার্চ করে দেখুন"
+  },
+  "area": {
+    "allQatar": "সম্পূর্ণ কাতার",
+    "selectArea": "এরিয়া সিলেক্ট করুন",
+    "allAreas": "সব এরিয়া",
+    "doha": "দোহা",
+    "alRayyan": "আল রাইয়ান",
+    "alWakrah": "আল ওয়াকরা",
+    "alKhor": "আল খোর"
+  },
+  "category": {
+    "driver": "ড্রাইভার",
+    "electrician": "ইলেকট্রিশিয়ান",
+    "plumber": "প্লাম্বার",
+    "mason": "রাজমিস্ত্রি",
+    "acTechnician": "এসি টেকনিশিয়ান",
+    "painter": "পেইন্টার",
+    "carpenter": "কার্পেন্টার",
+    "welder": "ওয়েল্ডার",
+    "cleaner": "ক্লিনার",
+    "cook": "রাঁধুনি",
+    "helper": "হেল্পার",
+    "gardener": "মালী"
+  },
+  "profile": {
+    "experience": "অভিজ্ঞতা",
+    "years": "বছর",
+    "rating": "রেটিং",
+    "reviews": "রিভিউ",
+    "skills": "দক্ষতা",
+    "workPhotos": "কাজের ছবি",
+    "bio": "পরিচয়",
+    "expectedSalary": "প্রত্যাশিত বেতন",
+    "online": "অনলাইন",
+    "offline": "অফলাইন",
+    "whatsapp": "WhatsApp",
+    "call": "কল",
+    "jobOffer": "জব অফার",
+    "share": "শেয়ার",
+    "report": "রিপোর্ট",
+    "save": "সেভ",
+    "liveActivity": "লাইভ অ্যাক্টিভিটি"
+  },
+  "map": {
+    "title": "লাইভ ম্যাপ",
+    "onlineWorkers": "অনলাইন লেবার",
+    "listView": "লিস্ট ভিউ",
+    "mapView": "ম্যাপ ভিউ",
+    "distance": "দূরত্ব",
+    "km5": "৫ কিমি",
+    "km10": "১০ কিমি",
+    "km20": "২০ কিমি",
+    "all": "সব"
+  },
+  "country": {
+    "qa": "কাতার",
+    "sa": "সৌদি আরব",
+    "ae": "UAE",
+    "kw": "কুয়েত",
+    "om": "ওমান",
+    "bh": "বাহরাইন"
+  }
+}

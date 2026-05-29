@@ -1,0 +1,97 @@
+{
+  "common": {
+    "search": "بحث",
+    "categories": "الفئات",
+    "map": "الخريطة",
+    "profile": "الملف الشخصي",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "التسجيل",
+    "home": "الرئيسية",
+    "create": "إنشاء",
+    "dashboard": "لوحة التحكم",
+    "findWorkers": "البحث عن عمال",
+    "viewProfile": "عرض الملف",
+    "comingSoon": "قريباً..."
+  },
+  "home": {
+    "title": "ابحث عن عمال مهرة بالقرب منك",
+    "subtitle": "العمل والعمال في مكان واحد",
+    "browseCategories": "تصفح حسب الفئة",
+    "browseDesc": "ابحث عن العامل المناسب لعملك",
+    "featured": "ملفات مميزة",
+    "popular": "فئات شائعة"
+  },
+  "search": {
+    "phone": "هاتف",
+    "name": "اسم",
+    "photo": "صورة",
+    "searchPlaceholder": "أدخل رقم الجوال...",
+    "namePlaceholder": "ابحث بالاسم...",
+    "photoPlaceholder": "حمّل الصورة للبحث",
+    "uploadPhoto": "حمّل الصورة",
+    "noResults": "لم يتم العثور على عمال",
+    "tryAgain": "جرب بحث آخر"
+  },
+  "area": {
+    "allQatar": "كل قطر",
+    "selectArea": "اختر المنطقة",
+    "allAreas": "جميع المناطق",
+    "doha": "الدوحة",
+    "alRayyan": "الريان",
+    "alWakrah": "الوكرة",
+    "alKhor": "الخور"
+  },
+  "category": {
+    "driver": "سائق",
+    "electrician": "كهربائي",
+    "plumber": "سباك",
+    "mason": "بناء",
+    "acTechnician": "فني تكييف",
+    "painter": "دهان",
+    "carpenter": "نجار",
+    "welder": "لحام",
+    "cleaner": "عامل نظافة",
+    "cook": "طباخ",
+    "helper": "مساعد",
+    "gardener": "بستاني"
+  },
+  "profile": {
+    "experience": "الخبرة",
+    "years": "سنوات",
+    "rating": "التقييم",
+    "reviews": "تقييمات",
+    "skills": "المهارات",
+    "workPhotos": "صور العمل",
+    "bio": "نبذة",
+    "expectedSalary": "الراتب المتوقع",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "whatsapp": "واتساب",
+    "call": "اتصال",
+    "jobOffer": "عرض عمل",
+    "share": "مشاركة",
+    "report": "إبلاغ",
+    "save": "حفظ",
+    "liveActivity": "نشاط مباشر"
+  },
+  "map": {
+    "title": "الخريطة المباشرة",
+    "onlineWorkers": "عمال متصلون",
+    "listView": "عرض القائمة",
+    "mapView": "عرض الخريطة",
+    "distance": "المسافة",
+    "km5": "٥ كم",
+    "km10": "١٠ كم",
+    "km20": "٢٠ كم",
+    "all": "الكل"
+  },
+  "country": {
+    "qa": "قطر",
+    "sa": "السعودية",
+    "ae": "الإمارات",
+    "kw": "الكويت",
+    "om": "عمان",
+    "bh": "البحرين"
+  }
+}

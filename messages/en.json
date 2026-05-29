@@ -1,0 +1,97 @@
+{
+  "common": {
+    "search": "Search",
+    "categories": "Categories",
+    "map": "Map",
+    "profile": "Profile",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "home": "Home",
+    "create": "Create",
+    "dashboard": "Dashboard",
+    "findWorkers": "Find Workers",
+    "viewProfile": "View Profile",
+    "comingSoon": "Coming soon..."
+  },
+  "home": {
+    "title": "Find Skilled Workers Near You",
+    "subtitle": "Work & Workers in One Place",
+    "browseCategories": "Browse by Category",
+    "browseDesc": "Find the right worker for your job",
+    "featured": "Featured Profiles",
+    "popular": "Popular Categories"
+  },
+  "search": {
+    "phone": "Phone",
+    "name": "Name",
+    "photo": "Photo",
+    "searchPlaceholder": "Enter mobile number...",
+    "namePlaceholder": "Search by name...",
+    "photoPlaceholder": "Upload Photo to Search",
+    "uploadPhoto": "Upload Photo",
+    "noResults": "No workers found",
+    "tryAgain": "Try another search"
+  },
+  "area": {
+    "allQatar": "All Qatar",
+    "selectArea": "Select Area",
+    "allAreas": "All Areas",
+    "doha": "Doha",
+    "alRayyan": "Al Rayyan",
+    "alWakrah": "Al Wakrah",
+    "alKhor": "Al Khor"
+  },
+  "category": {
+    "driver": "Driver",
+    "electrician": "Electrician",
+    "plumber": "Plumber",
+    "mason": "Mason",
+    "acTechnician": "AC Technician",
+    "painter": "Painter",
+    "carpenter": "Carpenter",
+    "welder": "Welder",
+    "cleaner": "Cleaner",
+    "cook": "Cook",
+    "helper": "Helper",
+    "gardener": "Gardener"
+  },
+  "profile": {
+    "experience": "Experience",
+    "years": "years",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "skills": "Skills",
+    "workPhotos": "Work Photos",
+    "bio": "Bio",
+    "expectedSalary": "Expected Salary",
+    "online": "Online",
+    "offline": "Offline",
+    "whatsapp": "WhatsApp",
+    "call": "Call",
+    "jobOffer": "Job Offer",
+    "share": "Share",
+    "report": "Report",
+    "save": "Save",
+    "liveActivity": "Live Activity"
+  },
+  "map": {
+    "title": "Live Map",
+    "onlineWorkers": "Online Workers",
+    "listView": "List View",
+    "mapView": "Map View",
+    "distance": "Distance",
+    "km5": "5 km",
+    "km10": "10 km",
+    "km20": "20 km",
+    "all": "All"
+  },
+  "country": {
+    "qa": "Qatar",
+    "sa": "Saudi Arabia",
+    "ae": "UAE",
+    "kw": "Kuwait",
+    "om": "Oman",
+    "bh": "Bahrain"
+  }
+}
