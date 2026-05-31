@@ -5,6 +5,9 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
+  // ✅ Skip auth callback
+  if (pathname.startsWith('/auth/')) return NextResponse.next();
+  
   // Skip static files
   if (pathname.includes('.')) return NextResponse.next();
   

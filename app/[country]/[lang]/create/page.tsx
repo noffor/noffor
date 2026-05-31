@@ -14,7 +14,9 @@ const DROPDOWNS = {
   accommodation: ['Provided by Company', 'Own Arrangement', 'Shared Accommodation', 'Not Required'],
   food: ['Provided by Company', 'Own Arrangement', 'Not Required'],
   cities: ['Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Umm Salal', 'Al Daayen'],
-  areas: ['West Bay', 'The Pearl', 'Al Sadd', 'Bin Mahmoud', 'Old Airport', 'Industrial Area', 'Najma', 'Al Gharafa']
+  areas: ['West Bay', 'The Pearl', 'Al Sadd', 'Bin Mahmoud', 'Old Airport', 'Industrial Area', 'Najma', 'Al Gharafa'],
+  jobTypes: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Freelance'],
+  urgency: ['Immediate', 'Within 3 days', 'Within a week', 'Flexible']
 };
 
 const LANGUAGE_OPTIONS = [
@@ -61,7 +63,12 @@ const formTexts: Record<string, any> = {
     postJob: 'Post Job',
     postJobDesc: 'Post as employer',
     success: 'Success!',
-    redirecting: 'Redirecting to home...'
+    redirecting: 'Redirecting to home...',
+    jobSubmit: 'Post Job',
+    jobLocation: 'Job Location *',
+    jobType: 'Job Type *',
+    workersNeeded: 'Workers Needed *',
+    urgency: 'Urgency'
   },
   bn: { 
     title: 'প্রোফাইল তৈরি', phone: 'ফোন *', name: 'পুরো নাম *', category: 'ক্যাটাগরি', 
@@ -78,7 +85,12 @@ const formTexts: Record<string, any> = {
     postJob: 'চাকরি পোস্ট',
     postJobDesc: 'নিয়োগকর্তা হিসেবে পোস্ট করুন',
     success: 'সফল!',
-    redirecting: 'হোম পেজে রিডাইরেক্ট করা হচ্ছে...'
+    redirecting: 'হোম পেজে রিডাইরেক্ট করা হচ্ছে...',
+    jobSubmit: 'পোস্ট করুন',
+    jobLocation: 'কাজের অবস্থান *',
+    jobType: 'চাকরির ধরন *',
+    workersNeeded: 'প্রয়োজনীয় কর্মী *',
+    urgency: 'জরুরীতা'
   },
   ar: { 
     title: 'إنشاء ملف', phone: 'الهاتف *', name: 'الاسم الكامل *', category: 'الفئة', 
@@ -95,7 +107,12 @@ const formTexts: Record<string, any> = {
     postJob: 'نشر وظيفة',
     postJobDesc: 'انشر كصاحب عمل',
     success: 'نجاح!',
-    redirecting: 'جاري التحويل إلى الصفحة الرئيسية...'
+    redirecting: 'جاري التحويل إلى الصفحة الرئيسية...',
+    jobSubmit: 'نشر',
+    jobLocation: 'موقع العمل *',
+    jobType: 'نوع الوظيفة *',
+    workersNeeded: 'عدد العمال المطلوبين *',
+    urgency: 'الإلحاح'
   },
   hi: { 
     title: 'प्रोफाइल बनाएं', phone: 'फोन *', name: 'पूरा नाम *', category: 'श्रेणी', 
@@ -112,7 +129,12 @@ const formTexts: Record<string, any> = {
     postJob: 'नौकरी पोस्ट करें',
     postJobDesc: 'नियोक्ता के रूप में पोस्ट करें',
     success: 'सफल!',
-    redirecting: 'होम पेज पर रीडायरेक्ट किया जा रहा है...'
+    redirecting: 'होम पेज पर रीडायरेक्ट किया जा रहा है...',
+    jobSubmit: 'पोस्ट करें',
+    jobLocation: 'कार्य स्थान *',
+    jobType: 'नौकरी का प्रकार *',
+    workersNeeded: 'आवश्यक श्रमिक *',
+    urgency: 'तात्कालिकता'
   }
 };
 
@@ -121,7 +143,7 @@ export default function CreatePage() {
   const country = (params as any).country || 'qa';
   const currentLang = (params as any).lang || 'en';
   const router = useRouter();
-  const ft = formTexts[currentLang as 'en' | 'bn' | 'ar' | 'hi'] || formTexts.en;
+  const ft = formTexts[currentLang as keyof typeof formTexts] || formTexts.en;
   
   const [mode, setMode] = useState('');
   const [step, setStep] = useState(1);
@@ -129,6 +151,7 @@ export default function CreatePage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   
+  // Worker states
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [category, setCategory] = useState('');
@@ -148,18 +171,32 @@ export default function CreatePage() {
   const [workFiles, setWorkFiles] = useState<File[]>([]);
   const [workPreviews, setWorkPreviews] = useState<string[]>([]);
   
+  // Employer states - ✅ মিসিং ফিল্ড যোগ করা হয়েছে
   const [jobTitle, setJobTitle] = useState('');
   const [jobCat, setJobCat] = useState('');
   const [jobSalary, setJobSalary] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [jobDesc, setJobDesc] = useState('');
+  const [jobLocation, setJobLocation] = useState('');      // ✅ নতুন
+  const [jobType, setJobType] = useState('');              // ✅ নতুন
+  const [workersNeeded, setWorkersNeeded] = useState('');  // ✅ নতুন
+  const [urgency, setUrgency] = useState('');              // ✅ নতুন
 
   const handleWorkPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + workFiles.length > 6) return alert('Max 6 photos');
+    if (files.length + workFiles.length > 6) {
+      alert('Max 6 photos');
+      return;
+    }
     setWorkFiles([...workFiles, ...files]);
     setWorkPreviews([...workPreviews, ...files.map(f => URL.createObjectURL(f))]);
+  };
+
+  const removeWorkPhoto = (index: number) => {
+    setWorkFiles(workFiles.filter((_, i) => i !== index));
+    URL.revokeObjectURL(workPreviews[index]);
+    setWorkPreviews(workPreviews.filter((_, i) => i !== index));
   };
 
   const handleLaborSubmit = async () => {
@@ -175,7 +212,10 @@ export default function CreatePage() {
       if (photoFile) {
         const compressed = await compressImage(photoFile);
         const file = new File([compressed], `${Date.now()}.webp`);
-        const { data } = await supabase.storage.from('profiles').upload(`photos/${Date.now()}.webp`, file);
+        const { data, error: uploadError } = await supabase.storage
+          .from('profiles')
+          .upload(`photos/${Date.now()}.webp`, file);
+        if (uploadError) throw uploadError;
         if (data) photoUrl = supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl;
       }
       
@@ -183,22 +223,22 @@ export default function CreatePage() {
       for (const wf of workFiles) {
         const compressed = await compressImage(wf);
         const file = new File([compressed], `${Date.now()}.webp`);
-        const { data } = await supabase.storage.from('profiles').upload(`works/${Date.now()}.webp`, file);
+        const { data, error: uploadError } = await supabase.storage
+          .from('profiles')
+          .upload(`works/${Date.now()}.webp`, file);
+        if (uploadError) throw uploadError;
         if (data) workUrls.push(supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl);
       }
       
       const { error: insertError } = await supabase.from('profiles').insert({
         phone, name, role: 'labor', category, country, city, area, experience,
-        expected_salary: salary ? `${salary} QAR` : null, license, 
-        languages: languages || null,
-        visa_status: visaStatus,
-        sponsorship, accommodation, food, bio, photo_url: photoUrl, photos: workUrls,
-        rating: 0, total_reviews: 0, is_online: true, profile_language: currentLang,
-        created_at: new Date().toISOString()
+        expected_salary: salary ? `${salary} QAR` : null, license, languages: languages || null,
+        visa_status: visaStatus, sponsorship, accommodation, food, bio, photo_url: photoUrl, 
+        photos: workUrls, rating: 0, total_reviews: 0, is_online: true, 
+        profile_language: currentLang, created_at: new Date().toISOString()
       });
       
       if (insertError) throw insertError;
-      
       setSuccess(true);
       setTimeout(() => router.push(`/${country}/${currentLang}`), 1000);
     } catch (err: any) {
@@ -216,27 +256,29 @@ export default function CreatePage() {
     setLoading(true);
     setError('');
     
+    const formattedSalary = jobSalary ? `${jobSalary} QAR` : null;
+    const formattedBio = `Job: ${jobTitle}
+Company: ${companyName}
+Phone: ${companyPhone}
+Location: ${jobLocation || 'Not specified'}
+Job Type: ${jobType || 'Not specified'}
+Workers Needed: ${workersNeeded || 'Not specified'}
+Urgency: ${urgency || 'Not specified'}
+
+Description:
+${jobDesc || 'No description provided'}`;
+    
     try {
       const { error: insertError } = await supabase.from('profiles').insert({
-        phone: companyPhone, 
-        name: companyName, 
-        role: 'employer', 
-        category: jobCat || 'General',
-        expected_salary: jobSalary ? `${jobSalary} QAR` : null, 
-        bio: `Job: ${jobTitle}\n\n${jobDesc}`,
-        city: 'Doha', 
-        country: country, 
-        rating: 0, 
-        total_reviews: 0, 
-        is_online: true,
-        profile_language: currentLang,
-        created_at: new Date().toISOString()
+        phone: companyPhone, name: companyName, role: 'employer', 
+        category: jobCat || 'General', expected_salary: formattedSalary, bio: formattedBio,
+        city: 'Doha', country: country, rating: 0, total_reviews: 0, is_online: true,
+        profile_language: currentLang, created_at: new Date().toISOString()
       });
       
       if (insertError) throw insertError;
-      
       setSuccess(true);
-      setTimeout(() => router.push(`/${country}/${currentLang}`), 1000);
+      setTimeout(() => router.push(`/${country}/${currentLang}/dashboard/employer`), 1000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -291,11 +333,17 @@ export default function CreatePage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
       <div className="max-w-md mx-auto px-4 py-4">
-        <button onClick={() => setMode('')} className="text-orange-600 mb-4 flex items-center gap-1"><ChevronLeft size={18}/> {ft.back}</button>
+        <button onClick={() => setMode('')} className="text-orange-600 mb-4 flex items-center gap-1">
+          <ChevronLeft size={18}/> {ft.back}
+        </button>
         
         {error && <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
         
-        <div className="mb-4"><div className="h-2 bg-gray-200 rounded-full"><div className="h-2 bg-orange-600 rounded-full transition-all" style={{ width: `${(step/5)*100}%` }} /></div></div>
+        <div className="mb-4">
+          <div className="h-2 bg-gray-200 rounded-full">
+            <div className="h-2 bg-orange-600 rounded-full transition-all" style={{ width: `${(step/5)*100}%` }} />
+          </div>
+        </div>
         
         <div className="bg-white rounded-2xl p-5 shadow-sm border space-y-4">
           {step === 1 && (
@@ -313,44 +361,66 @@ export default function CreatePage() {
             <>
               <div className="flex justify-center mb-2">
                 {photoPrev ? (
-                  <div className="relative"><img src={photoPrev} className="w-28 h-28 rounded-full object-cover border-4 border-orange-300" /><button onClick={()=>{setPhotoFile(null);setPhotoPrev('')}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7"><X size={16}/></button></div>
+                  <div className="relative">
+                    <img src={photoPrev} className="w-28 h-28 rounded-full object-cover border-4 border-orange-300" />
+                    <button onClick={() => { setPhotoFile(null); setPhotoPrev(''); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center">
+                      <X size={16}/>
+                    </button>
+                  </div>
                 ) : (
-                  <label className="w-28 h-28 bg-gray-100 rounded-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed"><Camera size={28} className="text-gray-500"/><span className="text-xs">{ft.photo}</span><input type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f){setPhotoFile(f);setPhotoPrev(URL.createObjectURL(f))}}} className="hidden"/></label>
+                  <label className="w-28 h-28 bg-gray-100 rounded-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed">
+                    <Camera size={28} className="text-gray-500"/>
+                    <span className="text-xs">{ft.photo}</span>
+                    <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if(f) { setPhotoFile(f); setPhotoPrev(URL.createObjectURL(f)); } }} className="hidden"/>
+                  </label>
                 )}
               </div>
-              <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.experience}</option>{DROPDOWNS.experience.map(opt => <option key={opt}>{opt}</option>)}</select>
-              <select value={visaStatus} onChange={e => setVisaStatus(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.visaStatus}</option>{DROPDOWNS.visaStatus.map(opt => <option key={opt}>{opt}</option>)}</select>
-              <select value={sponsorship} onChange={e => setSponsorship(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.sponsorship}</option>{DROPDOWNS.sponsorship.map(opt => <option key={opt}>{opt}</option>)}</select>
+              <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.experience}</option>
+                {DROPDOWNS.experience.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
+              <select value={visaStatus} onChange={e => setVisaStatus(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.visaStatus}</option>
+                {DROPDOWNS.visaStatus.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
+              <select value={sponsorship} onChange={e => setSponsorship(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.sponsorship}</option>
+                {DROPDOWNS.sponsorship.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
             </>
           )}
           
           {step === 3 && (
             <>
               <input value={salary} onChange={e => setSalary(e.target.value)} placeholder={ft.salary} className="w-full p-3 border rounded-xl" type="number" />
-              <select value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.city}</option>{DROPDOWNS.cities.map(opt => <option key={opt}>{opt}</option>)}</select>
-              <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.area}</option>{DROPDOWNS.areas.map(opt => <option key={opt}>{opt}</option>)}</select>
-              <select value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.accommodation}</option>{DROPDOWNS.accommodation.map(opt => <option key={opt}>{opt}</option>)}</select>
-              <select value={food} onChange={e => setFood(e.target.value)} className="w-full p-3 border rounded-xl"><option value="">{ft.food}</option>{DROPDOWNS.food.map(opt => <option key={opt}>{opt}</option>)}</select>
+              <select value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.city}</option>
+                {DROPDOWNS.cities.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
+              <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.area}</option>
+                {DROPDOWNS.areas.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
+              <select value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.accommodation}</option>
+                {DROPDOWNS.accommodation.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
+              <select value={food} onChange={e => setFood(e.target.value)} className="w-full p-3 border rounded-xl">
+                <option value="">{ft.food}</option>
+                {DROPDOWNS.food.map(opt => <option key={opt}>{opt}</option>)}
+              </select>
             </>
           )}
           
           {step === 4 && (
             <>
               <input value={license} onChange={e => setLicense(e.target.value)} placeholder={ft.license} className="w-full p-3 border rounded-xl" />
-              
-              <select 
-                value={languages} 
-                onChange={e => setLanguages(e.target.value)} 
-                className="w-full p-3 border rounded-xl"
-              >
+              <select value={languages} onChange={e => setLanguages(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.languages}</option>
                 {LANGUAGE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.native} ({opt.label})
-                  </option>
+                  <option key={opt.value} value={opt.value}>{opt.native} ({opt.label})</option>
                 ))}
               </select>
-              
               <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder={ft.bio} rows={4} className="w-full p-3 border rounded-xl resize-none" />
             </>
           )}
@@ -363,8 +433,13 @@ export default function CreatePage() {
                 <input type="file" multiple accept="image/*" onChange={handleWorkPhotos} className="hidden"/>
               </label>
               <div className="grid grid-cols-3 gap-2 mt-3">
-                {workPreviews.map((p,i) => (
-                  <div key={i} className="relative"><img src={p} className="h-24 w-full object-cover rounded-lg"/><button onClick={()=>{setWorkFiles(workFiles.filter((_,j)=>j!==i));setWorkPreviews(workPreviews.filter((_,j)=>j!==i))}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6"><X size={12}/></button></div>
+                {workPreviews.map((p, i) => (
+                  <div key={i} className="relative">
+                    <img src={p} className="h-24 w-full object-cover rounded-lg"/>
+                    <button onClick={() => removeWorkPhoto(i)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                      <X size={12}/>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -373,24 +448,33 @@ export default function CreatePage() {
         
         <div className="flex gap-3 mt-5">
           {step > 1 && <button onClick={() => setStep(step-1)} className="flex-1 py-3 bg-gray-100 rounded-xl font-semibold">{ft.back}</button>}
-          {step < 5 ? <button onClick={() => setStep(step+1)} className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-semibold">{ft.next} →</button> : <button onClick={handleLaborSubmit} disabled={loading} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold">{loading ? '...' : ft.submit}</button>}
+          {step < 5 ? 
+            <button onClick={() => setStep(step+1)} className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-semibold">{ft.next} →</button> : 
+            <button onClick={handleLaborSubmit} disabled={loading} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold">{loading ? '...' : ft.submit}</button>
+          }
         </div>
       </div>
       <MobileNav country={country} lang={currentLang} />
     </div>
   );
 
+  // ✅ Employer Form with missing fields added
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
       <div className="max-w-md mx-auto px-4 py-8">
-        <button onClick={() => setMode('')} className="text-blue-600 mb-4 flex items-center gap-1"><ChevronLeft size={18}/> {ft.back}</button>
+        <button onClick={() => setMode('')} className="text-blue-600 mb-4 flex items-center gap-1">
+          <ChevronLeft size={18}/> {ft.back}
+        </button>
         
         {error && <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
         
         <div className="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
-          <h2 className="text-2xl font-bold flex items-center gap-2"><Briefcase size={24}/> {ft.employerTitle}</h2>
-          <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder={ft.jobTitle} className="w-full p-3 border rounded-xl text-lg" />
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Briefcase size={24}/> {ft.employerTitle}
+          </h2>
+          
+          <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder={ft.jobTitle} className="w-full p-3 border rounded-xl" />
           
           <select value={jobCat} onChange={e => setJobCat(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.category}</option>
@@ -398,10 +482,43 @@ export default function CreatePage() {
           </select>
           
           <input value={jobSalary} onChange={e => setJobSalary(e.target.value)} placeholder={ft.jobSalary} className="w-full p-3 border rounded-xl" />
+          
+          {/* ✅ New Field: Job Location */}
+          <input 
+            value={jobLocation} 
+            onChange={e => setJobLocation(e.target.value)} 
+            placeholder={ft.jobLocation || 'Job Location *'} 
+            className="w-full p-3 border rounded-xl" 
+          />
+          
+          {/* ✅ New Field: Job Type */}
+          <select value={jobType} onChange={e => setJobType(e.target.value)} className="w-full p-3 border rounded-xl">
+            <option value="">{ft.jobType || 'Job Type *'}</option>
+            {DROPDOWNS.jobTypes.map(opt => <option key={opt}>{opt}</option>)}
+          </select>
+          
+          {/* ✅ New Field: Workers Needed */}
+          <input 
+            value={workersNeeded} 
+            onChange={e => setWorkersNeeded(e.target.value)} 
+            placeholder={ft.workersNeeded || 'Workers Needed *'} 
+            type="number"
+            className="w-full p-3 border rounded-xl" 
+          />
+          
+          {/* ✅ New Field: Urgency */}
+          <select value={urgency} onChange={e => setUrgency(e.target.value)} className="w-full p-3 border rounded-xl">
+            <option value="">{ft.urgency || 'Urgency'}</option>
+            {DROPDOWNS.urgency.map(opt => <option key={opt}>{opt}</option>)}
+          </select>
+          
           <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder={ft.companyName} className="w-full p-3 border rounded-xl" />
           <input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder={ft.companyPhone} className="w-full p-3 border rounded-xl" type="tel" />
           <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder={ft.jobDesc} rows={4} className="w-full p-3 border rounded-xl resize-none" />
-          <button onClick={handleEmployerSubmit} disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg">{loading ? 'Posting...' : ft.jobSubmit}</button>
+          
+          <button onClick={handleEmployerSubmit} disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition disabled:opacity-50">
+            {loading ? 'Posting...' : ft.jobSubmit}
+          </button>
         </div>
       </div>
       <MobileNav country={country} lang={currentLang} />

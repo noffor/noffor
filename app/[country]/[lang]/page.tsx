@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react'; // 🔥 useCallback, useMemo যোগ করুন
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileNav from '@/components/layout/MobileNav';
@@ -33,7 +33,8 @@ export default function HomePage() {
     if (stored) setOnline(JSON.parse(stored));
   }, []);
 
-  const t = (key: string) => {
+  // 🔥 useCallback যোগ করুন
+  const t = useCallback((key: string) => {
     const texts: any = {
       en: { quick: 'Quick', hire: 'Hire', online: 'Online', offline: 'Offline', hideMap: 'Hide Map' },
       bn: { quick: 'কুইক', hire: 'হায়ার', online: 'অন', offline: 'অফ', hideMap: 'ম্যাপ লুকান' },
@@ -41,9 +42,10 @@ export default function HomePage() {
       hi: { quick: 'क्विक', hire: 'हायर', online: 'ऑन', offline: 'ऑफ', hideMap: 'मैप छुपाएं' },
     };
     return texts[lang]?.[key] || texts.en[key] || key;
-  };
+  }, [lang]);
 
-  const toggleOnline = async () => {
+  // 🔥 useCallback যোগ করুন
+  const toggleOnline = useCallback(async () => {
     const next = !online;
     const stored = localStorage.getItem('noffor_worker');
     if (stored) {
@@ -54,7 +56,16 @@ export default function HomePage() {
     } else {
       alert(lang === 'bn' ? 'দয়া করে লগইন করুন' : 'Please login first');
     }
-  };
+  }, [online, lang]);
+
+  // 🔥 মেমোয়াজড কম্পোনেন্টস
+  const memoizedUnifiedListLabor = useMemo(() => (
+    <UnifiedList type="labor" country={country} lang={lang} />
+  ), [country, lang]);
+
+  const memoizedUnifiedListEmployer = useMemo(() => (
+    <UnifiedList type="employer" country={country} lang={lang} />
+  ), [country, lang]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
@@ -63,7 +74,6 @@ export default function HomePage() {
         
         {/* PC Layout */}
         <div className="hidden lg:block">
-          {/* Quick Hire + Online Toggle */}
           <div className="flex items-center gap-2 mb-3">
             <button onClick={() => setShowMap(!showMap)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
@@ -83,7 +93,6 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Map বা Hero */}
           {showMap && userLocation ? (
             <LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} />
           ) : (
@@ -95,18 +104,16 @@ export default function HomePage() {
           </div>
           
           <div className="flex gap-4 mt-4">
-            {/* Sidebar - শুধু Sidebar (CategoryGrid sidebar-এই আছে) */}
             <div className="w-56 shrink-0">
               <Sidebar country={country} lang={lang} />
             </div>
             
-            {/* Main Content */}
             <div className="flex-1 min-w-0">
               <div className="bg-white rounded-xl p-4 border mb-4">
-                <UnifiedList type="labor" country={country} lang={lang} />
+                {memoizedUnifiedListLabor}
               </div>
               <div className="bg-white rounded-xl p-4 border">
-                <UnifiedList type="employer" country={country} lang={lang} />
+                {memoizedUnifiedListEmployer}
               </div>
             </div>
           </div>
@@ -125,10 +132,10 @@ export default function HomePage() {
             <CategoryGrid country={country} lang={lang} />
           </div>
           <div className="bg-white rounded-xl p-3 border mt-3">
-            <UnifiedList type="labor" country={country} lang={lang} />
+            {memoizedUnifiedListLabor}
           </div>
           <div className="bg-white rounded-xl p-3 border mt-3">
-            <UnifiedList type="employer" country={country} lang={lang} />
+            {memoizedUnifiedListEmployer}
           </div>
         </div>
       </div>

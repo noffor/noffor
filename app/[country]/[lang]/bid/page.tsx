@@ -578,11 +578,10 @@ export default function BidPage() {
               }`}
             >
               <cat.icon size={14} className="mx-auto mb-0.5" />
-              {tr[cat.name?.toLowerCase() as keyof typeof tr] || cat.name}
+              {tr[cat.key === 'AC Technician' ? 'ac_tech' : cat.key === 'Electrician' ? 'electric' : cat.name?.toLowerCase() as keyof typeof tr] || cat.name}
             </button>
           ))}
         </div>
-
         {/* Job Grid */}
         {loading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

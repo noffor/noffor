@@ -10,7 +10,6 @@ export type LangCode = keyof typeof languages;
 
 export const texts: Record<LangCode, Record<string, string>> = {
   en: {
-    // ============ Main Navigation ============
     searchPlaceholder: 'Search by name or number...',
     navSearch: 'Search',
     home: 'Home',
@@ -18,12 +17,11 @@ export const texts: Record<LangCode, Record<string, string>> = {
     create: 'Create',
     dashboard: 'Dashboard',
     map: 'Map',
+    bid: 'Bid',
     login: 'Login',
     register: 'Register',
     logout: 'Logout',
     settings: 'Settings',
-    
-    // ============ Home Page ============
     featured: 'Featured Workers',
     categories: 'Categories',
     allWorkers: 'All Workers',
@@ -70,8 +68,12 @@ export const texts: Record<LangCode, Record<string, string>> = {
     savedWorkers: 'Saved Workers',
     findLabor: 'Find Labor',
     hiring: 'HIRING',
-    
-    // ============ Booking Form ============
+    response: 'Response',
+    rating: 'Rating',
+    month: 'month',
+    notSpecified: 'Not specified',
+    similarWorkers: 'Similar Workers',
+    sendJobOffer: 'Send Job Offer',
     bookWorker: 'Book This Worker',
     jobTitle: 'Job Title *',
     jobDescription: 'Job Description *',
@@ -96,8 +98,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     qar: 'QAR',
     perHour: 'per hour',
     perDay: 'per day',
-    
-    // ============ Worker Requests ============
     bookingRequests: 'Booking Requests',
     noRequests: 'No pending requests',
     accept: 'Accept',
@@ -106,8 +106,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     from: 'From',
     eta: 'ETA',
     distance: 'Distance',
-    
-    // ============ Tracking ============
     bookingStatus: 'Booking Status',
     pending: 'Pending',
     accepted: 'Accepted',
@@ -117,20 +115,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     workInProgress: 'Work in progress',
     finishWork: 'Finish Work',
     markComplete: 'Mark as Complete',
-    
-    // ============ Near Workers ============
     nearbyWorkers: 'Nearby Workers',
     kmAway: 'km away',
     mins: 'mins',
     hire: 'Hire',
     noNearbyWorkers: 'No workers available nearby',
-    
-    // ============ Negotiation ============
     youOffered: 'You offered',
     workerCountered: 'Worker countered',
     proposeNew: 'Propose New',
-    
-    // ============ Messages ============
     bookingSuccess: 'Booking request sent successfully!',
     bookingAccepted: 'Booking accepted! Worker is on the way.',
     bookingRejected: 'Booking rejected.',
@@ -149,7 +141,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'Please login to continue',
   },
   bn: {
-    // ============ Main Navigation ============
     searchPlaceholder: 'নাম বা নাম্বার দিয়ে খুঁজুন...',
     navSearch: 'সার্চ',
     home: 'হোম',
@@ -157,12 +148,11 @@ export const texts: Record<LangCode, Record<string, string>> = {
     create: 'তৈরি',
     dashboard: 'ড্যাশবোর্ড',
     map: 'ম্যাপ',
+    bid: 'বিড',
     login: 'লগইন',
     register: 'রেজিস্টার',
     logout: 'লগআউট',
     settings: 'সেটিংস',
-    
-    // ============ Home Page ============
     featured: 'ফিচার্ড কর্মী',
     categories: 'ক্যাটাগরি',
     allWorkers: 'সব কর্মী',
@@ -209,8 +199,12 @@ export const texts: Record<LangCode, Record<string, string>> = {
     savedWorkers: 'সেভ করা কর্মী',
     findLabor: 'শ্রমিক খুঁজুন',
     hiring: 'নিয়োগ',
-    
-    // ============ Booking Form ============
+    response: 'সাড়া',
+    rating: 'রেটিং',
+    month: 'মাস',
+    notSpecified: 'নির্ধারিত নয়',
+    similarWorkers: 'অনুরূপ কর্মী',
+    sendJobOffer: 'জব অফার পাঠান',
     bookWorker: 'শ্রমিক বুক করুন',
     jobTitle: 'কাজের শিরোনাম *',
     jobDescription: 'কাজের বিবরণ *',
@@ -235,8 +229,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     qar: 'রিয়াল',
     perHour: 'ঘন্টা প্রতি',
     perDay: 'দিন প্রতি',
-    
-    // ============ Worker Requests ============
     bookingRequests: 'বুকিং রিকোয়েস্ট',
     noRequests: 'কোনো রিকোয়েস্ট নেই',
     accept: 'গ্রহণ করুন',
@@ -245,8 +237,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     from: 'থেকে',
     eta: 'পৌঁছাতে সময়',
     distance: 'দূরত্ব',
-    
-    // ============ Tracking ============
     bookingStatus: 'বুকিং স্ট্যাটাস',
     pending: 'অপেক্ষমান',
     accepted: 'গৃহীত',
@@ -256,20 +246,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     workInProgress: 'কাজ চলছে',
     finishWork: 'কাজ শেষ করুন',
     markComplete: 'সম্পন্ন করুন',
-    
-    // ============ Near Workers ============
     nearbyWorkers: 'কাছাকাছি শ্রমিক',
     kmAway: 'কিমি দূরে',
     mins: 'মিনিট',
     hire: 'নিয়োগ',
     noNearbyWorkers: 'কাছাকাছি কোনো শ্রমিক নেই',
-    
-    // ============ Negotiation ============
     youOffered: 'আপনি অফার করেছেন',
     workerCountered: 'শ্রমিক কাউন্টার দিয়েছেন',
     proposeNew: 'নতুন প্রস্তাব দিন',
-    
-    // ============ Messages ============
     bookingSuccess: 'বুকিং রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে!',
     bookingAccepted: 'বুকিং গৃহীত হয়েছে! শ্রমিক আসছে।',
     bookingRejected: 'বুকিং বাতিল করা হয়েছে।',
@@ -288,7 +272,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'চালিয়ে যেতে লগইন করুন',
   },
   ar: {
-    // ============ Main Navigation ============
     searchPlaceholder: 'ابحث بالاسم أو الرقم...',
     navSearch: 'بحث',
     home: 'الرئيسية',
@@ -296,12 +279,11 @@ export const texts: Record<LangCode, Record<string, string>> = {
     create: 'إنشاء',
     dashboard: 'لوحة التحكم',
     map: 'خريطة',
+    bid: 'مزايدة',
     login: 'تسجيل الدخول',
     register: 'تسجيل',
     logout: 'تسجيل الخروج',
     settings: 'الإعدادات',
-    
-    // ============ Home Page ============
     featured: 'عمال مميزون',
     categories: 'الفئات',
     allWorkers: 'جميع العمال',
@@ -348,8 +330,12 @@ export const texts: Record<LangCode, Record<string, string>> = {
     savedWorkers: 'العمال المحفوظين',
     findLabor: 'البحث عن عمال',
     hiring: 'توظيف',
-    
-    // ============ Booking Form ============
+    response: 'رد',
+    rating: 'تقييم',
+    month: 'شهر',
+    notSpecified: 'غير محدد',
+    similarWorkers: 'عمال مشابهين',
+    sendJobOffer: 'إرسال عرض عمل',
     bookWorker: 'احجز هذا العامل',
     jobTitle: 'عنوان الوظيفة *',
     jobDescription: 'وصف الوظيفة *',
@@ -374,8 +360,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     qar: 'ريال',
     perHour: 'في الساعة',
     perDay: 'في اليوم',
-    
-    // ============ Worker Requests ============
     bookingRequests: 'طلبات الحجز',
     noRequests: 'لا توجد طلبات معلقة',
     accept: 'قبول',
@@ -384,8 +368,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     from: 'من',
     eta: 'الوقت المتوقع',
     distance: 'المسافة',
-    
-    // ============ Tracking ============
     bookingStatus: 'حالة الحجز',
     pending: 'قيد الانتظار',
     accepted: 'مقبول',
@@ -395,20 +377,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     workInProgress: 'العمل جار',
     finishWork: 'إنهاء العمل',
     markComplete: 'وضع كمكتمل',
-    
-    // ============ Near Workers ============
     nearbyWorkers: 'عمال قريب',
     kmAway: 'كم',
     mins: 'دقيقة',
     hire: 'استأجر',
     noNearbyWorkers: 'لا يوجد عمال قريب',
-    
-    // ============ Negotiation ============
     youOffered: 'عرضت',
     workerCountered: 'العامل عرض',
     proposeNew: 'اقترح جديد',
-    
-    // ============ Messages ============
     bookingSuccess: 'تم إرسال طلب الحجز بنجاح!',
     bookingAccepted: 'تم قبول الحجز! العامل في الطريق.',
     bookingRejected: 'تم رفض الحجز.',
@@ -427,7 +403,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'يرجى تسجيل الدخول للمتابعة',
   },
   hi: {
-    // ============ Main Navigation ============
     searchPlaceholder: 'नाम या नंबर से खोजें...',
     navSearch: 'खोज',
     home: 'होम',
@@ -435,12 +410,11 @@ export const texts: Record<LangCode, Record<string, string>> = {
     create: 'बनाएं',
     dashboard: 'डैशबोर्ड',
     map: 'मैप',
+    bid: 'बिड',
     login: 'लॉगिन',
     register: 'रजिस्टर',
     logout: 'लॉगआउट',
     settings: 'सेटिंग्स',
-    
-    // ============ Home Page ============
     featured: 'फीचर्ड वर्कर',
     categories: 'श्रेणियां',
     allWorkers: 'सभी कर्मचारी',
@@ -487,8 +461,12 @@ export const texts: Record<LangCode, Record<string, string>> = {
     savedWorkers: 'सहेजे गए श्रमिक',
     findLabor: 'श्रमिक खोजें',
     hiring: 'नियुक्ति',
-    
-    // ============ Booking Form ============
+    response: 'प्रतिक्रिया',
+    rating: 'रेटिंग',
+    month: 'महीना',
+    notSpecified: 'निर्दिष्ट नहीं',
+    similarWorkers: 'समान श्रमिक',
+    sendJobOffer: 'जॉब ऑफर भेजें',
     bookWorker: 'इस कर्मचारी को बुक करें',
     jobTitle: 'नौकरी का शीर्षक *',
     jobDescription: 'नौकरी का विवरण *',
@@ -513,8 +491,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     qar: 'रियाल',
     perHour: 'प्रति घंटा',
     perDay: 'प्रति दिन',
-    
-    // ============ Worker Requests ============
     bookingRequests: 'बुकिंग अनुरोध',
     noRequests: 'कोई अनुरोध नहीं',
     accept: 'स्वीकार करें',
@@ -523,8 +499,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     from: 'से',
     eta: 'अनुमानित समय',
     distance: 'दूरी',
-    
-    // ============ Tracking ============
     bookingStatus: 'बुकिंग स्थिति',
     pending: 'लंबित',
     accepted: 'स्वीकृत',
@@ -534,20 +508,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     workInProgress: 'कार्य प्रगति पर',
     finishWork: 'कार्य समाप्त करें',
     markComplete: 'पूर्ण चिह्नित करें',
-    
-    // ============ Near Workers ============
     nearbyWorkers: 'पास के श्रमिक',
     kmAway: 'किमी दूर',
     mins: 'मिनट',
     hire: 'किराया',
     noNearbyWorkers: 'पास में कोई श्रमिक नहीं',
-    
-    // ============ Negotiation ============
     youOffered: 'आपने प्रस्ताव दिया',
     workerCountered: 'श्रमिक ने जवाब दिया',
     proposeNew: 'नया प्रस्ताव दें',
-    
-    // ============ Messages ============
     bookingSuccess: 'बुकिंग अनुरोध सफलतापूर्वक भेजा गया!',
     bookingAccepted: 'बुकिंग स्वीकृत! श्रमिक आ रहा है।',
     bookingRejected: 'बुकिंग अस्वीकृत।',
@@ -566,6 +534,30 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'जारी रखने के लिए लॉगिन करें',
   },
 };
+
+// ✅ নম্বর ট্রান্সলেট করার ফাংশন
+export function translateNumber(num: string | number, lang: string): string {
+  const numStr = num.toString();
+  const digits: Record<string, Record<string, string>> = {
+    en: { '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9' },
+    bn: { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' },
+    ar: { '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩' },
+    hi: { '0': '०', '1': '१', '2': '२', '3': '३', '4': '४', '5': '५', '6': '६', '7': '७', '8': '८', '9': '९' },
+  };
+  
+  return numStr.split('').map(char => digits[lang]?.[char] || char).join('');
+}
+
+// ✅ কারেন্সি ট্রান্সলেট করার ফাংশন
+export function getCurrencySymbol(lang: string): string {
+  const currencies: Record<string, string> = {
+    en: 'QAR',
+    bn: 'রিয়াল',
+    ar: 'ريال',
+    hi: 'रियाल',
+  };
+  return currencies[lang] || 'QAR';
+}
 
 export function getText(lang: LangCode, key: string): string {
   return texts[lang]?.[key] || texts.en[key] || key;
