@@ -1,7 +1,8 @@
+// components/home/CategoryGrid.tsx
+import React, { useMemo, useCallback } from 'react';
 import { categories } from '@/lib/config';
 import { getText, LangCode } from '@/lib/language';
 
-// ক্যাটাগরির মাল্টি-ল্যাং নাম
 const categoryNames: Record<string, Record<string, string>> = {
   driver: { en: 'Driver', ar: 'سائق', bn: 'ড্রাইভার', hi: 'ड्राइवर' },
   electrician: { en: 'Electrician', ar: 'كهربائي', bn: 'ইলেকট্রিশিয়ান', hi: 'इलेक्ट्रीशियन' },
@@ -15,23 +16,61 @@ const categoryNames: Record<string, Record<string, string>> = {
   cook: { en: 'Cook', ar: 'طباخ', bn: 'রাঁধুনি', hi: 'रसोइया' },
   helper: { en: 'Helper', ar: 'مساعد', bn: 'হেল্পার', hi: 'हेल्पर' },
   gardener: { en: 'Gardener', ar: 'بستاني', bn: 'মালী', hi: 'माली' },
+} as const;
+
+const optimizeIconUrl = (url: string, size: number = 80): string => {
+  if (!url) return '';
+  if (url.includes('supabase.co/storage')) return `${url}?width=${size}&quality=80&format=webp`;
+  if (url.includes('cloudinary.com')) return url.replace('/upload/', `/upload/w_${size},q_80,f_webp/`);
+  return url;
 };
 
+const CategoryCard = React.memo(({ cat, lang, rest }: { 
+  cat: { slug: string; name: string; icon: string }; 
+  lang: string; 
+  rest: string;
+}) => {
+  const displayName = categoryNames[cat.slug]?.[lang] || cat.name;
+  const optimizedIcon = useMemo(() => optimizeIconUrl(cat.icon, 100), [cat.icon]);
+
+  return (
+    <a 
+      href={`${rest}/category/${cat.slug}`} 
+      className="category-card"
+    >
+      {/* 🔥 বক্স ছোট — ছবি বড় */}
+      <div className="category-icon-box">
+        <img 
+          src={optimizedIcon || '/icons/default.webp'} 
+          alt={displayName} 
+          className="category-icon"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/icons/default.webp';
+          }}
+        />
+      </div>
+      <span className="category-title">{displayName}</span>
+    </a>
+  );
+});
+
+CategoryCard.displayName = 'CategoryCard';
+
 export default function CategoryGrid({ country, lang }: { country: string; lang: string }) {
-  const t = (key: string) => getText(lang as LangCode, key);
-  const rest = `/${country}/${lang}`;
+  const t = useCallback((key: string) => getText(lang as LangCode, key), [lang]);
+  const rest = useMemo(() => `/${country}/${lang}`, [country, lang]);
+  const memoizedCategories = useMemo(() => categories, []);
 
   return (
     <div>
-      <h2 className="font-bold text-gray-800 text-sm lg:text-lg mb-2 px-1">{t('categories')}</h2>
-      <div className="grid grid-cols-4 gap-2">
-        {categories.map(cat => (
-          <a key={cat.slug} href={`${rest}/category/${cat.slug}`} className="bg-gray-50 hover:bg-orange-50 rounded-xl p-2 text-center no-underline border border-transparent hover:border-orange-200 transition-all active:scale-95">
-            <img src={cat.icon} alt={cat.name} className="w-10 h-10 mx-auto mb-1" loading="lazy" />
-            <p className="text-[10px] font-medium text-gray-700 truncate">
-              {categoryNames[cat.slug]?.[lang] || cat.name}
-            </p>
-          </a>
+      <h2 className="font-bold text-gray-800 text-sm sm:text-base lg:text-lg mb-2 px-1 select-none">
+        {t('categories')}
+      </h2>
+      <div className="grid grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2 lg:gap-3">
+        {memoizedCategories.map(cat => (
+          <CategoryCard key={cat.slug} cat={cat} lang={lang} rest={rest} />
         ))}
       </div>
     </div>

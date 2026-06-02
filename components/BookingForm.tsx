@@ -1,37 +1,135 @@
 // components/BookingForm.tsx
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, startTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Clock, DollarSign, Send, X, Loader2, Navigation } from 'lucide-react';
+import { MapPin, Calendar, Clock, DollarSign, Send, X, Loader2, Navigation, Star, User, Briefcase } from 'lucide-react';
 import { getText, LangCode } from '@/lib/language';
 
+// ═══════════════════════════════════════════════════════════
+// স্ট্যাটিক ট্রান্সলেশন (Module-level)
+// ═══════════════════════════════════════════════════════════
+const T: Record<string, Record<string, string>> = {
+  en: { job_details: 'Job Details', your_name: 'Your Name *', phone: 'Phone *', location: 'Location *', description: 'Description', use_location: 'Use current location', schedule_payment: 'Schedule & Payment', start_date: 'Start Date', start_time: 'Start Time', duration_days: 'Duration (Days)', offered_amount: 'Offered Amount (QAR)', payment_method: 'Payment Method', expects: 'Worker expects:', cash: 'Cash', online: 'Online', review_confirm: 'Review & Confirm', worker_label: 'Worker:', category_label: 'Category:', distance_label: 'Distance:', eta: 'ETA:', location_label: 'Location:', date_label: 'Date:', duration_label: 'Duration:', total: 'Total:', back: 'Back', next: 'Next', confirm: 'Confirm Booking', submitting: 'Submitting...', required: 'Please fill all required fields', km: 'km', min: 'min', day: 'day(s)', new: 'New', error: 'Booking failed. Please try again.', success: 'Booking confirmed! Redirecting...' },
+  bn: { job_details: 'কাজের বিবরণ', your_name: 'আপনার নাম *', phone: 'ফোন *', location: 'অবস্থান *', description: 'বিবরণ', use_location: 'বর্তমান অবস্থান', schedule_payment: 'সময়সূচি ও পেমেন্ট', start_date: 'শুরুর তারিখ', start_time: 'শুরুর সময়', duration_days: 'সময়কাল (দিন)', offered_amount: 'অফারকৃত মূল্য (QAR)', payment_method: 'পেমেন্ট পদ্ধতি', expects: 'শ্রমিক আশা করে:', cash: 'ক্যাশ', online: 'অনলাইন', review_confirm: 'রিভিউ ও নিশ্চিতকরণ', worker_label: 'শ্রমিক:', category_label: 'ক্যাটাগরি:', distance_label: 'দূরত্ব:', eta: 'সময়:', location_label: 'অবস্থান:', date_label: 'তারিখ:', duration_label: 'সময়কাল:', total: 'মোট:', back: 'পিছনে', next: 'পরবর্তী', confirm: 'বুকিং নিশ্চিত', submitting: 'জমা হচ্ছে...', required: 'সব প্রয়োজনীয় তথ্য পূরণ করুন', km: 'কিমি', min: 'মিনিট', day: 'দিন', new: 'নতুন', error: 'বুকিং ব্যর্থ। আবার চেষ্টা করুন।', success: 'বুকিং নিশ্চিত! রিডাইরেক্ট হচ্ছে...' },
+  ar: { job_details: 'تفاصيل العمل', your_name: 'اسمك *', phone: 'هاتف *', location: 'موقع *', description: 'وصف', use_location: 'استخدام الموقع', schedule_payment: 'الجدول والدفع', start_date: 'تاريخ البدء', start_time: 'وقت البدء', duration_days: 'المدة (أيام)', offered_amount: 'المبلغ (QAR)', payment_method: 'طريقة الدفع', expects: 'العامل يتوقع:', cash: 'نقداً', online: 'أونلاين', review_confirm: 'مراجعة وتأكيد', worker_label: 'العامل:', category_label: 'الفئة:', distance_label: 'المسافة:', eta: 'الوقت:', location_label: 'الموقع:', date_label: 'التاريخ:', duration_label: 'المدة:', total: 'المجموع:', back: 'رجوع', next: 'التالي', confirm: 'تأكيد', submitting: 'جاري...', required: 'يرجى ملء جميع الحقول', km: 'كم', min: 'دقيقة', day: 'يوم', new: 'جديد', error: 'فشل الحجز. حاول مرة أخرى.', success: 'تم التأكيد! جاري التحويل...' },
+  hi: { job_details: 'काम का विवरण', your_name: 'आपका नाम *', phone: 'फ़ोन *', location: 'स्थान *', description: 'विवरण', use_location: 'वर्तमान स्थान', schedule_payment: 'समय और भुगतान', start_date: 'शुरू तारीख', start_time: 'शुरू समय', duration_days: 'अवधि (दिन)', offered_amount: 'राशि (QAR)', payment_method: 'भुगतान विधि', expects: 'श्रमिक अपेक्षा:', cash: 'नकद', online: 'ऑनलाइन', review_confirm: 'समीक्षा और पुष्टि', worker_label: 'श्रमिक:', category_label: 'श्रेणी:', distance_label: 'दूरी:', eta: 'समय:', location_label: 'स्थान:', date_label: 'तारीख:', duration_label: 'अवधि:', total: 'कुल:', back: 'पीछे', next: 'अगला', confirm: 'पुष्टि', submitting: 'जमा हो रहा...', required: 'सभी ज़रूरी जानकारी भरें', km: 'किमी', min: 'मिनट', day: 'दिन', new: 'नया', error: 'बुकिंग विफल। पुनः प्रयास करें।', success: 'पुष्टि हो गई! रीडायरेक्ट...' },
+};
+
+// ═══════════════════════════════════════════════════════════
+// কনফিগ
+// ═══════════════════════════════════════════════════════════
+const CONFIG = {
+  GEOLOCATION_TIMEOUT: 5000,
+  AVG_SPEED_KMPH: 30,
+  EARTH_RADIUS_KM: 6371,
+  MAX_RETRY: 2,
+};
+
+// ═══════════════════════════════════════════════════════════
+// ইউটিলিটি (Pure Functions)
+// ═══════════════════════════════════════════════════════════
+function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) ** 2;
+  return Math.round(CONFIG.EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function calcETA(distKm: number): number {
+  return Math.ceil((distKm / CONFIG.AVG_SPEED_KMPH) * 60);
+}
+
+// ═══════════════════════════════════════════════════════════
+// টাইপস
+// ═══════════════════════════════════════════════════════════
 interface Worker {
-  id: string;
-  name: string;
-  category: string;
-  photo_url?: string;
-  rating?: number;
-  experience?: string;
-  expected_salary?: string;
-  phone?: string;
-  latitude?: number;
-  longitude?: number;
-  distance?: number;
-  eta?: number;
+  id: string; name: string; category: string; photo_url?: string;
+  rating?: number; expected_salary?: string; phone?: string;
+  latitude?: number; longitude?: number; distance?: number; eta?: number;
 }
 
 interface BookingFormProps {
-  worker: Worker;
-  isOpen: boolean;
-  onClose: () => void;
-  country: string;
-  lang: string;
+  worker: Worker; isOpen: boolean; onClose: () => void;
+  country: string; lang: string;
 }
 
+// ═══════════════════════════════════════════════════════════
+// স্টেপ ইন্ডিকেটর (Memoized)
+// ═══════════════════════════════════════════════════════════
+const StepIndicator = React.memo(({ step }: { step: number }) => (
+  <div className="flex items-center px-4 py-3 gap-2">
+    {[1, 2, 3].map((s) => (
+      <div key={s} className="flex items-center gap-2 flex-1">
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${
+          step >= s ? 'bg-green-600 text-white scale-110' : 'bg-gray-200 text-gray-400'
+        }`}>
+          {step > s ? '✓' : s}
+        </div>
+        {s < 3 && <div className={`flex-1 h-1 rounded-full transition-colors duration-300 ${step > s ? 'bg-green-500' : 'bg-gray-200'}`} />}
+      </div>
+    ))}
+  </div>
+));
+StepIndicator.displayName = 'StepIndicator';
+
+// ═══════════════════════════════════════════════════════════
+// ওয়ার্কার হেডার (Memoized)
+// ═══════════════════════════════════════════════════════════
+const WorkerHeader = React.memo(({ worker, txt, onClose }: { worker: Worker; txt: Record<string, string>; onClose: () => void }) => (
+  <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex items-center justify-between z-10 rounded-t-2xl">
+    <div className="flex items-center gap-3 min-w-0">
+      <img 
+        src={worker.photo_url || '/default-avatar.png'} 
+        alt={worker.name}
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-100 flex-shrink-0"
+        loading="lazy"
+        onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.png'; }}
+      />
+      <div className="min-w-0">
+        <p className="font-bold text-gray-800 text-sm sm:text-base truncate">{worker.name}</p>
+        <p className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1">
+          <Briefcase size={10} /> {worker.category}
+          {worker.rating && <><span className="mx-1">•</span><Star size={10} className="text-yellow-500" /> {worker.rating}</>}
+          {!worker.rating && <><span className="mx-1">•</span>{txt.new}</>}
+        </p>
+      </div>
+    </div>
+    <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+      <X size={20} className="text-gray-400" />
+    </button>
+  </div>
+));
+WorkerHeader.displayName = 'WorkerHeader';
+
+// ═══════════════════════════════════════════════════════════
+// ইনপুট ফিল্ড (Memoized)
+// ═══════════════════════════════════════════════════════════
+const InputField = React.memo(({ label, value, onChange, type = 'text', icon, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void;
+  type?: string; icon?: React.ReactNode; placeholder?: string;
+}) => (
+  <div>
+    <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">{label}</label>
+    <div className="relative">
+      <input 
+        value={value} onChange={e => onChange(e.target.value)} type={type} placeholder={placeholder}
+        className={`w-full px-3 py-2.5 ${icon ? 'pl-9' : ''} border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all`} 
+      />
+      {icon && <span className="absolute left-3 top-3 text-gray-400">{icon}</span>}
+    </div>
+  </div>
+));
+InputField.displayName = 'InputField';
+
+// ═══════════════════════════════════════════════════════════
+// মেইন BookingForm (Supersonic)
+// ═══════════════════════════════════════════════════════════
 export default function BookingForm({ worker, isOpen, onClose, country, lang }: BookingFormProps) {
   const router = useRouter();
-  const t = (key: string) => getText(lang as LangCode, key);
+  const txt = useMemo(() => T[lang] || T.en, [lang]);
   
   if (!worker || !isOpen) return null;
   
@@ -48,200 +146,208 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
   const [duration, setDuration] = useState('1');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [offeredAmount, setOfferedAmount] = useState(worker?.expected_salary || '');
+  
+  const alive = useRef(true);
 
+  // ═══════════════════════════════════════════════════════
+  // Geolocation (Cache-first)
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
-    if (isOpen && navigator.geolocation) {
+    if (!isOpen) return;
+    alive.current = true;
+    
+    try {
+      const cached = sessionStorage.getItem('user_loc');
+      if (cached) {
+        const p = JSON.parse(cached);
+        if (Date.now() - p.t < 300000) {
+          startTransition(() => setUserLocation({ lat: p.lat, lng: p.lng }));
+          return;
+        }
+      }
+    } catch {}
+
+    if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}
+        (pos) => {
+          if (!alive.current) return;
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          startTransition(() => setUserLocation(loc));
+          try { sessionStorage.setItem('user_loc', JSON.stringify({ ...loc, t: Date.now() })); } catch {}
+        },
+        () => {},
+        { timeout: CONFIG.GEOLOCATION_TIMEOUT, maximumAge: 300000 }
       );
     }
+
+    return () => { alive.current = false; };
   }, [isOpen]);
 
-  const calculateDistance = useCallback(() => {
-    if (!userLocation || !worker.latitude || !worker.longitude) return undefined;
-    const R = 6371;
-    const dLat = (worker.latitude - userLocation.lat) * Math.PI / 180;
-    const dLon = (worker.longitude - userLocation.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(userLocation.lat * Math.PI/180) * Math.cos(worker.latitude * Math.PI/180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-  }, [userLocation, worker]);
+  // ═══════════════════════════════════════════════════════
+  // Distance + ETA (Memoized)
+  // ═══════════════════════════════════════════════════════
+  const { distanceKm, etaMinutes } = useMemo(() => {
+    if (!userLocation || !worker.latitude || !worker.longitude) return {};
+    const dist = calcDistance(userLocation.lat, userLocation.lng, worker.latitude, worker.longitude);
+    return { distanceKm: dist, etaMinutes: calcETA(dist) };
+  }, [userLocation, worker.latitude, worker.longitude]);
 
-  const calculateETA = useCallback((distanceKm?: number) => {
-    if (!distanceKm) return undefined;
-    const avgSpeed = 30;
-    return Math.ceil((distanceKm / avgSpeed) * 60);
-  }, []);
+  // ═══════════════════════════════════════════════════════
+  // Use current location
+  // ═══════════════════════════════════════════════════════
+  const useCurrentLocation = useCallback(() => {
+    if (userLocation) {
+      setLocation(`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`);
+    }
+  }, [userLocation]);
 
-  const distanceKm = calculateDistance();
-  const etaMinutes = calculateETA(distanceKm);
-
-  const handleSubmit = async () => {
-    if (!name || !phone || !location) {
-      alert(t('required') || 'Please fill all required fields');
+  // ═══════════════════════════════════════════════════════
+  // Submit (Optimistic + Retry)
+  // ═══════════════════════════════════════════════════════
+  const handleSubmit = useCallback(async () => {
+    if (!name.trim() || !phone.trim() || !location.trim()) {
+      alert(txt.required);
       return;
     }
+    if (submitting) return;
 
     setSubmitting(true);
-    try {
-      const bookingData = {
-        worker_id: worker.id,
-        employer_name: name,
-        job_title: worker.category,
-        job_description: description,
-        category: worker.category,
-        offered_amount: parseInt(offeredAmount) || 0,
-        payment_type: 'fixed',
-        payment_method: paymentMethod,
-        hourly_rate: undefined,
-        daily_rate: undefined,
-        total_amount: parseInt(offeredAmount) || 0,
-        start_date: startDate || new Date().toISOString().split('T')[0],
-        start_time: startTime || '08:00',
-        duration_days: parseInt(duration) || 1,
-        location_text: location,
-        location_lat: userLocation?.lat || undefined,
-        location_lng: userLocation?.lng || undefined,
-        worker_lat: worker.latitude || undefined,
-        worker_lon: worker.longitude || undefined,
-        distance_km: distanceKm || undefined,
-        eta_minutes: etaMinutes || undefined,
-        special_instructions: '',
-        contact_phone: phone,
-        status: 'pending',
-        employer_id: phone,
-      };
 
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert(bookingData)
-        .select()
-        .single();
+    const bookingData = {
+      worker_id: worker.id,
+      employer_name: name.trim(),
+      job_title: worker.category,
+      job_description: description.trim(),
+      category: worker.category,
+      offered_amount: parseInt(offeredAmount) || 0,
+      payment_type: 'fixed',
+      payment_method: paymentMethod,
+      total_amount: parseInt(offeredAmount) || 0,
+      start_date: startDate || new Date().toISOString().split('T')[0],
+      start_time: startTime || '08:00',
+      duration_days: parseInt(duration) || 1,
+      location_text: location.trim(),
+      location_lat: userLocation?.lat || null,
+      location_lng: userLocation?.lng || null,
+      worker_lat: worker.latitude || null,
+      worker_lon: worker.longitude || null,
+      distance_km: distanceKm || null,
+      eta_minutes: etaMinutes || null,
+      special_instructions: '',
+      contact_phone: phone.trim(),
+      status: 'pending',
+      employer_id: phone.trim(),
+    };
 
-      if (error) throw error;
+    for (let r = 0; r <= CONFIG.MAX_RETRY; r++) {
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select()
+          .single();
 
-      await supabase.from('notifications').insert({
-        user_id: worker.id,
-        title: lang === 'bn' ? 'নতুন বুকিং রিকোয়েস্ট' : 'New Booking Request',
-        message: `${name} - ${offeredAmount} QAR`,
-        type: 'booking_request',
-        is_read: false,
-      });
+        if (error) throw error;
 
-      onClose();
-      router.push(`/${country}/${lang}/tracking/${data.id}`);
-    } catch (err: any) {
-      console.error('Booking error:', err);
-      alert(err.message || 'Booking failed');
+        // Fire-and-forget notification
+        supabase.from('notifications').insert({
+          user_id: worker.id,
+          title: lang === 'bn' ? 'নতুন বুকিং রিকোয়েস্ট' : 'New Booking Request',
+          message: `${name} - ${offeredAmount} QAR`,
+          type: 'booking_request',
+          is_read: false,
+        }).then(() => {});
+
+        onClose();
+        if (data) router.push(`/${country}/${lang}/tracking/${data.id}`);
+        return;
+      } catch (err: any) {
+        if (r >= CONFIG.MAX_RETRY) {
+          console.error('Booking error:', err);
+          alert(txt.error);
+        } else {
+          await new Promise(res => setTimeout(res, 500 * (r + 1)));
+        }
+      }
     }
+
     setSubmitting(false);
-  };
+  }, [name, phone, location, description, offeredAmount, paymentMethod, startDate, startTime, duration, userLocation, worker, distanceKm, etaMinutes, submitting, country, lang, txt, onClose, router]);
 
-  const texts: any = {
-    en: { job_details: 'Job Details', your_name: 'Your Name *', phone: 'Phone *', location: 'Location *', description: 'Description', use_location: 'Use current location', schedule_payment: 'Schedule & Payment', start_date: 'Start Date', start_time: 'Start Time', duration_days: 'Duration (Days)', offered_amount: 'Offered Amount (QAR)', payment_method: 'Payment Method', expects: 'Worker expects:', cash: '💵 Cash', online: '💳 Online', review_confirm: 'Review & Confirm', worker_label: 'Worker:', category_label: 'Category:', distance_label: 'Distance:', eta: 'ETA:', location_label: 'Location:', date_label: 'Date:', duration_label: 'Duration:', total: 'Total:', back: 'Back', next: 'Next', confirm: 'Confirm Booking', submitting: 'Submitting...', required: 'Please fill all required fields', km: 'km', min: 'min', day: 'day(s)' },
-    bn: { job_details: 'কাজের বিবরণ', your_name: 'আপনার নাম *', phone: 'ফোন *', location: 'অবস্থান *', description: 'বিবরণ', use_location: 'বর্তমান অবস্থান ব্যবহার', schedule_payment: 'সময়সূচি ও পেমেন্ট', start_date: 'শুরুর তারিখ', start_time: 'শুরুর সময়', duration_days: 'সময়কাল (দিন)', offered_amount: 'অফারকৃত মূল্য (QAR)', payment_method: 'পেমেন্ট পদ্ধতি', expects: 'শ্রমিক আশা করে:', cash: '💵 ক্যাশ', online: '💳 অনলাইন', review_confirm: 'রিভিউ ও নিশ্চিতকরণ', worker_label: 'শ্রমিক:', category_label: 'ক্যাটাগরি:', distance_label: 'দূরত্ব:', eta: 'সময়:', location_label: 'অবস্থান:', date_label: 'তারিখ:', duration_label: 'সময়কাল:', total: 'মোট:', back: 'পিছনে', next: 'পরবর্তী', confirm: 'বুকিং নিশ্চিত', submitting: 'জমা হচ্ছে...', required: 'সব প্রয়োজনীয় তথ্য পূরণ করুন', km: 'কিমি', min: 'মিনিট', day: 'দিন' },
-    ar: { job_details: 'تفاصيل العمل', your_name: 'اسمك *', phone: 'هاتف *', location: 'موقع *', description: 'وصف', use_location: 'استخدام الموقع الحالي', schedule_payment: 'الجدول والدفع', start_date: 'تاريخ البدء', start_time: 'وقت البدء', duration_days: 'المدة (أيام)', offered_amount: 'المبلغ المعروض (QAR)', payment_method: 'طريقة الدفع', expects: 'العامل يتوقع:', cash: '💵 نقداً', online: '💳 أونلاين', review_confirm: 'مراجعة وتأكيد', worker_label: 'العامل:', category_label: 'الفئة:', distance_label: 'المسافة:', eta: 'الوقت:', location_label: 'الموقع:', date_label: 'التاريخ:', duration_label: 'المدة:', total: 'المجموع:', back: 'رجوع', next: 'التالي', confirm: 'تأكيد', submitting: 'جاري...', required: 'يرجى ملء جميع الحقول', km: 'كم', min: 'دقيقة', day: 'يوم' },
-    hi: { job_details: 'काम का विवरण', your_name: 'आपका नाम *', phone: 'फ़ोन *', location: 'स्थान *', description: 'विवरण', use_location: 'वर्तमान स्थान', schedule_payment: 'समय और भुगतान', start_date: 'शुरू तारीख', start_time: 'शुरू समय', duration_days: 'अवधि (दिन)', offered_amount: 'राशि (QAR)', payment_method: 'भुगतान विधि', expects: 'श्रमिक अपेक्षा:', cash: '💵 नकद', online: '💳 ऑनलाइन', review_confirm: 'समीक्षा और पुष्टि', worker_label: 'श्रमिक:', category_label: 'श्रेणी:', distance_label: 'दूरी:', eta: 'समय:', location_label: 'स्थान:', date_label: 'तारीख:', duration_label: 'अवधि:', total: 'कुल:', back: 'पीछे', next: 'अगला', confirm: 'पुष्टि', submitting: 'जमा हो रहा...', required: 'सभी ज़रूरी जानकारी भरें', km: 'किमी', min: 'मिनट', day: 'दिन' },
-  };
-  const txt = texts[lang] || texts.en;
+  // ═══════════════════════════════════════════════════════
+  // Step handlers (Memoized)
+  // ═══════════════════════════════════════════════════════
+  const nextStep = useCallback(() => setStep(s => Math.min(s + 1, 3)), []);
+  const prevStep = useCallback(() => setStep(s => Math.max(s - 1, 1)), []);
 
+  // ═══════════════════════════════════════════════════════
+  // Review data (Memoized)
+  // ═══════════════════════════════════════════════════════
+  const reviewItems = useMemo(() => [
+    { label: txt.worker_label, value: worker.name },
+    { label: txt.category_label, value: worker.category },
+    ...(distanceKm ? [{ label: txt.distance_label, value: `${distanceKm} ${txt.km}`, cls: 'text-blue-600' }] : []),
+    ...(etaMinutes ? [{ label: txt.eta, value: `${etaMinutes} ${txt.min}`, cls: 'text-green-600' }] : []),
+    { label: txt.location_label, value: location },
+    { label: txt.date_label, value: `${startDate || 'Today'} at ${startTime || '08:00'}` },
+    { label: txt.duration_label, value: `${duration} ${txt.day}` },
+    { label: txt.total, value: `${offeredAmount} QAR`, cls: 'text-green-600 font-bold text-base' },
+  ], [worker, distanceKm, etaMinutes, location, startDate, startTime, duration, offeredAmount, txt]);
+
+  // ═══════════════════════════════════════════════════════
+  // Render
+  // ═══════════════════════════════════════════════════════
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain animate-slide-up" onClick={e => e.stopPropagation()}>
         
-        <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between z-10 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <img src={worker.photo_url || '/default-avatar.png'} className="w-10 h-10 rounded-full" alt="" />
-            <div>
-              <p className="font-bold text-gray-800">{worker.name}</p>
-              <p className="text-xs text-gray-500">{worker.category} • ⭐ {worker.rating || 'New'}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full"><X size={20} className="text-gray-400" /></button>
-        </div>
-
-        <div className="flex items-center px-4 py-3 gap-2">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= s ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                {step > s ? '✓' : s}
-              </div>
-              {s < 3 && <div className={`flex-1 h-1 rounded ${step > s ? 'bg-green-600' : 'bg-gray-200'}`} />}
-            </div>
-          ))}
-        </div>
+        <WorkerHeader worker={worker} txt={txt} onClose={onClose} />
+        <StepIndicator step={step} />
 
         <div className="p-4">
+          {/* Step 1: Job Details */}
           {step === 1 && (
             <div className="space-y-3">
-              <h3 className="font-bold text-lg text-gray-800">{txt.job_details}</h3>
+              <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.job_details}</h3>
+              <InputField label={txt.your_name} value={name} onChange={setName} icon={<User size={16} />} />
+              <InputField label={txt.phone} value={phone} onChange={setPhone} type="tel" />
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.your_name}</label>
-                <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.phone}</label>
-                <input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.location}</label>
-                <div className="relative">
-                  <input value={location} onChange={e => setLocation(e.target.value)} className="w-full px-3 py-2.5 pl-9 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-                  <MapPin size={16} className="absolute left-3 top-3 text-gray-400" />
-                </div>
+                <InputField label={txt.location} value={location} onChange={setLocation} icon={<MapPin size={16} />} />
                 {userLocation && (
-                  <button onClick={() => setLocation(`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`)} className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <button onClick={useCurrentLocation} className="text-[11px] sm:text-xs text-green-600 mt-1 flex items-center gap-1 hover:text-green-800 transition-colors">
                     <Navigation size={12} /> {txt.use_location}
                   </button>
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.description}</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none resize-none" />
+                <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">{txt.description}</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none resize-none transition-all" />
               </div>
             </div>
           )}
 
+          {/* Step 2: Schedule & Payment */}
           {step === 2 && (
             <div className="space-y-3">
-              <h3 className="font-bold text-lg text-gray-800">{txt.schedule_payment}</h3>
+              <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.schedule_payment}</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.start_date}</label>
-                  <div className="relative">
-                    <input value={startDate} onChange={e => setStartDate(e.target.value)} type="date" className="w-full px-3 py-2.5 pl-9 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-                    <Calendar size={16} className="absolute left-3 top-3 text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.start_time}</label>
-                  <div className="relative">
-                    <input value={startTime} onChange={e => setStartTime(e.target.value)} type="time" className="w-full px-3 py-2.5 pl-9 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-                    <Clock size={16} className="absolute left-3 top-3 text-gray-400" />
-                  </div>
-                </div>
+                <InputField label={txt.start_date} value={startDate} onChange={setStartDate} type="date" icon={<Calendar size={16} />} />
+                <InputField label={txt.start_time} value={startTime} onChange={setStartTime} type="time" icon={<Clock size={16} />} />
+              </div>
+              <InputField label={txt.duration_days} value={duration} onChange={setDuration} type="number" />
+              <div>
+                <InputField label={txt.offered_amount} value={offeredAmount} onChange={setOfferedAmount} type="number" icon={<DollarSign size={16} />} />
+                {worker.expected_salary && <p className="text-[11px] sm:text-xs text-gray-400 mt-1">{txt.expects} {worker.expected_salary} QAR</p>}
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.duration_days}</label>
-                <input value={duration} onChange={e => setDuration(e.target.value)} type="number" min="1" max="30" className="w-24 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.offered_amount}</label>
-                <div className="relative">
-                  <input value={offeredAmount} onChange={e => setOfferedAmount(e.target.value)} type="number" className="w-full px-3 py-2.5 pl-9 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none" />
-                  <DollarSign size={16} className="absolute left-3 top-3 text-gray-400" />
-                </div>
-                {worker.expected_salary && <p className="text-xs text-gray-400 mt-1">{txt.expects} {worker.expected_salary} QAR</p>}
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">{txt.payment_method}</label>
+                <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">{txt.payment_method}</label>
                 <div className="flex gap-2">
-                  {['cash', 'online'].map(method => (
-                    <button key={method} onClick={() => setPaymentMethod(method)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${paymentMethod === method ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-                      {method === 'cash' ? txt.cash : txt.online}
+                  {['cash', 'online'].map(m => (
+                    <button key={m} onClick={() => setPaymentMethod(m)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all active:scale-95 ${
+                        paymentMethod === m ? 'bg-green-600 text-white border-green-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      }`}>
+                      {m === 'cash' ? `💵 ${txt.cash}` : `💳 ${txt.online}`}
                     </button>
                   ))}
                 </div>
@@ -249,30 +355,37 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
             </div>
           )}
 
+          {/* Step 3: Review */}
           {step === 3 && (
             <div className="space-y-3">
-              <h3 className="font-bold text-lg text-gray-800">{txt.review_confirm}</h3>
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.worker_label}</span><span className="font-medium">{worker.name}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.category_label}</span><span className="font-medium">{worker.category}</span></div>
-                {distanceKm && <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.distance_label}</span><span className="font-medium text-blue-600">{distanceKm} {txt.km}</span></div>}
-                {etaMinutes && <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.eta}</span><span className="font-medium text-green-600">{etaMinutes} {txt.min}</span></div>}
-                <hr className="border-gray-200" />
-                <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.location_label}</span><span className="font-medium">{location}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.date_label}</span><span className="font-medium">{startDate || 'Today'} at {startTime || '08:00'}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">{txt.duration_label}</span><span className="font-medium">{duration} {txt.day}</span></div>
-                <hr className="border-gray-200" />
-                <div className="flex justify-between text-base font-bold"><span className="text-gray-700">{txt.total}</span><span className="text-green-600">{offeredAmount} QAR</span></div>
+              <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.review_confirm}</h3>
+              <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-2">
+                {reviewItems.map((item, i) => (
+                  <div key={i}>
+                    {item.label === txt.total && <hr className="border-gray-200 my-1" />}
+                    <div className="flex justify-between text-xs sm:text-sm">
+                      <span className="text-gray-500">{item.label}</span>
+                      <span className={`font-medium ${item.cls || 'text-gray-800'}`}>{item.value}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 mt-6">
-            {step > 1 && <button onClick={() => setStep(step - 1)} className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200">{txt.back}</button>}
+          {/* Navigation Buttons */}
+          <div className="flex gap-3 mt-5">
+            {step > 1 && (
+              <button onClick={prevStep} className="px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 active:scale-95 transition-all">
+                {txt.back}
+              </button>
+            )}
             {step < 3 ? (
-              <button onClick={() => setStep(step + 1)} className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700">{txt.next}</button>
+              <button onClick={nextStep} className="flex-1 py-2.5 sm:py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 active:bg-green-800 active:scale-[0.98] transition-all">
+                {txt.next}
+              </button>
             ) : (
-              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50">
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 sm:py-3 bg-green-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 {submitting ? txt.submitting : txt.confirm}
               </button>

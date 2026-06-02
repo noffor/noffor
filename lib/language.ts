@@ -562,3 +562,51 @@ export function getCurrencySymbol(lang: string): string {
 export function getText(lang: LangCode, key: string): string {
   return texts[lang]?.[key] || texts.en[key] || key;
 }
+// lib/language.ts - নিচে এই ৩টি ফাংশন যোগ করুন (ফাইলের শেষে)
+
+// ═══════════════════════════════════════════════════════════
+// নাম ট্রান্সলেট (গ্লোবাল)
+// ═══════════════════════════════════════════════════════════
+export function translateName(name: string, lang: string): string {
+  const nameTranslations: Record<string, Record<string, string>> = {
+    'Rojjob': { en: 'Rojjob', bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
+    'মাহাবুল': { en: 'Mahabul', bn: 'মাহাবুল', ar: 'ماهبول', hi: 'माहाबुल' },
+    'সুমন বিশ্বাস': { en: 'Suman Biswas', bn: 'সুমন বিশ্বাস', ar: 'سومان بيسواس', hi: 'सुमन बिस्वास' },
+    'RubelRana': { en: 'Rubel Rana', bn: 'রুবেল রানা', ar: 'روبل رانا', hi: 'रूबेल राणा' },
+    'house Driver': { en: 'House Driver', bn: 'হাউস ড্রাইভার', ar: 'سائق منزلي', hi: 'हाउस ड्राइवर' },
+  };
+  return nameTranslations[name]?.[lang] || name;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ক্যাটাগরি নাম ট্রান্সলেট (গ্লোবাল)
+// ═══════════════════════════════════════════════════════════
+export function translateCategory(category: string, lang: string): string {
+  const categoryNames: Record<string, Record<string, string>> = {
+    Driver: { en: 'Driver', ar: 'سائق', bn: 'ড্রাইভার', hi: 'ड्राइवर' },
+    Electrician: { en: 'Electrician', ar: 'كهربائي', bn: 'ইলেকট্রিশিয়ান', hi: 'इलेक्ट्रीशियन' },
+    Plumber: { en: 'Plumber', ar: 'سباك', bn: 'প্লাম্বার', hi: 'प्लंबर' },
+    Mason: { en: 'Mason', ar: 'بناء', bn: 'রাজমিস্ত্রি', hi: 'राजमिस्त्री' },
+    'AC Technician': { en: 'AC Technician', ar: 'فني تكييف', bn: 'এসি টেকনিশিয়ান', hi: 'एसी तकनीशियन' },
+    Painter: { en: 'Painter', ar: 'دهان', bn: 'পেইন্টার', hi: 'पेंटर' },
+    Carpenter: { en: 'Carpenter', ar: 'نجار', bn: 'কার্পেন্টার', hi: 'बढ़ई' },
+    Welder: { en: 'Welder', ar: 'لحام', bn: 'ওয়েল্ডার', hi: 'वेल्डर' },
+    Cleaner: { en: 'Cleaner', ar: 'منظف', bn: 'ক্লিনার', hi: 'क्लीनर' },
+    Cook: { en: 'Cook', ar: 'طباخ', bn: 'রাঁধুনি', hi: 'रसोइया' },
+    Helper: { en: 'Helper', ar: 'مساعد', bn: 'হেল্পার', hi: 'हेल्पर' },
+    Gardener: { en: 'Gardener', ar: 'بستاني', bn: 'মালী', hi: 'माली' },
+  };
+  return categoryNames[category]?.[lang] || category;
+}
+
+// ═══════════════════════════════════════════════════════════
+// জেন্ডার ট্রান্সলেট (গ্লোবাল)
+// ═══════════════════════════════════════════════════════════
+export function translateGender(gender: string, lang: string): string {
+  const map: Record<string, Record<string, string>> = {
+    male: { en: 'Male', bn: 'পুরুষ', ar: 'ذكر', hi: 'पुरुष' },
+    female: { en: 'Female', bn: 'মহিলা', ar: 'أنثى', hi: 'महिला' },
+    other: { en: 'Other', bn: 'অন্যান্য', ar: 'آخر', hi: 'अन्य' },
+  };
+  return map[gender]?.[lang] || gender;
+}

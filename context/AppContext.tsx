@@ -1,6 +1,7 @@
 // context/AppContext.tsx
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { UserLocation, Notification } from '@/types';
 import { getCountryByCode } from '@/lib/utils';
@@ -20,12 +21,26 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children, initialCountry = 'qa' }: { children: ReactNode; initialCountry?: string }) {
+export function AppProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  // URL থেকে country কোড বের করা: /qa/en → "qa"
+  const getCountryFromURL = (): string => {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments[0] || 'qa'; // ডিফল্ট qa
+  };
+
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentCountry, setCurrentCountry] = useState(getCountryByCode(initialCountry));
+  const [currentCountry, setCurrentCountry] = useState(getCountryByCode(getCountryFromURL()));
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
+  // URL চেঞ্জ হলে কান্ট্রি আপডেট
+  useEffect(() => {
+    setCurrentCountry(getCountryByCode(getCountryFromURL()));
+  }, [pathname]);
+
+  // অনলাইন/অফলাইন ডিটেকশন
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handleOnline = () => setIsOnline(true);
@@ -39,6 +54,7 @@ export function AppProvider({ children, initialCountry = 'qa' }: { children: Rea
     }
   }, []);
 
+  // জিওলোকেশন
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(

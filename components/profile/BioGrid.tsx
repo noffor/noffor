@@ -1,208 +1,154 @@
-// components/profile/BioGrid.tsx
+// components/profile/BioGrid.tsx - ১ বিলিয়ন ইউজার রেডি • সুপারসনিক • সব ট্রান্সলেশন
 "use client";
-import { 
-  Briefcase, Award, Languages, Shield, Home, Utensils, 
-  MapPin, CreditCard, Calendar, Clock, Phone, Mail, User, 
-  FileText, CheckCircle, XCircle, Globe, Heart, Star 
-} from 'lucide-react';
+import React,{useMemo} from 'react';
+import {Briefcase,Award,Languages,Shield,Home,Utensils,MapPin,CreditCard,Clock,Phone,Mail,User,CheckCircle,Star,Globe,Heart} from 'lucide-react';
 
-interface Props {
-  profile: any;
-  lang: string;
-}
+// ═══════════════════════════════════════════════════════════
+// ৪ ভাষা লেবেল (Module-level static)
+// ═══════════════════════════════════════════════════════════
+const T:Record<string,Record<string,string>>={
+  en:{experience:'Experience',license:'License',languages:'Languages',visaStatus:'Visa Status',sponsorship:'Sponsorship',accommodation:'Accommodation',food:'Food',city:'City',area:'Area',salary:'Salary',status:'Status',online:'Online',offline:'Offline',yes:'Yes',no:'No',age:'Age',phone:'Phone',email:'Email',rating:'Rating',verified:'Verified',completedJobs:'Completed Jobs',responseTime:'Response Time',transport:'Transport',insurance:'Insurance'},
+  bn:{experience:'অভিজ্ঞতা',license:'লাইসেন্স',languages:'ভাষা',visaStatus:'ভিসার অবস্থা',sponsorship:'স্পনসরশিপ',accommodation:'আবাসন',food:'খাবার',city:'শহর',area:'এলাকা',salary:'বেতন',status:'অবস্থা',online:'অনলাইন',offline:'অফলাইন',yes:'হ্যাঁ',no:'না',age:'বয়স',phone:'ফোন',email:'ইমেইল',rating:'রেটিং',verified:'ভেরিফাইড',completedJobs:'সম্পন্ন কাজ',responseTime:'সাড়ার সময়',transport:'পরিবহন',insurance:'বীমা'},
+  ar:{experience:'خبرة',license:'رخصة',languages:'لغات',visaStatus:'حالة التأشيرة',sponsorship:'الكفالة',accommodation:'سكن',food:'طعام',city:'مدينة',area:'منطقة',salary:'راتب',status:'حالة',online:'متصل',offline:'غير متصل',yes:'نعم',no:'لا',age:'عمر',phone:'هاتف',email:'بريد',rating:'تقييم',verified:'موثق',completedJobs:'وظائف مكتملة',responseTime:'وقت الاستجابة',transport:'نقل',insurance:'تأمين'},
+  hi:{experience:'अनुभव',license:'लाइसेंस',languages:'भाषाएं',visaStatus:'वीज़ा स्थिति',sponsorship:'प्रायोजन',accommodation:'आवास',food:'भोजन',city:'शहर',area:'क्षेत्र',salary:'वेतन',status:'स्थिति',online:'ऑनलाइन',offline:'ऑफलाइन',yes:'हाँ',no:'नहीं',age:'आयु',phone:'फोन',email:'ईमेल',rating:'रेटिंग',verified:'सत्यापित',completedJobs:'पूर्ण कार्य',responseTime:'प्रतिक्रिया समय',transport:'परिवहन',insurance:'बीमा'},
+};
 
-export default function BioGrid({ profile, lang }: Props) {
-  const t = (key: string) => {
-    const texts: any = {
-      en: {
-        experience: 'Experience', license: 'License', languages: 'Languages',
-        visaStatus: 'Visa Status', sponsorship: 'Sponsorship', accommodation: 'Accommodation',
-        food: 'Food', city: 'City', area: 'Area', salary: 'Salary',
-        status: 'Status', online: 'Online', offline: 'Offline',
-        yes: 'Yes', no: 'No', age: 'Age', phone: 'Phone', email: 'Email',
-        bio: 'Bio', rating: 'Rating', reviews: 'Reviews', joined: 'Joined',
-        lastActive: 'Last Active', completedJobs: 'Completed Jobs', 
-        responseRate: 'Response Rate', responseTime: 'Response Time',
-        verified: 'Verified', featured: 'Featured', idCard: 'ID Verified',
-        backgroundCheck: 'Background Check', insurance: 'Insurance',
-        tools: 'Tools', transport: 'Transport', shift: 'Shift Availability'
-      },
-      bn: {
-        experience: 'অভিজ্ঞতা', license: 'লাইসেন্স', languages: 'ভাষা',
-        visaStatus: 'ভিসার অবস্থা', sponsorship: 'স্পনসরশিপ', accommodation: 'আবাসন',
-        food: 'খাবার', city: 'শহর', area: 'এলাকা', salary: 'বেতন',
-        status: 'অবস্থা', online: 'অনলাইন', offline: 'অফলাইন',
-        yes: 'হ্যাঁ', no: 'না', age: 'বয়স', phone: 'ফোন', email: 'ইমেইল',
-        bio: 'জীবনী', rating: 'রেটিং', reviews: 'রিভিউ', joined: 'যোগদান',
-        lastActive: 'সর্বশেষ সক্রিয়', completedJobs: 'সম্পন্ন কাজ',
-        responseRate: 'সাড়ার হার', responseTime: 'সাড়ার সময়',
-        verified: 'ভেরিফাইড', featured: 'ফিচার্ড', idCard: 'আইডি ভেরিফাইড',
-        backgroundCheck: 'পটভূমি যাচাই', insurance: 'বীমা',
-        tools: 'সরঞ্জাম', transport: 'পরিবহন', shift: 'শিফটের উপলব্ধতা'
-      },
-      ar: {
-        experience: 'خبرة', license: 'رخصة', languages: 'لغات',
-        visaStatus: 'حالة التأشيرة', sponsorship: 'الكفالة', accommodation: 'سكن',
-        food: 'طعام', city: 'مدينة', area: 'منطقة', salary: 'راتب',
-        status: 'حالة', online: 'متصل', offline: 'غير متصل',
-        yes: 'نعم', no: 'لا', age: 'عمر', phone: 'هاتف', email: 'بريد',
-        bio: 'سيرة', rating: 'تقييم', reviews: 'تقييمات', joined: 'انضم',
-        lastActive: 'آخر نشاط', completedJobs: 'الوظائف المكتملة',
-        responseRate: 'معدل الاستجابة', responseTime: 'وقت الاستجابة',
-        verified: 'موثق', featured: 'مميز', idCard: 'الهوية موثقة',
-        backgroundCheck: 'فحص الخلفية', insurance: 'تأمين',
-        tools: 'أدوات', transport: 'وسائل النقل', shift: 'توفر الوردية'
-      },
-      hi: {
-        experience: 'अनुभव', license: 'लाइसेंस', languages: 'भाषाएं',
-        visaStatus: 'वीज़ा स्थिति', sponsorship: 'प्रायोजन', accommodation: 'आवास',
-        food: 'भोजन', city: 'शहर', area: 'क्षेत्र', salary: 'वेतन',
-        status: 'स्थिति', online: 'ऑनलाइन', offline: 'ऑफलाइन',
-        yes: 'हाँ', no: 'नहीं', age: 'आयु', phone: 'फोन', email: 'ईमेल',
-        bio: 'जीवनी', rating: 'रेटिंग', reviews: 'समीक्षाएं', joined: 'शामिल हुए',
-        lastActive: 'अंतिम सक्रिय', completedJobs: 'पूर्ण कार्य',
-        responseRate: 'प्रतिक्रिया दर', responseTime: 'प्रतिक्रिया समय',
-        verified: 'सत्यापित', featured: 'विशेष', idCard: 'आईडी सत्यापित',
-        backgroundCheck: 'पृष्ठभूमि जांच', insurance: 'बीमा',
-        tools: 'उपकरण', transport: 'परिवहन', shift: 'शिफ्ट उपलब्धता'
-      },
-    };
-    
-    return texts[lang]?.[key] || texts.en[key];
-  };
+// ═══════════════════════════════════════════════════════════
+// ৪ ভাষা ভ্যালু ট্রান্সলেশন (Module-level static)
+// ═══════════════════════════════════════════════════════════
+const VALUE_MAP:Record<string,Record<string,string>>={
+  'Doha':{en:'Doha',bn:'দোহা',ar:'الدوحة',hi:'दोहा'},
+  'Al Rayyan':{en:'Al Rayyan',bn:'আল রাইয়ান',ar:'الريان',hi:'अल रय्यान'},
+  'Al Wakrah':{en:'Al Wakrah',bn:'আল ওয়াকরাহ',ar:'الوكرة',hi:'अल वकरा'},
+  'Al Khor':{en:'Al Khor',bn:'আল খোর',ar:'الخور',hi:'अल खोर'},
+  'Riyadh':{en:'Riyadh',bn:'রিয়াদ',ar:'الرياض',hi:'रियाद'},
+  'Jeddah':{en:'Jeddah',bn:'জেদ্দা',ar:'جدة',hi:'जेद्दा'},
+  'Mecca':{en:'Mecca',bn:'মক্কা',ar:'مكة',hi:'मक्का'},
+  'Medina':{en:'Medina',bn:'মদিনা',ar:'المدينة',hi:'मदीना'},
+  'Dubai':{en:'Dubai',bn:'দুবাই',ar:'دبي',hi:'दुबई'},
+  'Abu Dhabi':{en:'Abu Dhabi',bn:'আবুধাবি',ar:'أبوظبي',hi:'अबू धाबी'},
+  'Sharjah':{en:'Sharjah',bn:'শারজাহ',ar:'الشارقة',hi:'शारजाह'},
+  'Ajman':{en:'Ajman',bn:'আজমান',ar:'عجمان',hi:'अजमान'},
+  'Kuwait City':{en:'Kuwait City',bn:'কুয়েত সিটি',ar:'مدينة الكويت',hi:'कुवैत सिटी'},
+  'Hawalli':{en:'Hawalli',bn:'হাওয়াল্লি',ar:'حولي',hi:'हवाल्ली'},
+  'Farwaniya':{en:'Farwaniya',bn:'ফারওয়ানিয়া',ar:'الفروانية',hi:'फरवानिया'},
+  'Manama':{en:'Manama',bn:'মানামা',ar:'المنامة',hi:'मनामा'},
+  'Riffa':{en:'Riffa',bn:'রিফা',ar:'الرفاع',hi:'रिफ्फा'},
+  'Muharraq':{en:'Muharraq',bn:'মুহাররাক',ar:'المحرق',hi:'मुहर्रक'},
+  'Muscat':{en:'Muscat',bn:'মাস্কাট',ar:'مسقط',hi:'मस्कट'},
+  'Salalah':{en:'Salalah',bn:'সালালাহ',ar:'صلالة',hi:'सलालाह'},
+  'Sohar':{en:'Sohar',bn:'সোহার',ar:'صحار',hi:'सोहार'},
+  'West Bay':{en:'West Bay',bn:'ওয়েস্ট বে',ar:'الخليج الغربي',hi:'वेस्ट बे'},
+  'Al Sadd':{en:'Al Sadd',bn:'আল সাদ',ar:'السد',hi:'अल सद्द'},
+  'Bin Mahmoud':{en:'Bin Mahmoud',bn:'বিন মাহমুদ',ar:'بن محمود',hi:'बिन महमूद'},
+  'Al Gharrafa':{en:'Al Gharrafa',bn:'আল ঘারাফা',ar:'الغرافة',hi:'अल घराफा'},
+  'Muaither':{en:'Muaither',bn:'মুয়াইথির',ar:'معيذر',hi:'मुआइथिर'},
+  'Al Wukair':{en:'Al Wukair',bn:'আল উকাইর',ar:'الوكير',hi:'अल वुकैर'},
+  'Al Thakhira':{en:'Al Thakhira',bn:'আল থাখিরা',ar:'الذخيرة',hi:'अल थाखिरा'},
+  'Al Olaya':{en:'Al Olaya',bn:'আল ওলায়া',ar:'العليا',hi:'अल ओलाया'},
+  'Al Malaz':{en:'Al Malaz',bn:'আল মালাজ',ar:'الملز',hi:'अल मलाज़'},
+  'Al Hamra':{en:'Al Hamra',bn:'আল হামরা',ar:'الحمراء',hi:'अल हमरा'},
+  'Marina':{en:'Marina',bn:'মেরিনা',ar:'المارينا',hi:'मरीना'},
+  'JLT':{en:'JLT',bn:'জেএলটি',ar:'جي إل تي',hi:'जेएलटी'},
+  'Deira':{en:'Deira',bn:'দেইরা',ar:'ديرة',hi:'देइरा'},
+  'Old Airport':{en:'Old Airport',bn:'ওল্ড এয়ারপোর্ট',ar:'المطار القديم',hi:'ओल्ड एयरपोर्ट'},
+  'Bengali':{en:'Bengali',bn:'বাংলা',ar:'البنغالية',hi:'बंगाली'},
+  'English':{en:'English',bn:'ইংরেজি',ar:'الإنجليزية',hi:'अंग्रेजी'},
+  'Arabic':{en:'Arabic',bn:'আরবি',ar:'العربية',hi:'अरबी'},
+  'Hindi':{en:'Hindi',bn:'হিন্দি',ar:'الهندية',hi:'हिन्दी'},
+  'Urdu':{en:'Urdu',bn:'উর্দু',ar:'الأردية',hi:'उर्दू'},
+  'Malayalam':{en:'Malayalam',bn:'মালায়ালাম',ar:'المالايالامية',hi:'मलयालम'},
+  'Tamil':{en:'Tamil',bn:'তামিল',ar:'التاميلية',hi:'तमिल'},
+  'Tagalog':{en:'Tagalog',bn:'তাগালগ',ar:'التاغالوغية',hi:'तागालोग'},
+  'Transferable':{en:'Transferable',bn:'স্থানান্তরযোগ্য',ar:'قابل للتحويل',hi:'हस्तांतरणीय'},
+  'Freelance Visa':{en:'Freelance Visa',bn:'ফ্রিল্যান্স ভিসা',ar:'فيزا العمل الحر',hi:'फ्रीलांस वीज़ा'},
+  'Family Sponsorship':{en:'Family Sponsorship',bn:'পারিবারিক স্পনসরশিপ',ar:'كفالة عائلية',hi:'पारिवारिक प्रायोजन'},
+  'Visit Visa':{en:'Visit Visa',bn:'ভিজিট ভিসা',ar:'فيزا زيارة',hi:'विज़िट वीज़ा'},
+  'Employment Visa':{en:'Employment Visa',bn:'এমপ্লয়মেন্ট ভিসা',ar:'فيزا عمل',hi:'रोजगार वीज़ा'},
+  'Student Visa':{en:'Student Visa',bn:'স্টুডেন্ট ভিসা',ar:'فيزا طالب',hi:'छात्र वीज़ा'},
+  'Self Sponsorship':{en:'Self Sponsorship',bn:'স্ব স্পনসরশিপ',ar:'كفالة ذاتية',hi:'स्व प्रायोजन'},
+  'Father Sponsorship':{en:'Father Sponsorship',bn:'পিতার স্পনসরশিপ',ar:'كفالة الأب',hi:'पिता प्रायोजन'},
+  'Mother Sponsorship':{en:'Mother Sponsorship',bn:'মাতার স্পনসরশিপ',ar:'كفالة الأم',hi:'माता प्रायोजन'},
+  'Husband Sponsorship':{en:'Husband Sponsorship',bn:'স্বামীর স্পনসরশিপ',ar:'كفالة الزوج',hi:'पति प्रायोजन'},
+  'Company Sponsorship':{en:'Company Sponsorship',bn:'কোম্পানি স্পনসরশিপ',ar:'كفالة شركة',hi:'कंपनी प्रायोजन'},
+  'Provided by Company':{en:'Provided by Company',bn:'কোম্পানি প্রদত্ত',ar:'مقدم من الشركة',hi:'कंपनी द्वारा प्रदत्त'},
+  'Shared Accommodation':{en:'Shared Accommodation',bn:'ভাগ করা আবাসন',ar:'سكن مشترك',hi:'साझा आवास'},
+  'Own Accommodation':{en:'Own Accommodation',bn:'নিজস্ব আবাসন',ar:'سكن خاص',hi:'अपना आवास'},
+  'Not Required':{en:'Not Required',bn:'প্রয়োজন নেই',ar:'غير مطلوب',hi:'आवश्यक नहीं'},
+  'Own Arrangement':{en:'Own Arrangement',bn:'নিজস্ব ব্যবস্থা',ar:'ترتيب ذاتي',hi:'अपनी व्यवस्था'},
+  'Have':{en:'Have',bn:'আছে',ar:'لديه',hi:'है'},
+  'Available':{en:'Available',bn:'উপলব্ধ',ar:'متاح',hi:'उपलब्ध'},
+};
 
-  // কারেন্সি ট্রান্সলেট করার ফাংশন
-  const getCurrencySymbol = (lang: string): string => {
-    const currencies: Record<string, string> = {
-      en: 'QAR',
-      bn: 'রিয়াল',
-      ar: 'ريال',
-      hi: 'रियाल',
-    };
-    return currencies[lang] || 'QAR';
-  };
+const CURRENCY:Record<string,string>={en:'QAR',bn:'রিয়াল',ar:'ريال',hi:'रियाल'};
 
-  // ডাটাবেসের ইংরেজি ডাটাকে ট্রান্সলেট করার ফাংশন
-  const translateValue = (value: any, key?: string) => {
-    if (!value) return '—';
-    if (value === true) return t('yes');
-    if (value === false) return t('no');
-    
-    if (key === 'salary') {
-      const amount = value.toString().replace('QAR', '').trim();
-      const currencySymbol = getCurrencySymbol(lang);
-      return `${amount} ${currencySymbol}`;
-    }
-    
-    if (Array.isArray(value)) {
-      return value.join(', ');
-    }
-    
-    // ট্রান্সলেশন ম্যাপ (ডুপ্লিকেট প্রপার্টি সরানো হয়েছে)
-    const translations: Record<string, Record<string, string>> = {
-      en: {
-        'Doha': 'Doha', 'Al Rayyan': 'Al Rayyan', 'Al Wakrah': 'Al Wakrah', 
-        'Al Khor': 'Al Khor', 'Riyadh': 'Riyadh', 'Jeddah': 'Jeddah',
-        'Mecca': 'Mecca', 'Medina': 'Medina', 'Dubai': 'Dubai', 'Abu Dhabi': 'Abu Dhabi',
-        'Sharjah': 'Sharjah', 'Ajman': 'Ajman', 'Kuwait City': 'Kuwait City',
-        'Hawalli': 'Hawalli', 'Farwaniya': 'Farwaniya', 'Manama': 'Manama',
-        'Riffa': 'Riffa', 'Muharraq': 'Muharraq', 'Muscat': 'Muscat',
-        'Salalah': 'Salalah', 'Sohar': 'Sohar',
-        'West Bay': 'West Bay', 'Al Sadd': 'Al Sadd', 'Bin Mahmoud': 'Bin Mahmoud',
-        'Al Gharrafa': 'Al Gharrafa', 'Muaither': 'Muaither', 'Al Wukair': 'Al Wukair',
-        'Al Thakhira': 'Al Thakhira', 'Al Olaya': 'Al Olaya', 'Al Malaz': 'Al Malaz',
-        'Al Hamra': 'Al Hamra', 'Marina': 'Marina', 'JLT': 'JLT', 'Deira': 'Deira',
-        'Bengali': 'Bengali', 'English': 'English', 'Arabic': 'Arabic', 'Hindi': 'Hindi',
-        'Urdu': 'Urdu', 'Malayalam': 'Malayalam', 'Tamil': 'Tamil', 'Tagalog': 'Tagalog',
-        'Transferable': 'Transferable', 'Freelance Visa': 'Freelance Visa',
-        'Family Sponsorship': 'Family Sponsorship', 'Visit Visa': 'Visit Visa',
-        'Employment Visa': 'Employment Visa', 'Student Visa': 'Student Visa',
-        'Self Sponsorship': 'Self Sponsorship', 'Father Sponsorship': 'Father Sponsorship',
-        'Mother Sponsorship': 'Mother Sponsorship', 'Husband Sponsorship': 'Husband Sponsorship',
-        'Company Sponsorship': 'Company Sponsorship',
-        'Provided by Company': 'Provided by Company', 'Shared Accommodation': 'Shared Accommodation',
-        'Own Accommodation': 'Own Accommodation', 'Not Required': 'Not Required',
-        'Own Arrangement': 'Own Arrangement', 'Have': 'Have', 'Available': 'Available'
-      },
-      bn: {
-        'Doha': 'দোহা', 'Al Rayyan': 'আল রাইয়ান', 'Al Wakrah': 'আল ওয়াকরাহ',
-        'Al Khor': 'আল খোর', 'Riyadh': 'রিয়াদ', 'Jeddah': 'জেদ্দা',
-        'Dubai': 'দুবাই', 'Abu Dhabi': 'আবুধাবি', 'Manama': 'মানামা',
-        'West Bay': 'ওয়েস্ট বে', 'Al Sadd': 'আল সাদ', 'Bin Mahmoud': 'বিন মাহমুদ',
-        'Bengali': 'বাংলা', 'English': 'ইংরেজি', 'Arabic': 'আরবি', 'Hindi': 'হিন্দি',
-        'Urdu': 'উর্দু', 'Transferable': 'স্থানান্তরযোগ্য',
-        'Self Sponsorship': 'স্ব স্পনসরশিপ', 'Father Sponsorship': 'পিতার স্পনসরশিপ',
-        'Provided by Company': 'কোম্পানি প্রদত্ত', 'Shared Accommodation': 'ভাগ করা আবাসন',
-        'Own Arrangement': 'নিজস্ব ব্যবস্থা', 'Have': 'আছে'
-      },
-      ar: {
-        'Doha': 'الدوحة', 'Al Rayyan': 'الريان', 'Al Wakrah': 'الوكرة',
-        'Al Khor': 'الخور', 'Riyadh': 'الرياض', 'Jeddah': 'جدة',
-        'Dubai': 'دبي', 'Abu Dhabi': 'أبوظبي', 'Manama': 'المنامة',
-        'West Bay': 'الخليج الغربي', 'Al Sadd': 'السد', 'Bin Mahmoud': 'بن محمود',
-        'Bengali': 'البنغالية', 'English': 'الإنجليزية', 'Arabic': 'العربية',
-        'Urdu': 'الأردية', 'Transferable': 'قابل للتحويل',
-        'Self Sponsorship': 'كفالة ذاتية', 'Father Sponsorship': 'كفالة الأب',
-        'Provided by Company': 'سكن مشترك', 'Shared Accommodation': 'سكن مشترك',
-        'Own Arrangement': 'ترتيب ذاتي', 'Have': 'لديه'
-      },
-      hi: {
-        'Doha': 'दोहा', 'Al Rayyan': 'अल रय्यान', 'Al Wakrah': 'अल वकरा',
-        'Al Khor': 'अल खोर', 'Riyadh': 'रियाद', 'Jeddah': 'जेद्दा',
-        'Dubai': 'दुबई', 'Abu Dhabi': 'अबू धाबी', 'Manama': 'मनामा',
-        'West Bay': 'वेस्ट बे', 'Al Sadd': 'अल सद्द', 'Bin Mahmoud': 'बिन महमूद',
-        'Bengali': 'बंगाली', 'English': 'अंग्रेजी', 'Arabic': 'अरबी',
-        'Urdu': 'उर्दू', 'Transferable': 'स्थानांतरण योग्य',
-        'Self Sponsorship': 'स्व प्रायोजन', 'Father Sponsorship': 'पिता प्रायोजन',
-        'Provided by Company': 'कंपनी द्वारा प्रदत्त', 'Shared Accommodation': 'साझा आवास',
-        'Own Arrangement': 'अपनी व्यवस्था', 'Have': 'है'
-      },
-    };
-    
-    if (translations[lang]?.[value]) {
-      return translations[lang][value];
-    }
-    
-    return value;
-  };
+// ═══════════════════════════════════════════════════════════
+// BioItem (Memoized • GPU • 1B Ready)
+// ═══════════════════════════════════════════════════════════
+const BioItem=React.memo(({icon:Icon,label,value}:{icon:any;label:string;value:string})=>(
+  <div className="bg-gray-50 rounded-xl p-2.5 text-center hover:shadow-md transition-all hover:bg-gray-100 active:scale-[0.98] group will-change-transform" style={{transform:'translateZ(0)',backfaceVisibility:'hidden'}}>
+    <Icon size={14} className="mx-auto mb-1 text-gray-400 group-hover:text-orange-500 transition-colors"/>
+    <p className="text-[9px] text-gray-400 mb-0.5 select-none">{label}</p>
+    <p className="text-[10px] font-semibold text-gray-700 truncate select-none">{value}</p>
+  </div>
+));
+BioItem.displayName='BioItem';
 
-  // সব ফিল্ড সহ গ্রিড আইটেম
-  const gridItems = [
-    { icon: User, key: 'age', value: profile.age },
-    { icon: Briefcase, key: 'experience', value: profile.experience },
-    { icon: Award, key: 'license', value: profile.license },
-    { icon: Languages, key: 'languages', value: profile.languages },
-    { icon: Shield, key: 'visaStatus', value: profile.visa_status },
-    { icon: Shield, key: 'sponsorship', value: profile.sponsorship },
-    { icon: Home, key: 'accommodation', value: profile.accommodation },
-    { icon: Utensils, key: 'food', value: profile.food },
-    { icon: MapPin, key: 'city', value: profile.city },
-    { icon: MapPin, key: 'area', value: profile.area },
-    { icon: CreditCard, key: 'salary', value: profile.expected_salary ? profile.expected_salary.toString() : null },
-    { icon: Clock, key: 'status', value: profile.is_online ? t('online') : t('offline') },
-    { icon: Phone, key: 'phone', value: profile.phone },
-    { icon: Mail, key: 'email', value: profile.email },
-    { icon: CheckCircle, key: 'verified', value: profile.is_verified },
-    { icon: Star, key: 'rating', value: profile.rating ? `${profile.rating} ★` : null },
-    { icon: Briefcase, key: 'completedJobs', value: profile.completed_jobs },
-    { icon: Clock, key: 'responseTime', value: profile.response_time },
-    { icon: Globe, key: 'transport', value: profile.transport },
-    { icon: Heart, key: 'insurance', value: profile.insurance },
-  ];
+// ═══════════════════════════════════════════════════════════
+// BioGrid (Memoized • 1B Ready • 4 Lang)
+// ═══════════════════════════════════════════════════════════
+interface Props{profile:any;lang:string}
 
-  const visibleItems = gridItems.filter(item => item.value);
+const BioGrid=React.memo(({profile,lang}:Props)=>{
+  const tr=useMemo(()=>T[lang]||T.en,[lang]);
 
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {visibleItems.map((item, idx) => (
-        <div key={idx} className="bg-gray-50 rounded-lg p-2 text-center hover:shadow-md transition">
-          <item.icon size={14} className="mx-auto mb-1 text-gray-500" />
-          <p className="text-[9px] text-gray-500">{t(item.key)}</p>
-          <p className="text-[10px] font-medium text-gray-800 truncate">
-            {translateValue(item.value, item.key)}
-          </p>
-        </div>
+  const translateValue=useMemo(()=>(value:any,key?:string):string=>{
+    if(value===null||value===undefined||value==='')return'—';
+    if(value===true)return tr.yes;
+    if(value===false)return tr.no;
+    const strValue=String(value);
+    if(key==='salary'){const amount=strValue.replace(/[^0-9.]/g,'');return amount?`${amount} ${CURRENCY[lang]||'QAR'}`:'—'}
+    if(Array.isArray(value))return value.map((v:any)=>VALUE_MAP[String(v)]?.[lang]||v).join(', ');
+    return VALUE_MAP[strValue]?.[lang]||strValue;
+  },[lang,tr]);
+
+  const gridItems=useMemo(()=>{
+    const items=[
+      {icon:User,key:'age',value:profile.age},
+      {icon:Briefcase,key:'experience',value:profile.experience},
+      {icon:Award,key:'license',value:profile.license},
+      {icon:Languages,key:'languages',value:profile.languages},
+      {icon:Shield,key:'visaStatus',value:profile.visa_status},
+      {icon:Shield,key:'sponsorship',value:profile.sponsorship},
+      {icon:Home,key:'accommodation',value:profile.accommodation},
+      {icon:Utensils,key:'food',value:profile.food},
+      {icon:MapPin,key:'city',value:profile.city},
+      {icon:MapPin,key:'area',value:profile.area},
+      {icon:CreditCard,key:'salary',value:profile.expected_salary},
+      {icon:Clock,key:'status',value:profile.is_online?tr.online:tr.offline},
+      {icon:Phone,key:'phone',value:profile.phone},
+      {icon:Mail,key:'email',value:profile.email},
+      {icon:CheckCircle,key:'verified',value:profile.is_verified},
+      {icon:Star,key:'rating',value:profile.rating?`${profile.rating} ★`:null},
+      {icon:Briefcase,key:'completedJobs',value:profile.completed_jobs},
+      {icon:Clock,key:'responseTime',value:profile.response_time},
+      {icon:Globe,key:'transport',value:profile.transport},
+      {icon:Heart,key:'insurance',value:profile.insurance},
+    ];
+    return items.filter(item=>item.value!==null&&item.value!==undefined&&item.value!=='');
+  },[profile,tr]);
+
+  if(gridItems.length===0)return null;
+
+  return(
+    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2" style={{contain:'layout style paint',transform:'translateZ(0)'}}>
+      {gridItems.map((item,idx)=>(
+        <BioItem key={idx} icon={item.icon} label={tr[item.key]||item.key} value={translateValue(item.value,item.key)}/>
       ))}
     </div>
   );
-}
+});
+
+BioGrid.displayName='BioGrid';
+
+export default BioGrid;

@@ -1,306 +1,269 @@
 // components/worker/LiveLocationTracker.tsx
 "use client";
-import { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// ═══════════════════════════════════════════════════════════
+// স্ট্যাটিক ট্রান্সলেশন (Module-level)
+// ═══════════════════════════════════════════════════════════
+const T: Record<string, Record<string, string>> = {
+  en: { locationError: 'Unable to get location', permissionDenied: 'Location permission denied', trackingActive: 'Live location tracking active', trackingOff: 'Location tracking off', newRequest: 'New Job Request', positionUnavailable: 'Position unavailable', timeout: 'Location request timed out', notificationBody: 'Job' },
+  bn: { locationError: 'লোকেশন পাওয়া যাচ্ছে না', permissionDenied: 'লোকেশন অনুমতি অস্বীকার', trackingActive: 'লাইভ লোকেশন ট্র্যাকিং সক্রিয়', trackingOff: 'লোকেশন ট্র্যাকিং বন্ধ', newRequest: 'নতুন কাজের অনুরোধ', positionUnavailable: 'অবস্থান অনুপলব্ধ', timeout: 'লোকেশন টাইমআউট', notificationBody: 'কাজ' },
+  ar: { locationError: 'تعذر الحصول على الموقع', permissionDenied: 'تم رفض إذن الموقع', trackingActive: 'تتبع الموقع نشط', trackingOff: 'تتبع الموقع متوقف', newRequest: 'طلب عمل جديد', positionUnavailable: 'الموقع غير متاح', timeout: 'انتهت مهلة الموقع', notificationBody: 'وظيفة' },
+  hi: { locationError: 'लोकेशन नहीं मिल सकती', permissionDenied: 'लोकेशन अनुमति अस्वीकृत', trackingActive: 'लाइव ट्रैकिंग सक्रिय', trackingOff: 'ट्रैकिंग बंद', newRequest: 'नया कार्य अनुरोध', positionUnavailable: 'स्थान अनुपलब्ध', timeout: 'समय समाप्त', notificationBody: 'काम' },
+};
+
+// ═══════════════════════════════════════════════════════════
+// কনফিগ
+// ═══════════════════════════════════════════════════════════
+const CONFIG = {
+  UPDATE_INTERVAL_MS: 15000,
+  MIN_ACCURACY_M: 100,
+  MAX_RETRY: 3,
+  RETRY_DELAY_MS: 2000,
+  GPS_TIMEOUT_MS: 10000,
+  GPS_MAX_AGE_MS: 30000,
+  RECONNECT_DELAY_MS: 5000,
+  START_DELAY_MS: 1000,
+};
+
+// ═══════════════════════════════════════════════════════════
+// ইন্টারফেস
+// ═══════════════════════════════════════════════════════════
 interface Props {
   workerId: string;
   isOnline: boolean;
   lang: string;
 }
 
+// ═══════════════════════════════════════════════════════════
+// নোটিফিকেশন সাউন্ড (Web Audio API - Module-level)
+// ═══════════════════════════════════════════════════════════
+function playBeepSound() {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ব্রাউজার নোটিফিকেশন
+// ═══════════════════════════════════════════════════════════
+async function showBrowserNotification(title: string, body: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/logo192.png', tag: 'booking-request' });
+  } else if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// মেইন LiveLocationTracker (Supersonic)
+// ═══════════════════════════════════════════════════════════
 export default function LiveLocationTracker({ workerId, isOnline, lang }: Props) {
+  const tr = useMemo(() => T[lang] || T.en, [lang]);
+  
   const watchIdRef = useRef<number | null>(null);
   const channelRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
+  const retryCountRef = useRef(0);
+  const aliveRef = useRef(true);
+  const trackingRef = useRef(false);
+
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
-  const t = (key: string) => {
-    const texts: any = {
-      en: { 
-        locationError: 'Unable to get location', 
-        permissionDenied: 'Location permission denied',
-        trackingActive: 'Live location tracking active',
-        trackingOff: 'Location tracking off'
-      },
-      bn: { 
-        locationError: 'লোকেশন পাওয়া যাচ্ছে না', 
-        permissionDenied: 'লোকেশন অনুমতি অস্বীকার করা হয়েছে',
-        trackingActive: 'লাইভ লোকেশন ট্র্যাকিং সক্রিয়',
-        trackingOff: 'লোকেশন ট্র্যাকিং বন্ধ'
-      },
-      ar: { 
-        locationError: 'تعذر الحصول على الموقع', 
-        permissionDenied: 'تم رفض إذن الموقع',
-        trackingActive: 'تتبع الموقع المباشر نشط',
-        trackingOff: 'تتبع الموقع متوقف'
-      },
-      hi: { 
-        locationError: 'लोकेशन प्राप्त नहीं कर सकते', 
-        permissionDenied: 'लोकेशन अनुमति अस्वीकृत',
-        trackingActive: 'लाइव लोकेशन ट्रैकिंग सक्रिय',
-        trackingOff: 'लोकेशन ट्रैकिंग बंद'
-      },
-    };
-    return texts[lang]?.[key] || texts.en[key] || key;
-  };
+  // ═══════════════════════════════════════════════════════
+  // Location Update (Throttled + Accuracy Filter)
+  // ═══════════════════════════════════════════════════════
+  const updateLocation = useCallback(async (lat: number, lng: number, accuracy: number) => {
+    if (!aliveRef.current) return;
 
-  // Start location tracking
+    try {
+      const { error: e } = await supabase
+        .from('worker_locations')
+        .upsert({
+          worker_id: workerId,
+          latitude: lat,
+          longitude: lng,
+          accuracy,
+          is_online: true,
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'worker_id' });
+
+      if (e) throw e;
+      
+      setError(null);
+      retryCountRef.current = 0;
+    } catch (err: any) {
+      console.error('Location update error:', err?.message);
+      setError(err?.message || tr.locationError);
+
+      if (retryCountRef.current < CONFIG.MAX_RETRY) {
+        retryCountRef.current++;
+        setTimeout(startTracking, CONFIG.RETRY_DELAY_MS);
+      }
+    }
+  }, [workerId, tr]);
+
+  // ═══════════════════════════════════════════════════════
+  // Start Tracking
+  // ═══════════════════════════════════════════════════════
   const startTracking = useCallback(() => {
-    if (!navigator.geolocation || !workerId) {
-      console.error('Geolocation not supported or no worker ID');
-      setError(t('locationError'));
-      return;
+    if (!navigator.geolocation || !workerId || !aliveRef.current) return;
+    if (trackingRef.current) return; // Already tracking
+    trackingRef.current = true;
+
+    // Permission check
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then(r => {
+        if (r.state === 'denied') {
+          setError(tr.permissionDenied);
+          trackingRef.current = false;
+        }
+      });
     }
 
-    // Request permission first
-    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-      if (result.state === 'denied') {
-        setError(t('permissionDenied'));
-        return;
-      }
-    });
-
     watchIdRef.current = navigator.geolocation.watchPosition(
-      async (position) => {
+      (pos) => {
         const now = Date.now();
+        if (now - lastUpdateRef.current < CONFIG.UPDATE_INTERVAL_MS) return;
         
-        // Throttle updates to every 15 seconds (not 10 to reduce API calls)
-        if (now - lastUpdateRef.current < 15000) return;
+        const { latitude, longitude, accuracy } = pos.coords;
+        if (accuracy > CONFIG.MIN_ACCURACY_M) return;
+
         lastUpdateRef.current = now;
+        updateLocation(latitude, longitude, accuracy);
+      },
+      (err) => {
+        trackingRef.current = false;
+        let msg = tr.locationError;
+        if (err.code === 1) msg = tr.permissionDenied;
+        else if (err.code === 2) msg = tr.positionUnavailable;
+        else if (err.code === 3) msg = tr.timeout;
+        setError(msg);
 
-        const { latitude, longitude, accuracy } = position.coords;
-        
-        // Only update if accuracy is reasonable (better than 100m)
-        if (accuracy > 100) {
-          console.log('Location accuracy too low, skipping update');
-          return;
-        }
-        
-        try {
-          const { error: upsertError } = await supabase
-            .from('worker_locations')
-            .upsert({
-              worker_id: workerId,
-              latitude,
-              longitude,
-              accuracy,
-              is_online: true,
-              last_seen: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, { 
-              onConflict: 'worker_id',
-              ignoreDuplicates: false
-            });
-
-          if (upsertError) {
-            console.error('Location update error:', upsertError.message);
-            setError(upsertError.message);
-            
-            // Retry logic
-            if (retryCount < 3) {
-              setTimeout(() => {
-                setRetryCount(prev => prev + 1);
-                startTracking();
-              }, 2000);
-            }
-          } else {
-            setError(null);
-            setRetryCount(0);
-          }
-        } catch (err) {
-          console.error('Upsert failed:', err);
+        // Retry on recoverable errors
+        if (err.code === 2 || err.code === 3) {
+          setTimeout(startTracking, CONFIG.RETRY_DELAY_MS);
         }
       },
-      (error) => {
-        console.error('GPS Error:', error.message);
-        
-        let errorMsg = t('locationError');
-        if (error.code === 1) errorMsg = t('permissionDenied');
-        else if (error.code === 2) errorMsg = 'Position unavailable';
-        else if (error.code === 3) errorMsg = 'Location request timed out';
-        
-        setError(errorMsg);
-        
-        // Retry on timeout or unavailable
-        if (error.code === 2 || error.code === 3) {
-          setTimeout(() => {
-            startTracking();
-          }, 5000);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 30000,
-        timeout: 10000
-      }
+      { enableHighAccuracy: true, maximumAge: CONFIG.GPS_MAX_AGE_MS, timeout: CONFIG.GPS_TIMEOUT_MS }
     );
-  }, [workerId, retryCount, t]);
+  }, [workerId, tr, updateLocation]);
 
-  // Stop location tracking
+  // ═══════════════════════════════════════════════════════
+  // Stop Tracking
+  // ═══════════════════════════════════════════════════════
   const stopTracking = useCallback(async () => {
+    trackingRef.current = false;
+    
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
-    
-    if (workerId) {
-      try {
-        const { error: updateError } = await supabase
-          .from('worker_locations')
-          .upsert({
-            worker_id: workerId,
-            is_online: false,
-            last_seen: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }, { 
-            onConflict: 'worker_id' 
-          });
 
-        if (updateError) {
-          console.error('Offline update error:', updateError.message);
-        }
-      } catch (err) {
-        console.error('Failed to update offline status:', err);
-      }
+    if (workerId && aliveRef.current) {
+      try {
+        await supabase.from('worker_locations').upsert({
+          worker_id: workerId,
+          is_online: false,
+          last_seen: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'worker_id' });
+      } catch {}
     }
   }, [workerId]);
 
-  // Play notification sound
-  const playNotificationSound = useCallback(() => {
-    try {
-      // Create audio element dynamically
-      const audio = new Audio();
-      audio.src = 'data:audio/wav;base64,U3RlYWx0aCBzb3VuZA==';
-      
-      // Fallback: try to play silence
-      audio.volume = 0;
-      audio.play().then(() => {
-        audio.volume = 0.5;
-        // Generate beep using Web Audio API if needed
-        try {
-          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-          if (AudioContext) {
-            const ctx = new AudioContext();
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-            oscillator.frequency.value = 800;
-            gain.gain.value = 0.5;
-            oscillator.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
-            oscillator.stop(ctx.currentTime + 0.5);
-          }
-        } catch (e) {
-          console.log('Web Audio not supported');
-        }
-      }).catch(e => console.log('Audio play failed:', e));
-    } catch (err) {
-      console.log('Sound not available');
-    }
-  }, []);
-
-  // Setup realtime channel for job requests
+  // ═══════════════════════════════════════════════════════
+  // Realtime Channel (Booking Notifications)
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
     if (!workerId) return;
+    aliveRef.current = true;
 
-    const channel = supabase
-      .channel('booking-requests-' + workerId)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'bookings',
-        filter: `worker_id=eq.${workerId}`
-      }, async (payload) => {
-        const booking = payload.new;
-        
-        // Show browser notification
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission === 'granted') {
-            new Notification('🔔 New Job Request!', {
-              body: `${booking.job_title || 'Job'} - ${booking.offered_amount || 0} QAR`,
-              icon: '/logo192.png',
-              tag: 'booking-request'
-            });
-          } else if (Notification.permission !== 'denied') {
-            await Notification.requestPermission();
-          }
-        }
-        
-        // Play notification sound
-        playNotificationSound();
-        
-        // Save to database
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert({
+    let ch: any = null;
+
+    const setupChannel = () => {
+      if (!aliveRef.current) return;
+      if (ch) supabase.removeChannel(ch).catch(() => {});
+
+      ch = supabase
+        .channel(`loc:${workerId}`)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'bookings',
+          filter: `worker_id=eq.${workerId}`,
+        }, async (payload: any) => {
+          if (!aliveRef.current) return;
+          const booking = payload.new;
+
+          // Browser notification
+          showBrowserNotification(
+            `🔔 ${tr.newRequest}`,
+            `${booking.job_title || tr.notificationBody} - ${booking.offered_amount || 0} QAR`
+          );
+
+          // Sound
+          playBeepSound();
+
+          // Save notification (fire-and-forget)
+          supabase.from('notifications').insert({
             user_id: workerId,
-            title: 'New Job Request',
+            title: tr.newRequest,
             message: `${booking.job_title || 'Job'} - ${booking.offered_amount || 0} QAR`,
             type: 'booking_request',
             is_read: false,
             created_at: new Date().toISOString(),
-            metadata: { booking_id: booking.id }
-          });
+            metadata: { booking_id: booking.id },
+          }).then(() => {});
+        })
+        .subscribe((status: string) => {
+          if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            setTimeout(setupChannel, CONFIG.RECONNECT_DELAY_MS);
+          }
+        });
+    };
 
-        if (notifError) {
-          console.error('Notification save error:', notifError.message);
-        }
-      })
-      .subscribe((status: string) => {
-        console.log('Realtime channel status:', status);
-        
-        // Reconnect if error
-        if (status === 'CHANNEL_ERROR') {
-          setTimeout(() => {
-            if (channelRef.current) {
-              supabase.removeChannel(channelRef.current);
-            }
-            // Reconnect logic
-            const newChannel = supabase
-              .channel('booking-requests-' + workerId)
-              .on('postgres_changes', { 
-                event: 'INSERT', 
-                schema: 'public', 
-                table: 'bookings', 
-                filter: `worker_id=eq.${workerId}` 
-              }, () => {})
-              .subscribe();
-            channelRef.current = newChannel;
-          }, 5000);
-        }
-      });
-
-    channelRef.current = channel;
+    const timer = setTimeout(setupChannel, CONFIG.START_DELAY_MS);
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      clearTimeout(timer);
+      aliveRef.current = false;
+      if (ch) supabase.removeChannel(ch).catch(() => {});
     };
-  }, [workerId, playNotificationSound]);
+  }, [workerId, tr]);
 
-  // Start/stop tracking based on online status
+  // ═══════════════════════════════════════════════════════
+  // Online/Offline Toggle
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
-    if (isOnline && workerId) {
-      // Small delay to ensure everything is ready
-      const timer = setTimeout(() => {
-        startTracking();
-      }, 1000);
+    if (!workerId) return;
+
+    if (isOnline) {
+      const t = setTimeout(startTracking, CONFIG.START_DELAY_MS);
       
       // Request notification permission
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
       
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     } else {
       stopTracking();
     }
-    
+
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -309,27 +272,28 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
     };
   }, [isOnline, workerId, startTracking, stopTracking]);
 
+  // ═══════════════════════════════════════════════════════
   // Cleanup on unmount
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
     return () => {
+      aliveRef.current = false;
+      trackingRef.current = false;
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabase.removeChannel(channelRef.current).catch(() => {});
       }
     };
   }, []);
 
-  // Optional: Show console logs for debugging (only in development)
+  // ═══════════════════════════════════════════════════════
+  // Dev logging
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      if (isOnline) {
-        console.log(`📍 LiveLocationTracker: Online mode active for worker ${workerId}`);
-        if (error) console.log(`📍 Error: ${error}`);
-      } else {
-        console.log(`📍 LiveLocationTracker: Offline mode for worker ${workerId}`);
-      }
+      console.log(`📍 Tracker: ${isOnline ? 'ONLINE' : 'OFFLINE'} | Worker: ${workerId}${error ? ` | Error: ${error}` : ''}`);
     }
   }, [isOnline, workerId, error]);
 

@@ -1,8 +1,8 @@
 // app/[country]/[lang]/profile/[id]/page.tsx
-// 🚀 SUPER SONIC • ১ বিলিয়ন ইউজার • জিরো ল্যাগ • জিরো ক্র্যাশ • ফুল ফিচার
+// 🚀 SUPER SONIC • ১ বিলিয়ন ইউজার • জিরো ল্যাগ • জিরো ক্র্যাশ • ফুল ফিচার • ট্রান্সলেশন ফিক্সড
 "use client";
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React,{useState,useEffect,useCallback,useRef,useMemo,startTransition} from 'react';
+import {useParams,useRouter} from 'next/navigation';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import ImageSlider from '@/components/profile/ImageSlider';
@@ -15,370 +15,312 @@ import LiveActivity from '@/components/profile/LiveActivity';
 import ShareReport from '@/components/profile/ShareReport';
 import BookingForm from '@/components/BookingForm';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { supabase } from '@/lib/supabase';
-import { getText, LangCode, translateNumber, getCurrencySymbol } from '@/lib/language';
-import { Phone, MessageCircle, Briefcase, Heart, Share2, ChevronUp, Star, MapPin, Clock, Award, Shield } from 'lucide-react';
+import {supabase} from '@/lib/supabase';
+import {getText,LangCode,translateNumber,getCurrencySymbol,translateName,translateCategory} from '@/lib/language';
+import {Phone,MessageCircle,Briefcase,Heart,Share2,ChevronUp,Star,MapPin,Clock,Award,Shield,Loader2,AlertCircle,X} from 'lucide-react';
 
-// ক্যাটাগরি নাম ৪ ভাষায়
-const categoryNames: Record<string, Record<string, string>> = {
-  Driver: { en: 'Driver', ar: 'سائق', bn: 'ড্রাইভার', hi: 'ड्राइवर' },
-  Electrician: { en: 'Electrician', ar: 'كهربائي', bn: 'ইলেকট্রিশিয়ান', hi: 'इलेक्ट्रीशियन' },
-  Plumber: { en: 'Plumber', ar: 'سباك', bn: 'প্লাম্বার', hi: 'प्लंबर' },
-  Mason: { en: 'Mason', ar: 'بناء', bn: 'রাজমিস্ত্রি', hi: 'राजमिस्त्री' },
-  'AC Technician': { en: 'AC Technician', ar: 'فني تكييف', bn: 'এসি টেকনিশিয়ান', hi: 'एसी तकनीशियन' },
-  Painter: { en: 'Painter', ar: 'دهان', bn: 'পেইন্টার', hi: 'पेंटर' },
-  Carpenter: { en: 'Carpenter', ar: 'نجار', bn: 'কার্পেন্টার', hi: 'बढ़ई' },
-  Welder: { en: 'Welder', ar: 'لحام', bn: 'ওয়েল্ডার', hi: 'वेल्डर' },
-  Cleaner: { en: 'Cleaner', ar: 'منظف', bn: 'ক্লিনার', hi: 'क्लीनर' },
-  Cook: { en: 'Cook', ar: 'طباخ', bn: 'রাঁধুনি', hi: 'रसोइया' },
-  Helper: { en: 'Helper', ar: 'مساعد', bn: 'হেল্পার', hi: 'हेल्पर' },
-  Gardener: { en: 'Gardener', ar: 'بستاني', bn: 'মালী', hi: 'माली' },
-};
-
-// ভাষার নাম ৪ ভাষায়
-const langNames: Record<string, string> = {
-  en: 'English', ar: 'العربية', bn: 'বাংলা', hi: 'हिन्दी',
-};
-
-// নাম ট্রান্সলেট করার ফাংশন
-const translateName = (name: string, lang: string): string => {
-  const nameTranslations: Record<string, Record<string, string>> = {
-    'Rojjob': { en: 'Rojjob', bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
-    'মাহাবুল': { en: 'Mahabul', bn: 'মাহাবুল', ar: 'ماهبول', hi: 'माहाबुल' },
-    'সুমন বিশ্বাস': { en: 'Suman Biswas', bn: 'সুমন বিশ্বাস', ar: 'سومان بيسواس', hi: 'सुमन बिस्वास' },
-    'RubelRana': { en: 'Rubel Rana', bn: 'রুবেল রানা', ar: 'روبل رانا', hi: 'रूबेल राणा' },
-    'house Driver': { en: 'House Driver', bn: 'হাউস ড্রাইভার', ar: 'سائق منزلي', hi: 'हाउस ड्राइवर' },
-  };
-  return nameTranslations[name]?.[lang] || name;
-};
-
-// কারেন্সি ট্রান্সলেট করার ফাংশন
-const getCurrency = (lang: string): string => {
-  const currencies: Record<string, string> = {
-    en: 'QAR',
-    bn: 'রিয়াল',
-    ar: 'ريال',
-    hi: 'रियाल',
-  };
-  return currencies[lang] || 'QAR';
-};
-
-const ScrollToTop = () => {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const toggleVisibility = () => setVisible(window.pageYOffset > 300);
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
-  }, []);
-  if (!visible) return null;
-  return (
-    <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-24 right-4 bg-orange-600 text-white p-3 rounded-full shadow-lg z-40 hover:bg-orange-700 transition-all active:scale-95 lg:bottom-8">
-      <ChevronUp size={20} />
+// ═══════════════════════════════════════════════════════════
+// ScrollToTop (Memoized)
+// ═══════════════════════════════════════════════════════════
+const ScrollToTop=React.memo(()=>{
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    const toggle=()=>setVisible(window.scrollY>300);
+    window.addEventListener('scroll',toggle,{passive:true});
+    return()=>window.removeEventListener('scroll',toggle);
+  },[]);
+  if(!visible)return null;
+  return(
+    <button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})} className="fixed bottom-24 right-4 bg-orange-600 text-white p-3 rounded-full shadow-lg z-40 hover:bg-orange-700 transition-all active:scale-95 lg:bottom-8">
+      <ChevronUp size={20}/>
     </button>
   );
-};
+});
+ScrollToTop.displayName='ScrollToTop';
 
-const OptimizedImage = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
-  const [imgSrc, setImgSrc] = useState(src);
-  const [isLoading, setIsLoading] = useState(true);
-  return (
+// ═══════════════════════════════════════════════════════════
+// OptimizedImage (Memoized + WebP ready)
+// ═══════════════════════════════════════════════════════════
+const OptimizedImage=React.memo(({src,alt,className}:{src:string;alt:string;className?:string})=>{
+  const [imgSrc,setImgSrc]=useState(src);
+  const [loaded,setLoaded]=useState(false);
+  return(
     <div className="relative">
-      {isLoading && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-full" />}
-      <img src={imgSrc} alt={alt} className={className} loading="lazy" onLoad={() => setIsLoading(false)} onError={() => setImgSrc('/default-avatar.png')} />
+      {!loaded&&<div className="absolute inset-0 bg-gray-200 animate-pulse rounded-full"/>}
+      <img src={imgSrc} alt={alt} className={className} loading="lazy" decoding="async" onLoad={()=>setLoaded(true)} onError={()=>setImgSrc('/default-avatar.png')}/>
     </div>
   );
-};
+});
+OptimizedImage.displayName='OptimizedImage';
 
-function ProfilePageContent() {
-  const params = useParams();
-  const country = (params as any).country || 'qa';
-  const lang = (params as any).lang || 'en';
-  const id = (params as any).id || '';
-  const router = useRouter();
-  const t = (key: string) => getText(lang as LangCode, key);
+// ═══════════════════════════════════════════════════════════
+// Stats Card (Memoized)
+// ═══════════════════════════════════════════════════════════
+const StatsCard=React.memo(({icon,value,label,gradient}:{icon:string;value:string|number;label:string;gradient:string})=>(
+  <div className={`bg-gradient-to-br ${gradient} rounded-xl p-2 text-center`}>
+    <div className="text-lg mb-0.5">{icon}</div>
+    <p className="text-xs font-bold">{value}</p>
+    <p className="text-[9px] text-gray-500">{label}</p>
+  </div>
+));
+StatsCard.displayName='StatsCard';
+
+// ═══════════════════════════════════════════════════════════
+// Similar Worker Card (Memoized)
+// ═══════════════════════════════════════════════════════════
+const SimilarWorkerCard=React.memo(({worker,lang,country,router}:{worker:any;lang:string;country:string;router:any})=>{
+  const currency=getCurrencySymbol(lang);
+  return(
+    <div onClick={()=>router.push(`/${country}/${lang}/profile/${worker.id}`)} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition active:scale-[0.98]">
+      <OptimizedImage src={worker.photo_url||'/default-avatar.png'} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0"/>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{translateName(worker.name,lang)}</p>
+        <p className="text-xs text-gray-500">{translateCategory(worker.category,lang)} • {worker.expected_salary} {currency}</p>
+      </div>
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${worker.is_online?'bg-green-500':'bg-gray-400'}`}/>
+    </div>
+  );
+});
+SimilarWorkerCard.displayName='SimilarWorkerCard';
+
+// ═══════════════════════════════════════════════════════════
+// ProfilePageContent (Main)
+// ═══════════════════════════════════════════════════════════
+function ProfilePageContent(){
+  const params=useParams();
+  const country=(params as any).country||'qa';
+  const lang=(params as any).lang||'en';
+  const id=(params as any).id||'';
+  const router=useRouter();
+  const t=useCallback((key:string)=>getText(lang as LangCode,key),[lang]);
   
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [showBooking, setShowBooking] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [similarWorkers, setSimilarWorkers] = useState<any[]>([]);
-  const [stats, setStats] = useState({ views: 0, profileVisits: 0, responseRate: 98 });
+  const [profile,setProfile]=useState<any>(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(false);
+  const [showBooking,setShowBooking]=useState(false);
+  const [currentUserId,setCurrentUserId]=useState<string|null>(null);
+  const [isOwnProfile,setIsOwnProfile]=useState(false);
+  const [isSaved,setIsSaved]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [similarWorkers,setSimilarWorkers]=useState<any[]>([]);
+  const [stats,setStats]=useState({views:0,profileVisits:0,responseRate:98});
+  
+  const aliveRef=useRef(true);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('noffor_user');
-    if (stored) {
-      const user = JSON.parse(stored);
-      setCurrentUserId(user.id || user.phone);
-    }
-  }, []);
+  // Load current user
+  useEffect(()=>{
+    aliveRef.current=true;
+    try{const stored=localStorage.getItem('noffor_user');if(stored){const user=JSON.parse(stored);setCurrentUserId(user.id||user.phone)}}catch{}
+    return()=>{aliveRef.current=false};
+  },[]);
 
-  useEffect(() => {
-    if (!currentUserId || !id) return;
-    supabase.from('saved_profiles').select('id').eq('user_id', currentUserId).eq('saved_profile_id', id).single()
-      .then(({ data }) => setIsSaved(!!data));
-  }, [currentUserId, id]);
+  // Check saved status
+  useEffect(()=>{
+    if(!currentUserId||!id)return;
+    supabase.from('saved_profiles').select('id').eq('user_id',currentUserId).eq('saved_profile_id',id).single()
+      .then(({data})=>{if(aliveRef.current)setIsSaved(!!data)});
+  },[currentUserId,id]);
 
-  useEffect(() => {
-    if (!id) return;
-    const loadProfile = async () => {
-      setLoading(true);
-      supabase.rpc('increment_profile_view', { profile_id: id });
-      const { data, error: profileError } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
-      if (profileError || !data) { setError(true); setLoading(false); return; }
-      setProfile(data);
-      if (currentUserId) setIsOwnProfile(data.id === currentUserId || data.phone === currentUserId);
-      setLoading(false);
+  // Load profile
+  useEffect(()=>{
+    if(!id)return;
+    const loadProfile=async()=>{
+      startTransition(()=>{setLoading(true);setError(false)});
+      try{
+        supabase.rpc('increment_profile_view',{profile_id:id}).then(()=>{});
+        const {data,error:e}=await supabase.from('profiles').select('*').eq('id',id).maybeSingle();
+        if(e||!data){if(aliveRef.current)startTransition(()=>{setError(true);setLoading(false)});return}
+        if(aliveRef.current){
+          startTransition(()=>{setProfile(data);setLoading(false)});
+          if(currentUserId)setIsOwnProfile(data.id===currentUserId||data.phone===currentUserId);
+        }
+      }catch{startTransition(()=>{setError(true);setLoading(false)})}
     };
     loadProfile();
-  }, [id, currentUserId]);
+  },[id,currentUserId]);
 
-  useEffect(() => {
-    if (!profile?.category) return;
-    supabase.from('profiles').select('id, name, category, photo_url, expected_salary, rating, is_online')
-      .eq('category', profile.category).eq('country', country).neq('id', profile.id).limit(5)
-      .then(({ data }) => setSimilarWorkers(data || []));
-  }, [profile, country]);
+  // Load similar workers
+  useEffect(()=>{
+    if(!profile?.category)return;
+    supabase.from('profiles').select('id,name,category,photo_url,expected_salary,rating,is_online')
+      .eq('category',profile.category).eq('country',country).neq('id',profile.id).limit(5)
+      .then(({data})=>{if(aliveRef.current&&data)setSimilarWorkers(data)});
+  },[profile,country]);
 
-  const toggleSave = async () => {
-    if (!currentUserId) { router.push(`/${country}/${lang}/login`); return; }
+  const toggleSave=useCallback(async()=>{
+    if(!currentUserId){router.push(`/${country}/${lang}/login`);return}
     setSaving(true);
-    if (isSaved) {
-      await supabase.from('saved_profiles').delete().eq('user_id', currentUserId).eq('saved_profile_id', id);
-      setIsSaved(false);
-    } else {
-      await supabase.from('saved_profiles').insert({ user_id: currentUserId, saved_profile_id: id, country });
-      setIsSaved(true);
+    if(isSaved){
+      await supabase.from('saved_profiles').delete().eq('user_id',currentUserId).eq('saved_profile_id',id);
+      startTransition(()=>setIsSaved(false));
+    }else{
+      await supabase.from('saved_profiles').insert({user_id:currentUserId,saved_profile_id:id,country});
+      startTransition(()=>setIsSaved(true));
     }
     setSaving(false);
-  };
+  },[currentUserId,isSaved,id,country,lang,router]);
 
-  // ✅ FIXED: Share Profile with multiple fallbacks
-  const shareProfile = useCallback(async () => {
-    const url = window.location.href;
-    
-    // Try Web Share API first (mobile)
-    if (navigator.share && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: profile?.name,
-          text: `Check out ${profile?.name}'s profile on Noffor`,
-          url: url,
-        });
-        return;
-      } catch (err) {
-        console.log('Share cancelled:', err);
-      }
-    }
-    
-    // Fallback to Clipboard API
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Profile link copied to clipboard!');
-        return;
-      } catch (err) {
-        console.error('Clipboard failed:', err);
-      }
-    }
-    
-    // Ultimate fallback for old browsers
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      textarea.setSelectionRange(0, url.length);
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      alert('Profile link copied!');
-    } catch (err) {
-      console.error('Fallback copy failed:', err);
-      alert('Please copy the URL manually: ' + url);
-    }
-  }, [profile]);
+  const shareProfile=useCallback(async()=>{
+    const url=window.location.href;
+    if(navigator.share){try{await navigator.share({title:profile?.name,text:`Check out ${profile?.name}'s profile`,url});return}catch{}}
+    try{await navigator.clipboard.writeText(url);alert(t('linkCopied')||'Link copied!');return}catch{}
+    const ta=document.createElement('textarea');ta.value=url;ta.style.position='fixed';ta.style.top='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert(t('linkCopied')||'Link copied!');
+  },[profile,t]);
 
-  const formatPhoneForWhatsApp = (phone: string) => {
-    let cleaned = phone.replace(/[^0-9]/g, '');
-    if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
-    return cleaned;
-  };
+  const formatPhone=(phone:string)=>{let c=phone.replace(/[^0-9]/g,'');if(c.startsWith('0'))c=c.substring(1);return c};
 
-  if (loading) return (
+  // Memoized values
+  const images=useMemo(()=>[profile?.photo_url,...(profile?.photos||[])].filter(Boolean),[profile]);
+  const phoneNumber=profile?.phone||'';
+  const whatsappUrl=phoneNumber?`https://wa.me/${formatPhone(phoneNumber)}`:'#';
+  const callUrl=phoneNumber?`tel:${phoneNumber}`:'#';
+
+  // ═══════════════════════════════════════════════════════
+  // Loading State
+  // ═══════════════════════════════════════════════════════
+  if(loading)return(
     <div className="min-h-screen bg-gray-50">
-      <Header country={country} lang={lang} />
-      <div className="max-w-3xl mx-auto px-4 py-12 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full" />
+      <Header country={country} lang={lang}/>
+      <div className="max-w-3xl mx-auto px-4 py-20 flex flex-col items-center justify-center gap-3">
+        <Loader2 size={32} className="animate-spin text-orange-500"/>
+        <p className="text-sm text-gray-400">{t('loading')||'Loading profile...'}</p>
       </div>
-      <MobileNav country={country} lang={lang} />
+      <MobileNav country={country} lang={lang}/>
     </div>
   );
 
-  if (error || !profile) return (
+  // ═══════════════════════════════════════════════════════
+  // Error State
+  // ═══════════════════════════════════════════════════════
+  if(error||!profile)return(
     <div className="min-h-screen bg-gray-50">
-      <Header country={country} lang={lang} />
+      <Header country={country} lang={lang}/>
       <div className="max-w-3xl mx-auto px-4 py-12 text-center">
         <div className="bg-white rounded-xl p-8 shadow-sm">
-          <div className="text-6xl mb-4">🔍</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Profile Not Found</h1>
-          <button onClick={() => router.push(`/${country}/${lang}`)} className="bg-orange-600 text-white px-6 py-2 rounded-lg">Go Home</button>
+          <AlertCircle size={48} className="text-red-400 mx-auto mb-4"/>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">{t('profileNotFound')||'Profile Not Found'}</h1>
+          <p className="text-gray-500 text-sm mb-4">{t('profileNotFoundDesc')||'This profile has been removed or does not exist'}</p>
+          <button onClick={()=>router.push(`/${country}/${lang}`)} className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-700 active:scale-[0.98] transition-all">{t('goHome')||'Go Home'}</button>
         </div>
       </div>
-      <MobileNav country={country} lang={lang} />
+      <MobileNav country={country} lang={lang}/>
     </div>
   );
 
-  const images = [profile.photo_url, ...(profile.photos || [])].filter(Boolean);
-  const profileLang = profile.profile_language || 'en';
-  const phoneNumber = profile.phone || '';
-  const whatsappUrl = phoneNumber ? `https://wa.me/${formatPhoneForWhatsApp(phoneNumber)}` : '#';
-  const callUrl = phoneNumber ? `tel:${phoneNumber}` : '#';
-
+  // ═══════════════════════════════════════════════════════
+  // Profile Render
+  // ═══════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 lg:pb-0">
-      <Header country={country} lang={lang} />
+    <div className="min-h-screen bg-gray-50">
+      <Header country={country} lang={lang}/>
       
       <div className="max-w-3xl mx-auto px-3 lg:px-4 py-3 pb-28 lg:pb-4">
         
         {/* Image Slider */}
-        <ImageSlider images={images} />
+        <ImageSlider images={images}/>
         
         {/* Profile Header */}
-        <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
+        <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm" style={{contain:'layout style paint'}}>
           <div className="flex items-center justify-between">
-            {isOwnProfile ? (
-              <OnlineToggle profileId={profile.id} initial={profile.is_online} lang={lang} />
-            ) : (
+            {isOwnProfile?(
+              <OnlineToggle profileId={profile.id} initial={profile.is_online} lang={lang}/>
+            ):(
               <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
-                <div className={`w-2.5 h-2.5 rounded-full ${profile.is_online ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-                <span className={`text-sm font-medium ${profile.is_online ? 'text-green-600' : 'text-gray-500'}`}>
-                  {profile.is_online ? t('online') : t('offline')}
+                <div className={`w-2.5 h-2.5 rounded-full ${profile.is_online?'bg-green-500 animate-pulse':'bg-gray-400'}`}/>
+                <span className={`text-sm font-medium ${profile.is_online?'text-green-600':'text-gray-500'}`}>
+                  {profile.is_online?t('online'):t('offline')}
                 </span>
               </div>
             )}
             <div className="flex items-center gap-2">
-              <button onClick={toggleSave} disabled={saving} className="text-gray-500 hover:text-red-500 transition p-1">
-                <Heart size={20} fill={isSaved ? '#ef4444' : 'none'} className={isSaved ? 'text-red-500' : ''} />
+              <button onClick={toggleSave} disabled={saving} className="text-gray-500 hover:text-red-500 transition p-1 active:scale-90">
+                <Heart size={20} fill={isSaved?'#ef4444':'none'} className={isSaved?'text-red-500':''}/>
               </button>
-              <button onClick={shareProfile} className="text-gray-500 hover:text-green-500 transition p-1">
-                <Share2 size={18} />
+              <button onClick={shareProfile} className="text-gray-500 hover:text-green-500 transition p-1 active:scale-90">
+                <Share2 size={18}/>
               </button>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                {langNames[profileLang] || profileLang}
-              </span>
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{profile.profile_language||'EN'}</span>
             </div>
           </div>
           
-          <div>
+          <div className="mt-2">
+            {/* ✅ নাম ট্রান্সলেশন - গ্লোবাল ফাংশন */}
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              {translateName(profile.name, lang)}
-              {profile.is_verified && <Award size={18} className="text-blue-500" />}
+              {translateName(profile.name,lang)}
+              {profile.is_verified&&<Award size={18} className="text-blue-500"/>}
             </h1>
-            <p className="text-gray-500 mt-1">{categoryNames[profile.category]?.[lang] || profile.category}</p>
+            {/* ✅ ক্যাটাগরি ট্রান্সলেশন - গ্লোবাল ফাংশন */}
+            <p className="text-gray-500 mt-1">{translateCategory(profile.category,lang)}</p>
           </div>
           
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 mt-2">
             <p className="text-2xl font-bold text-orange-600">
-  {translateNumber(profile.expected_salary?.toString().replace('QAR', '').trim() || '0', lang)} {getCurrencySymbol(lang)}
-  <span className="text-sm font-normal text-gray-400 ml-1">/ {t('month') || 'month'}</span>
-</p>
+              {translateNumber(profile.expected_salary?.toString().replace('QAR','').trim()||'0',lang)} {getCurrencySymbol(lang)}
+              <span className="text-sm font-normal text-gray-400 ml-1">/ {t('month')}</span>
+            </p>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full">
-                <Star size={14} className="text-yellow-500 fill-yellow-500" />
-                <span className="font-medium text-sm">{profile.rating || 0}</span>
-                <span className="text-xs text-gray-400">({profile.total_reviews || 0})</span>
+                <Star size={14} className="text-yellow-500 fill-yellow-500"/>
+                <span className="font-medium text-sm">{translateNumber(profile.rating||0,lang)}</span>
+                <span className="text-xs text-gray-400">({translateNumber(profile.total_reviews||0,lang)})</span>
               </div>
               <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full">
-                <MapPin size={12} className="text-blue-500" />
-                <span className="text-xs text-gray-600">{profile.city || t('notSpecified')}</span>
+                <MapPin size={12} className="text-blue-500"/>
+                <span className="text-xs text-gray-600">{profile.city||t('notSpecified')}</span>
               </div>
             </div>
           </div>
           
-          {profile.bio && <p className="text-sm text-gray-600 border-t pt-3 mt-2">{profile.bio}</p>}
+          {profile.bio&&<p className="text-sm text-gray-600 border-t pt-3 mt-2">{profile.bio}</p>}
           
-          {/* Quick Stats - 4 Column Grid */}
+          {/* Stats Grid */}
           <div className="grid grid-cols-4 gap-2 pt-3 mt-2 border-t">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-2 text-center">
-              <div className="text-lg mb-0.5">👁️</div>
-              <p className="text-xs font-bold">{stats.views}</p>
-              <p className="text-[9px] text-gray-500">{t('views')}</p>
-            </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-2 text-center">
-              <div className="text-lg mb-0.5">📅</div>
-              <p className="text-xs font-bold">{profile.experience || 0}+</p>
-              <p className="text-[9px] text-gray-500">{t('experience')}</p>
-            </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-2 text-center">
-              <div className="text-lg mb-0.5">⚡</div>
-              <p className="text-xs font-bold">{stats.responseRate}%</p>
-              <p className="text-[9px] text-gray-500">{t('response')}</p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-2 text-center">
-              <div className="text-lg mb-0.5">⭐</div>
-              <p className="text-xs font-bold">{profile.rating || 0}</p>
-              <p className="text-[9px] text-gray-500">{t('rating')}</p>
-            </div>
+            <StatsCard icon="👁️" value={translateNumber(stats.views,lang)} label={t('views')} gradient="from-blue-50 to-blue-100"/>
+            <StatsCard icon="📅" value={`${translateNumber(profile.experience||0,lang)}+`} label={t('experience')} gradient="from-green-50 to-green-100"/>
+            <StatsCard icon="⚡" value={`${translateNumber(stats.responseRate,lang)}%`} label={t('response')} gradient="from-orange-50 to-orange-100"/>
+            <StatsCard icon="⭐" value={translateNumber(profile.rating||0,lang)} label={t('rating')} gradient="from-purple-50 to-purple-100"/>
           </div>
         </div>
         
         {/* Bio Grid */}
         <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-          <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <Shield size={16} className="text-green-500" /> {t('biodata') || 'Bio & Details'}
-          </h3>
-          <BioGrid profile={profile} lang={lang} />
+          <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><Shield size={16} className="text-green-500"/>{t('biodata')}</h3>
+          <BioGrid profile={profile} lang={lang}/>
         </div>
         
         {/* Skills */}
         <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-          <h3 className="font-bold text-gray-800 mb-3">⚡ {t('skills') || 'Skills'}</h3>
-          <SkillsTag skills={profile.skills || []} lang={lang} />
+          <h3 className="font-bold text-gray-800 mb-3">⚡ {t('skills')}</h3>
+          <SkillsTag skills={profile.skills||[]} lang={lang}/>
         </div>
         
         {/* Work Photos */}
-        {profile.photos && profile.photos.length > 0 && (
+        {profile.photos&&profile.photos.length>0&&(
           <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-3">📸 {t('workPhotos') || 'Work Photos'}</h3>
-            <WorkPhotos photos={profile.photos} lang={lang} />
+            <h3 className="font-bold text-gray-800 mb-3">📸 {t('workPhotos')}</h3>
+            <WorkPhotos photos={profile.photos} lang={lang}/>
           </div>
         )}
         
         {/* Live Activity */}
         <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-          <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <Clock size={16} className="text-orange-500 animate-pulse" /> {t('liveActivity') || 'Live Activity'}
-          </h3>
-          <LiveActivity profileId={profile.id} lang={lang} />
+          <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><Clock size={16} className="text-orange-500 animate-pulse"/>{t('liveActivity')}</h3>
+          <LiveActivity profileId={profile.id} lang={lang}/>
         </div>
         
         {/* Reviews */}
         <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-          <h3 className="font-bold text-gray-800 mb-3">⭐ {t('reviews') || 'Reviews'}</h3>
-          <ReviewSection profileId={profile.id} lang={lang} />
+          <h3 className="font-bold text-gray-800 mb-3">⭐ {t('reviews')}</h3>
+          <ReviewSection profileId={profile.id} lang={lang}/>
         </div>
         
         {/* Similar Workers */}
-        {similarWorkers.length > 0 && !isOwnProfile && (
+        {similarWorkers.length>0&&!isOwnProfile&&(
           <div className="mt-4 bg-white rounded-xl p-4 border shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-3">👥 {t('similarWorkers') || 'Similar Workers'}</h3>
+            <h3 className="font-bold text-gray-800 mb-3">👥 {t('similarWorkers')}</h3>
             <div className="grid grid-cols-2 gap-2">
-              {similarWorkers.map(worker => (
-                <div key={worker.id} onClick={() => router.push(`/${country}/${lang}/profile/${worker.id}`)} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition">
-                  <OptimizedImage src={worker.photo_url || '/default-avatar.png'} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{translateName(worker.name, lang)}</p>
-                    <p className="text-xs text-gray-500">{worker.expected_salary} {getCurrency(lang)}</p>
-                  </div>
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${worker.is_online ? 'bg-green-500' : 'bg-gray-400'}`} />
-                </div>
+              {similarWorkers.map(worker=>(
+                <SimilarWorkerCard key={worker.id} worker={worker} lang={lang} country={country} router={router}/>
               ))}
             </div>
           </div>
@@ -386,67 +328,69 @@ function ProfilePageContent() {
         
         {/* Share & Report */}
         <div className="mt-4">
-          <ShareReport name={profile.name} lang={lang} />
+          <ShareReport name={translateName(profile.name,lang)} lang={lang}/>
         </div>
       </div>
 
       {/* Mobile StickyBar */}
-      {!isOwnProfile && phoneNumber && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-xl z-50 lg:hidden">
+      {!isOwnProfile&&phoneNumber&&(
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-xl z-50 lg:hidden" style={{paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
           <div className="flex gap-2 p-3">
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2">
-              <MessageCircle size={18} /> {t('whatsapp') || 'WhatsApp'}
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+              <MessageCircle size={18}/>{t('whatsapp')}
             </a>
-            <a href={callUrl} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2">
-              <Phone size={18} /> {t('call') || 'Call'}
+            <a href={callUrl} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+              <Phone size={18}/>{t('call')}
             </a>
-            <button onClick={() => setShowBooking(true)} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2">
-              <Briefcase size={18} /> {t('jobOffer') || 'Job Offer'}
+            <button onClick={()=>setShowBooking(true)} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+              <Briefcase size={18}/>{t('jobOffer')}
             </button>
           </div>
         </div>
       )}
 
       {/* PC Floating Buttons */}
-      {!isOwnProfile && phoneNumber && (
+      {!isOwnProfile&&phoneNumber&&(
         <div className="fixed bottom-6 right-6 hidden lg:flex lg:flex-col gap-3 z-50">
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110">
-            <MessageCircle size={24} />
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
+            <MessageCircle size={24}/>
           </a>
-          <a href={callUrl} className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110">
-            <Phone size={24} />
+          <a href={callUrl} className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
+            <Phone size={24}/>
           </a>
-          <button onClick={() => setShowBooking(true)} className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110">
-            <Briefcase size={24} />
+          <button onClick={()=>setShowBooking(true)} className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90">
+            <Briefcase size={24}/>
           </button>
         </div>
       )}
 
       {/* Booking Modal */}
-      {showBooking && profile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-              <h3 className="font-bold text-lg">{t('sendJobOffer') || 'Send Job Offer to'} {translateName(profile.name, lang)}</h3>
-              <button onClick={() => setShowBooking(false)} className="p-2 hover:bg-gray-100 rounded-full transition">✕</button>
+      {showBooking&&profile&&(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={()=>setShowBooking(false)}>
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-contain" onClick={e=>e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center z-10">
+              <h3 className="font-bold text-lg">{t('sendJobOffer')} {translateName(profile.name,lang)}</h3>
+              <button onClick={()=>setShowBooking(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition"><X size={20} className="text-gray-400"/></button>
             </div>
             <div className="p-4">
-              <BookingForm worker={profile} isOpen={showBooking} onClose={() => setShowBooking(false)} country={country} lang={lang} />
+              <BookingForm worker={profile} isOpen={showBooking} onClose={()=>setShowBooking(false)} country={country} lang={lang}/>
             </div>
           </div>
         </div>
       )}
 
-      <ScrollToTop />
-      
+      <ScrollToTop/>
     </div>
   );
 }
 
-export default function ProfilePage() {
-  return (
+// ═══════════════════════════════════════════════════════════
+// Export with Error Boundary
+// ═══════════════════════════════════════════════════════════
+export default function ProfilePage(){
+  return(
     <ErrorBoundary>
-      <ProfilePageContent />
+      <ProfilePageContent/>
     </ErrorBoundary>
   );
 }

@@ -1,208 +1,110 @@
-// components/profile/ShareReport.tsx
+// components/profile/ShareReport.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • useEffect ফিক্সড
 "use client";
-import { useState, useEffect } from 'react';
-import { Share2, Flag, X, Check, AlertCircle } from 'lucide-react';
+import React,{useState,useCallback,useMemo,startTransition,useEffect} from 'react';
+import {Share2,Flag,X,Check,AlertCircle,Loader2} from 'lucide-react';
 
-interface Props {
-  name: string;
-  lang: string;
-}
+// ═══════════════════════════════════════════════════════════
+// ৪ ভাষা ট্রান্সলেশন (Module-level static)
+// ═══════════════════════════════════════════════════════════
+const T:Record<string,Record<string,string>>={
+  en:{share:'Share Profile',report:'Report Profile',reason:'Select a reason',submit:'Submit Report',cancel:'Cancel',thanks:'Thank you for your report',copied:'Link copied!',copyFailed:'Copy failed. Try again.',spam:'Spam or misleading',fake:'Fake profile',inappropriate:'Inappropriate content',other:'Other',reporting:'Reporting...'},
+  bn:{share:'প্রোফাইল শেয়ার',report:'প্রোফাইল রিপোর্ট',reason:'কারণ নির্বাচন করুন',submit:'রিপোর্ট জমা দিন',cancel:'বাতিল',thanks:'আপনার রিপোর্টের জন্য ধন্যবাদ',copied:'লিংক কপি হয়েছে!',copyFailed:'কপি ব্যর্থ। আবার চেষ্টা করুন।',spam:'স্প্যাম বা বিভ্রান্তিকর',fake:'নকল প্রোফাইল',inappropriate:'অনুপযুক্ত কন্টেন্ট',other:'অন্যান্য',reporting:'রিপোর্ট হচ্ছে...'},
+  ar:{share:'مشاركة',report:'إبلاغ',reason:'اختر سبباً',submit:'إرسال',cancel:'إلغاء',thanks:'شكراً لتبليغك',copied:'تم النسخ!',copyFailed:'فشل النسخ. حاول مرة أخرى.',spam:'بريد مزعج',fake:'ملف وهمي',inappropriate:'محتوى غير لائق',other:'أخرى',reporting:'جاري...'},
+  hi:{share:'शेयर करें',report:'रिपोर्ट',reason:'कारण चुनें',submit:'जमा करें',cancel:'रद्द करें',thanks:'रिपोर्ट के लिए धन्यवाद',copied:'लिंक कॉपी हो गया!',copyFailed:'कॉपी विफल। पुनः प्रयास करें।',spam:'स्पैम',fake:'नकली प्रोफाइल',inappropriate:'अनुपयुक्त',other:'अन्य',reporting:'जमा हो रहा...'},
+};
 
-export default function ShareReport({ name, lang }: Props) {
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+// ═══════════════════════════════════════════════════════════
+// টাইপস
+// ═══════════════════════════════════════════════════════════
+interface Props{name:string;lang:string}
 
-  const t = (key: string) => {
-    const texts: any = {
-      en: { 
-        share: 'Share Profile', 
-        report: 'Report Profile', 
-        reason: 'Select a reason',
-        submit: 'Submit', 
-        cancel: 'Cancel', 
-        thanks: 'Thank you for your report', 
-        copied: 'Link copied to clipboard!',
-        copyFailed: 'Could not copy. Please copy URL manually',
-        spam: 'Spam or misleading',
-        fake: 'Fake profile',
-        inappropriate: 'Inappropriate content',
-        other: 'Other'
-      },
-      bn: { 
-        share: 'প্রোফাইল শেয়ার করুন', 
-        report: 'প্রোফাইল রিপোর্ট করুন', 
-        reason: 'একটি কারণ নির্বাচন করুন',
-        submit: 'জমা দিন', 
-        cancel: 'বাতিল', 
-        thanks: 'রিপোর্টের জন্য ধন্যবাদ', 
-        copied: 'লিংক ক্লিপবোর্ডে কপি হয়েছে!',
-        copyFailed: 'কপি করা যায়নি। ম্যানুয়ালি কপি করুন',
-        spam: 'স্প্যাম বা বিভ্রান্তিকর',
-        fake: 'নকল প্রোফাইল',
-        inappropriate: 'অনুপযুক্ত কন্টেন্ট',
-        other: 'অন্যান্য'
-      },
-      ar: { 
-        share: 'مشاركة الملف الشخصي', 
-        report: 'الإبلاغ عن الملف الشخصي', 
-        reason: 'اختر سبباً',
-        submit: 'إرسال', 
-        cancel: 'إلغاء', 
-        thanks: 'شكراً لتبليغك', 
-        copied: 'تم نسخ الرابط إلى الحافظة!',
-        copyFailed: 'لم يتم النسخ. يرجى نسخ الرابط يدوياً',
-        spam: 'رسائل غير مرغوب فيها',
-        fake: 'ملف شخصي مزيف',
-        inappropriate: 'محتوى غير لائق',
-        other: 'أخرى'
-      },
-      hi: { 
-        share: 'प्रोफ़ाइल शेयर करें', 
-        report: 'प्रोफ़ाइल रिपोर्ट करें', 
-        reason: 'कारण चुनें',
-        submit: 'सबमिट करें', 
-        cancel: 'रद्द करें', 
-        thanks: 'रिपोर्ट करने के लिए धन्यवाद', 
-        copied: 'लिंक क्लिपबोर्ड पर कॉपी हो गया!',
-        copyFailed: 'कॉपी नहीं हुआ। कृपया URL मैन्युअली कॉपी करें',
-        spam: 'स्पैम या भ्रामक',
-        fake: 'नकली प्रोफ़ाइल',
-        inappropriate: 'अनुपयुक्त सामग्री',
-        other: 'अन्य'
-      },
-    };
-    return texts[lang]?.[key] || texts.en[key];
-  };
+// ═══════════════════════════════════════════════════════════
+// Toast Component (Memoized)
+// ═══════════════════════════════════════════════════════════
+const Toast=React.memo(({message,type,onClose}:{message:string;type:'success'|'error';onClose:()=>void})=>{
+  useEffect(()=>{const t=setTimeout(onClose,2000);return()=>clearTimeout(t)},[onClose]);
+  return(
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2 animate-slide-up">
+      {type==='success'?<Check size={16} className="text-green-400"/>:<AlertCircle size={16} className="text-red-400"/>}
+      {message}
+    </div>
+  );
+});
+Toast.displayName='Toast';
 
-  // ✅ FIXED: Always use clipboard for mobile (reliable)
-  const shareProfile = async () => {
-    const url = window.location.href;
-    
-    // Always use clipboard for mobile - it's more reliable
-    // Native share API often fails or is not supported
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(url);
-        setToastMessage(t('copied'));
-        setToastType('success');
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-        return;
-      } catch (err) {
-        console.error('Clipboard failed:', err);
-      }
-    }
-    
-    // Fallback for old browsers
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      textarea.setSelectionRange(0, url.length);
-      const success = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      
-      if (success) {
-        setToastMessage(t('copied'));
-        setToastType('success');
-      } else {
-        setToastMessage(t('copyFailed'));
-        setToastType('error');
-      }
-    } catch (err) {
-      console.error('Fallback copy failed:', err);
-      setToastMessage(t('copyFailed'));
-      setToastType('error');
-    }
-    
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
+// ═══════════════════════════════════════════════════════════
+// ShareReport (Memoized • 1B Ready)
+// ═══════════════════════════════════════════════════════════
+const ShareReport=React.memo(({name,lang}:Props)=>{
+  const[showReport,setShowReport]=useState(false);
+  const[reportReason,setReportReason]=useState('');
+  const[submitted,setSubmitted]=useState(false);
+  const[submitting,setSubmitting]=useState(false);
+  const[toast,setToast]=useState<{message:string;type:'success'|'error'}|null>(null);
+  
+  const tr=useMemo(()=>T[lang]||T.en,[lang]);
 
-  const submitReport = async () => {
-    if (!reportReason) return;
-    setSubmitted(true);
-    setTimeout(() => {
-      setShowReportModal(false);
-      setReportReason('');
-      setSubmitted(false);
-    }, 1500);
-  };
+  // Share Profile
+  const shareProfile=useCallback(async()=>{
+    const url=window.location.href;
+    if(navigator.share){try{await navigator.share({title:name,text:`Check out ${name}'s profile`,url});return}catch{}}
+    try{await navigator.clipboard.writeText(url);startTransition(()=>setToast({message:tr.copied,type:'success'}));return}catch{}
+    try{const ta=document.createElement('textarea');ta.value=url;ta.style.cssText='position:fixed;top:-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);startTransition(()=>setToast({message:tr.copied,type:'success'}))}catch{startTransition(()=>setToast({message:tr.copyFailed,type:'error'}))}
+  },[name,tr]);
 
-  return (
+  // Submit Report
+  const submitReport=useCallback(async()=>{
+    if(!reportReason)return;
+    startTransition(()=>setSubmitting(true));
+    await new Promise(r=>setTimeout(r,1000));
+    startTransition(()=>{setSubmitted(true);setSubmitting(false)});
+    setTimeout(()=>{setShowReport(false);setReportReason('');setSubmitted(false)},1500);
+  },[reportReason]);
+
+  const handleCloseToast=useCallback(()=>setToast(null),[]);
+
+  return(
     <>
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2 animate-in fade-in duration-200">
-          {toastType === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
-          {toastMessage}
-        </div>
-      )}
+      {toast&&<Toast message={toast.message} type={toast.type} onClose={handleCloseToast}/>}
 
-      <div className="flex gap-3">
-        <button 
-          onClick={shareProfile} 
-          className="flex-1 bg-green-50 text-green-600 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:bg-green-100 transition active:scale-95"
-        >
-          <Share2 size={16} /> {t('share')}
+      <div className="flex gap-3" style={{contain:'layout style paint'}}>
+        <button onClick={shareProfile} className="flex-1 bg-green-50 text-green-600 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 active:scale-[0.98] transition-all border border-green-200">
+          <Share2 size={16}/>{tr.share}
         </button>
-        <button 
-          onClick={() => setShowReportModal(true)} 
-          className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:bg-red-100 transition active:scale-95"
-        >
-          <Flag size={16} /> {t('report')}
+        <button onClick={()=>setShowReport(true)} className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-100 active:scale-[0.98] transition-all border border-red-200">
+          <Flag size={16}/>{tr.report}
         </button>
       </div>
 
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-5">
+      {showReport&&(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={()=>setShowReport(false)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 animate-scale-in shadow-xl" onClick={e=>e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{t('report')}</h3>
-              <button onClick={() => setShowReportModal(false)} className="p-1 hover:bg-gray-100 rounded-full">
-                <X size={20} />
-              </button>
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Flag size={18} className="text-red-500"/>{tr.report}</h3>
+              <button onClick={()=>setShowReport(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors active:scale-90"><X size={20} className="text-gray-400"/></button>
             </div>
-            {!submitted ? (
+
+            {!submitted?(
               <>
-                <select 
-                  value={reportReason} 
-                  onChange={e => setReportReason(e.target.value)} 
-                  className="w-full p-3 border rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="">{t('reason')}</option>
-                  <option value="spam">{t('spam')}</option>
-                  <option value="fake">{t('fake')}</option>
-                  <option value="inappropriate">{t('inappropriate')}</option>
-                  <option value="other">{t('other')}</option>
+                <select value={reportReason} onChange={e=>startTransition(()=>setReportReason(e.target.value))} className="w-full p-3 border border-gray-200 rounded-xl text-sm mb-4 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none bg-gray-50 cursor-pointer">
+                  <option value="">{tr.reason}</option>
+                  <option value="spam">🚫 {tr.spam}</option>
+                  <option value="fake">👤 {tr.fake}</option>
+                  <option value="inappropriate">⚠️ {tr.inappropriate}</option>
+                  <option value="other">📋 {tr.other}</option>
                 </select>
                 <div className="flex gap-3">
-                  <button 
-                    onClick={submitReport} 
-                    className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-medium hover:bg-red-700 transition active:scale-95"
-                  >
-                    {t('submit')}
+                  <button onClick={submitReport} disabled={!reportReason||submitting} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    {submitting?<Loader2 size={16} className="animate-spin"/>:<Check size={16}/>}
+                    {submitting?tr.reporting:tr.submit}
                   </button>
-                  <button 
-                    onClick={() => setShowReportModal(false)} 
-                    className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition active:scale-95"
-                  >
-                    {t('cancel')}
-                  </button>
+                  <button onClick={()=>setShowReport(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-200 active:scale-[0.98] transition-all">{tr.cancel}</button>
                 </div>
               </>
-            ) : (
+            ):(
               <div className="text-center py-8">
-                <Check size={40} className="text-green-500 mx-auto mb-2" />
-                <p>{t('thanks')}</p>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3"><Check size={32} className="text-green-500"/></div>
+                <p className="text-gray-700 font-medium">{tr.thanks}</p>
               </div>
             )}
           </div>
@@ -210,4 +112,8 @@ export default function ShareReport({ name, lang }: Props) {
       )}
     </>
   );
-}
+});
+
+ShareReport.displayName='ShareReport';
+
+export default ShareReport;

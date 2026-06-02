@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { siteConfig } from '@/lib/config';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
-import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 const DROPDOWNS = {
   experience: ['0-1 year', '1-3 years', '3-5 years', '5-7 years', '7-10 years', '10+ years'],
@@ -31,6 +31,25 @@ const LANGUAGE_OPTIONS = [
   { value: 'Sinhala', label: 'Sinhala', native: 'සිංහල' },
   { value: 'Tagalog', label: 'Tagalog', native: 'Tagalog' }
 ];
+
+// Category based default images
+const getCategoryDefaultImage = (category: string): string => {
+  const images: Record<string, string> = {
+    'Driver': '/images/categories/driver.jpg',
+    'Electrician': '/images/categories/electrician.jpg',
+    'Plumber': '/images/categories/plumber.jpg',
+    'Mason': '/images/categories/mason.jpg',
+    'AC Technician': '/images/categories/ac-technician.jpg',
+    'Painter': '/images/categories/painter.jpg',
+    'Carpenter': '/images/categories/carpenter.jpg',
+    'Cleaner': '/images/categories/cleaner.jpg',
+    'Cook': '/images/categories/cook.jpg',
+    'Helper': '/images/categories/helper.jpg',
+    'Gardener': '/images/categories/gardener.jpg',
+    'Welder': '/images/categories/welder.jpg',
+  };
+  return images[category] || '/images/categories/default-job.jpg';
+};
 
 async function compressImage(file: File): Promise<Blob> {
   return new Promise(resolve => {
@@ -65,10 +84,14 @@ const formTexts: Record<string, any> = {
     success: 'Success!',
     redirecting: 'Redirecting to home...',
     jobSubmit: 'Post Job',
-    jobLocation: 'Job Location *',
-    jobType: 'Job Type *',
-    workersNeeded: 'Workers Needed *',
-    urgency: 'Urgency'
+    jobLocation: 'Job Location',
+    jobType: 'Job Type',
+    workersNeeded: 'Workers Needed',
+    urgency: 'Urgency',
+    jobImage: 'Job Image',
+    uploadImage: 'Upload Image',
+    selectCategoryHint: 'Select category for auto image',
+    or: 'OR'
   },
   bn: { 
     title: 'প্রোফাইল তৈরি', phone: 'ফোন *', name: 'পুরো নাম *', category: 'ক্যাটাগরি', 
@@ -87,10 +110,14 @@ const formTexts: Record<string, any> = {
     success: 'সফল!',
     redirecting: 'হোম পেজে রিডাইরেক্ট করা হচ্ছে...',
     jobSubmit: 'পোস্ট করুন',
-    jobLocation: 'কাজের অবস্থান *',
-    jobType: 'চাকরির ধরন *',
-    workersNeeded: 'প্রয়োজনীয় কর্মী *',
-    urgency: 'জরুরীতা'
+    jobLocation: 'কাজের অবস্থান',
+    jobType: 'চাকরির ধরন',
+    workersNeeded: 'প্রয়োজনীয় কর্মী',
+    urgency: 'জরুরীতা',
+    jobImage: 'চাকরির ছবি',
+    uploadImage: 'ছবি আপলোড',
+    selectCategoryHint: 'অটো ছবির জন্য ক্যাটাগরি নির্বাচন করুন',
+    or: 'অথবা'
   },
   ar: { 
     title: 'إنشاء ملف', phone: 'الهاتف *', name: 'الاسم الكامل *', category: 'الفئة', 
@@ -109,10 +136,14 @@ const formTexts: Record<string, any> = {
     success: 'نجاح!',
     redirecting: 'جاري التحويل إلى الصفحة الرئيسية...',
     jobSubmit: 'نشر',
-    jobLocation: 'موقع العمل *',
-    jobType: 'نوع الوظيفة *',
-    workersNeeded: 'عدد العمال المطلوبين *',
-    urgency: 'الإلحاح'
+    jobLocation: 'موقع العمل',
+    jobType: 'نوع الوظيفة',
+    workersNeeded: 'عدد العمال المطلوبين',
+    urgency: 'الإلحاح',
+    jobImage: 'صورة الوظيفة',
+    uploadImage: 'تحميل صورة',
+    selectCategoryHint: 'اختر الفئة للحصول على صورة تلقائية',
+    or: 'أو'
   },
   hi: { 
     title: 'प्रोफाइल बनाएं', phone: 'फोन *', name: 'पूरा नाम *', category: 'श्रेणी', 
@@ -131,10 +162,14 @@ const formTexts: Record<string, any> = {
     success: 'सफल!',
     redirecting: 'होम पेज पर रीडायरेक्ट किया जा रहा है...',
     jobSubmit: 'पोस्ट करें',
-    jobLocation: 'कार्य स्थान *',
-    jobType: 'नौकरी का प्रकार *',
-    workersNeeded: 'आवश्यक श्रमिक *',
-    urgency: 'तात्कालिकता'
+    jobLocation: 'कार्य स्थान',
+    jobType: 'नौकरी का प्रकार',
+    workersNeeded: 'आवश्यक श्रमिक',
+    urgency: 'तात्कालिकता',
+    jobImage: 'नौकरी की छवि',
+    uploadImage: 'छवि अपलोड करें',
+    selectCategoryHint: 'ऑटो छवि के लिए श्रेणी चुनें',
+    or: 'या'
   }
 };
 
@@ -171,17 +206,23 @@ export default function CreatePage() {
   const [workFiles, setWorkFiles] = useState<File[]>([]);
   const [workPreviews, setWorkPreviews] = useState<string[]>([]);
   
-  // Employer states - ✅ মিসিং ফিল্ড যোগ করা হয়েছে
+  // Employer states
   const [jobTitle, setJobTitle] = useState('');
   const [jobCat, setJobCat] = useState('');
   const [jobSalary, setJobSalary] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [jobDesc, setJobDesc] = useState('');
-  const [jobLocation, setJobLocation] = useState('');      // ✅ নতুন
-  const [jobType, setJobType] = useState('');              // ✅ নতুন
-  const [workersNeeded, setWorkersNeeded] = useState('');  // ✅ নতুন
-  const [urgency, setUrgency] = useState('');              // ✅ নতুন
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobType, setJobType] = useState('');
+  const [workersNeeded, setWorkersNeeded] = useState('');
+  const [urgency, setUrgency] = useState('');
+  
+  // ✅ NEW: Job Image states (instead of company logo)
+  const [jobImageFile, setJobImageFile] = useState<File | null>(null);
+  const [jobImagePrev, setJobImagePrev] = useState('');
+  const [jobImageUploading, setJobImageUploading] = useState(false);
+  const [useDefaultImage, setUseDefaultImage] = useState(true);
 
   const handleWorkPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -197,6 +238,34 @@ export default function CreatePage() {
     setWorkFiles(workFiles.filter((_, i) => i !== index));
     URL.revokeObjectURL(workPreviews[index]);
     setWorkPreviews(workPreviews.filter((_, i) => i !== index));
+  };
+
+  // ✅ Job Image handler
+  const handleJobImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setJobImageUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const webpFile = new File([compressed], `job_${Date.now()}.webp`, { type: 'image/webp' });
+      setJobImagePrev(URL.createObjectURL(webpFile));
+      setJobImageFile(webpFile);
+      setUseDefaultImage(false);
+    } catch (err) {
+      console.error('Job image compression error:', err);
+    } finally {
+      setJobImageUploading(false);
+    }
+  };
+
+  // Auto-set default image when category changes
+  const handleCategoryChange = (cat: string) => {
+    setJobCat(cat);
+    if (useDefaultImage && !jobImageFile) {
+      const defaultImage = getCategoryDefaultImage(cat);
+      setJobImagePrev(defaultImage);
+    }
   };
 
   const handleLaborSubmit = async () => {
@@ -268,12 +337,30 @@ Urgency: ${urgency || 'Not specified'}
 Description:
 ${jobDesc || 'No description provided'}`;
     
+    // Upload job image if exists
+    let jobImageUrl = '';
+    if (jobImageFile && !useDefaultImage) {
+      try {
+        const { data, error: uploadError } = await supabase.storage
+          .from('profiles')
+          .upload(`job_images/${Date.now()}.webp`, jobImageFile);
+        if (!uploadError && data) {
+          jobImageUrl = supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl;
+        }
+      } catch (err) {
+        console.error('Job image upload error:', err);
+      }
+    } else if (useDefaultImage && jobCat) {
+      jobImageUrl = getCategoryDefaultImage(jobCat);
+    }
+    
     try {
       const { error: insertError } = await supabase.from('profiles').insert({
         phone: companyPhone, name: companyName, role: 'employer', 
         category: jobCat || 'General', expected_salary: formattedSalary, bio: formattedBio,
         city: 'Doha', country: country, rating: 0, total_reviews: 0, is_online: true,
-        profile_language: currentLang, created_at: new Date().toISOString()
+        profile_language: currentLang, created_at: new Date().toISOString(),
+        photo_url: jobImageUrl || '/default-job.jpg'
       });
       
       if (insertError) throw insertError;
@@ -458,7 +545,7 @@ ${jobDesc || 'No description provided'}`;
     </div>
   );
 
-  // ✅ Employer Form with missing fields added
+  // ✅ Employer Form with Job Image (not company logo)
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
@@ -474,39 +561,68 @@ ${jobDesc || 'No description provided'}`;
             <Briefcase size={24}/> {ft.employerTitle}
           </h2>
           
+          {/* ✅ Job Image Upload - Simple & Fast */}
+          <div className="mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {ft.jobImage || 'Job Image'}
+            </label>
+            {jobImagePrev ? (
+              <div className="relative">
+                <img src={jobImagePrev} className="w-full h-32 rounded-xl object-cover border-2 border-blue-300" />
+                <button 
+                  onClick={() => { setJobImageFile(null); setJobImagePrev(''); setUseDefaultImage(true); }} 
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <label className="w-full h-32 bg-gray-100 rounded-xl flex flex-col items-center justify-center cursor-pointer border-2 border-dashed hover:border-blue-400 transition">
+                {jobImageUploading ? (
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ImageIcon size={24} className="text-gray-500" />
+                    <span className="text-xs text-gray-500 mt-1">{ft.uploadImage || 'Upload Image'}</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleJobImage} className="hidden" />
+              </label>
+            )}
+            <p className="text-[10px] text-gray-400 mt-1">
+              {ft.selectCategoryHint || 'Select category for auto image'}
+            </p>
+          </div>
+          
           <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder={ft.jobTitle} className="w-full p-3 border rounded-xl" />
           
-          <select value={jobCat} onChange={e => setJobCat(e.target.value)} className="w-full p-3 border rounded-xl">
+          <select value={jobCat} onChange={e => handleCategoryChange(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.category}</option>
             {siteConfig.categories.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
           </select>
           
           <input value={jobSalary} onChange={e => setJobSalary(e.target.value)} placeholder={ft.jobSalary} className="w-full p-3 border rounded-xl" />
           
-          {/* ✅ New Field: Job Location */}
           <input 
             value={jobLocation} 
             onChange={e => setJobLocation(e.target.value)} 
-            placeholder={ft.jobLocation || 'Job Location *'} 
+            placeholder={ft.jobLocation || 'Job Location'} 
             className="w-full p-3 border rounded-xl" 
           />
           
-          {/* ✅ New Field: Job Type */}
           <select value={jobType} onChange={e => setJobType(e.target.value)} className="w-full p-3 border rounded-xl">
-            <option value="">{ft.jobType || 'Job Type *'}</option>
+            <option value="">{ft.jobType || 'Job Type'}</option>
             {DROPDOWNS.jobTypes.map(opt => <option key={opt}>{opt}</option>)}
           </select>
           
-          {/* ✅ New Field: Workers Needed */}
           <input 
             value={workersNeeded} 
             onChange={e => setWorkersNeeded(e.target.value)} 
-            placeholder={ft.workersNeeded || 'Workers Needed *'} 
+            placeholder={ft.workersNeeded || 'Workers Needed'} 
             type="number"
             className="w-full p-3 border rounded-xl" 
           />
           
-          {/* ✅ New Field: Urgency */}
           <select value={urgency} onChange={e => setUrgency(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.urgency || 'Urgency'}</option>
             {DROPDOWNS.urgency.map(opt => <option key={opt}>{opt}</option>)}

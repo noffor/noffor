@@ -1,9 +1,16 @@
-// middleware.ts (root-এ)
+// middleware.ts - Cache headers যোগ
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  
+  // ✅ Cache static assets for 1 year
+  if (pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|css|js|woff2)$/)) {
+    const response = NextResponse.next();
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    return response;
+  }
   
   // ✅ Skip auth callback
   if (pathname.startsWith('/auth/')) return NextResponse.next();
