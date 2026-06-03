@@ -1,7 +1,8 @@
-// components/profile/BioGrid.tsx - ১ বিলিয়ন ইউজার রেডি • সুপারসনিক • সব ট্রান্সলেশন
+// components/profile/BioGrid.tsx - ১ বিলিয়ন ইউজার রেডি • সুপারসনিক • সব ট্রান্সলেশন • ফিক্সড
 "use client";
 import React,{useMemo} from 'react';
 import {Briefcase,Award,Languages,Shield,Home,Utensils,MapPin,CreditCard,Clock,Phone,Mail,User,CheckCircle,Star,Globe,Heart} from 'lucide-react';
+import { translateNumber, translatePhone, getCurrencySymbol } from '@/lib/language';
 
 // ═══════════════════════════════════════════════════════════
 // ৪ ভাষা লেবেল (Module-level static)
@@ -78,9 +79,14 @@ const VALUE_MAP:Record<string,Record<string,string>>={
   'Own Arrangement':{en:'Own Arrangement',bn:'নিজস্ব ব্যবস্থা',ar:'ترتيب ذاتي',hi:'अपनी व्यवस्था'},
   'Have':{en:'Have',bn:'আছে',ar:'لديه',hi:'है'},
   'Available':{en:'Available',bn:'উপলব্ধ',ar:'متاح',hi:'उपलब्ध'},
+  // ⭐ License values
+  'Light':{en:'Light',bn:'হালকা',ar:'خفيف',hi:'हल्का'},
+  'Heavy':{en:'Heavy',bn:'ভারী',ar:'ثقيل',hi:'भारी'},
+  'Motorcycle':{en:'Motorcycle',bn:'মোটরসাইকেল',ar:'دراجة نارية',hi:'मोटरसाइकिल'},
+  'Car':{en:'Car',bn:'গাড়ি',ar:'سيارة',hi:'कार'},
+  'Bus':{en:'Bus',bn:'বাস',ar:'حافلة',hi:'बस'},
+  'Truck':{en:'Truck',bn:'ট্রাক',ar:'شاحنة',hi:'ट्रक'},
 };
-
-const CURRENCY:Record<string,string>={en:'QAR',bn:'রিয়াল',ar:'ريال',hi:'रियाल'};
 
 // ═══════════════════════════════════════════════════════════
 // BioItem (Memoized • GPU • 1B Ready)
@@ -95,22 +101,68 @@ const BioItem=React.memo(({icon:Icon,label,value}:{icon:any;label:string;value:s
 BioItem.displayName='BioItem';
 
 // ═══════════════════════════════════════════════════════════
-// BioGrid (Memoized • 1B Ready • 4 Lang)
+// BioGrid (Memoized • 1B Ready • 4 Lang • FIXED)
 // ═══════════════════════════════════════════════════════════
 interface Props{profile:any;lang:string}
 
 const BioGrid=React.memo(({profile,lang}:Props)=>{
   const tr=useMemo(()=>T[lang]||T.en,[lang]);
+  const currency=useMemo(()=>getCurrencySymbol(lang),[lang]);
 
   const translateValue=useMemo(()=>(value:any,key?:string):string=>{
     if(value===null||value===undefined||value==='')return'—';
     if(value===true)return tr.yes;
     if(value===false)return tr.no;
     const strValue=String(value);
-    if(key==='salary'){const amount=strValue.replace(/[^0-9.]/g,'');return amount?`${amount} ${CURRENCY[lang]||'QAR'}`:'—'}
+    
+    // ⭐ Phone - translate digits
+    if(key==='phone')return translatePhone(strValue,lang);
+    
+    // ⭐ Salary - translate number + currency
+    if(key==='salary'){
+      const amount=strValue.replace(/[^0-9.]/g,'');
+      return amount?`${translateNumber(amount,lang)} ${currency}`:'—';
+    }
+    
+    // ⭐ Rating - translate number
+    if(key==='rating'){
+      const num=parseFloat(strValue);
+      return isNaN(num)?strValue:`${translateNumber(num,lang)} ★`;
+    }
+    
+    // ⭐ License - Yes/No check + VALUE_MAP lookup
+    if(key==='license'){
+      if(strValue.toLowerCase()==='yes')return tr.yes;
+      if(strValue.toLowerCase()==='no')return tr.no;
+      return VALUE_MAP[strValue]?.[lang]||strValue;
+    }
+    
+    // ⭐ Verified - Yes/No
+    if(key==='verified'){
+      if(value===true||strValue.toLowerCase()==='yes')return tr.yes;
+      if(value===false||strValue.toLowerCase()==='no')return tr.no;
+      return VALUE_MAP[strValue]?.[lang]||strValue;
+    }
+    
+    // ⭐ Age, Experience, CompletedJobs, ResponseTime - translate number
+    if(key==='age'||key==='experience'||key==='completedJobs'||key==='responseTime'){
+      const num=parseInt(strValue);
+      return isNaN(num)?strValue:translateNumber(num,lang);
+    }
+    
+    // ⭐ Transport, Insurance - Yes/No + VALUE_MAP
+    if(key==='transport'||key==='insurance'){
+      if(strValue.toLowerCase()==='yes')return tr.yes;
+      if(strValue.toLowerCase()==='no')return tr.no;
+      return VALUE_MAP[strValue]?.[lang]||strValue;
+    }
+    
+    // Array values (languages etc)
     if(Array.isArray(value))return value.map((v:any)=>VALUE_MAP[String(v)]?.[lang]||v).join(', ');
+    
+    // Static VALUE_MAP lookup
     return VALUE_MAP[strValue]?.[lang]||strValue;
-  },[lang,tr]);
+  },[lang,tr,currency]);
 
   const gridItems=useMemo(()=>{
     const items=[

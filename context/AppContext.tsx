@@ -16,6 +16,8 @@ interface AppContextType {
   addNotification: (notification: Partial<Notification>) => void;
   currentCountry: any;
   setCurrentCountry: (country: any) => void;
+  currentLang: string; // ⭐ নতুন
+  setCurrentLang: (lang: string) => void; // ⭐ নতুন
   isOnline: boolean;
 }
 
@@ -24,23 +26,30 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  // URL থেকে country কোড বের করা: /qa/en → "qa"
   const getCountryFromURL = (): string => {
     const segments = pathname.split('/').filter(Boolean);
-    return segments[0] || 'qa'; // ডিফল্ট qa
+    return segments[0] || 'qa';
+  };
+
+  // ⭐ URL থেকে lang বের করা
+  const getLangFromURL = (): string => {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments[1] || 'en';
   };
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currentCountry, setCurrentCountry] = useState(getCountryByCode(getCountryFromURL()));
+  const [currentLang, setCurrentLang] = useState(getLangFromURL()); // ⭐ নতুন
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  // URL চেঞ্জ হলে কান্ট্রি আপডেট
+  // URL চেঞ্জ হলে কান্ট্রি + lang আপডেট
   useEffect(() => {
     setCurrentCountry(getCountryByCode(getCountryFromURL()));
+    setCurrentLang(getLangFromURL()); // ⭐ lang আপডেট
   }, [pathname]);
 
-  // অনলাইন/অফলাইন ডিটেকশন
+  // অনলাইন/অফলাইন
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handleOnline = () => setIsOnline(true);
@@ -92,6 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       userLocation, setUserLocation,
       notifications, unreadCount, markAsRead, clearNotifications, addNotification,
       currentCountry, setCurrentCountry,
+      currentLang, setCurrentLang, // ⭐ নতুন
       isOnline
     }}>
       {children}

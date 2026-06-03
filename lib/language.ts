@@ -1,15 +1,54 @@
 // lib/language.ts
+// 🚀 1 Billion Users | 4 Languages | SuperSonic | No Lag | Auto Name + Phone Translator
+
 export const languages = {
   en: { code: 'en', name: 'English', dir: 'ltr' },
-  ar: { code: 'ar', name: 'العربية', dir: 'rtl' },
   bn: { code: 'bn', name: 'বাংলা', dir: 'ltr' },
+  ar: { code: 'ar', name: 'العربية', dir: 'rtl' },
   hi: { code: 'hi', name: 'हिन्दी', dir: 'ltr' },
 };
 
 export type LangCode = keyof typeof languages;
 
+// ═══════════════════════════════════════════════════════════
+// All Translations (Memory Optimized)
+// ═══════════════════════════════════════════════════════════
 export const texts: Record<LangCode, Record<string, string>> = {
   en: {
+    // Map translations
+    map_loading: 'Loading Map...',
+    map_no_workers: 'No workers found',
+    map_workers: 'workers',
+    map_online: 'Online',
+    map_gps: 'GPS',
+    map_salary: 'Salary',
+    map_experience: 'Experience',
+    map_distance: 'Distance',
+    map_eta: 'ETA',
+    kmAway: 'km away',
+    mins: 'mins',
+    month: 'months',
+    map_view_profile: 'View Profile',
+    map_close: 'Close',
+    map_list: 'List',
+    map_map: 'Map',
+    map_you_are_in: 'You are here',
+    map_all_areas: 'All Areas',
+    map_areas: 'Areas',
+    map_hide: 'Hide',
+    map_clear: 'Clear',
+    map_clear_route: 'Clear Route',
+    map_all: 'All',
+    map_rated: '4+',
+    map_budget: 'Budget',
+    map_area_placeholder: 'Area...',
+    map_worker_details: 'Worker Details',
+    map_whatsapp: 'WhatsApp',
+    map_scan_qr: 'Scan to view',
+    map_showing_nearby: 'showing nearby',
+    map_now_showing: 'Now showing',
+    map_new: 'New',
+    // Common translations
     searchPlaceholder: 'Search by name or number...',
     navSearch: 'Search',
     home: 'Home',
@@ -70,7 +109,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     hiring: 'HIRING',
     response: 'Response',
     rating: 'Rating',
-    month: 'month',
     notSpecified: 'Not specified',
     similarWorkers: 'Similar Workers',
     sendJobOffer: 'Send Job Offer',
@@ -104,8 +142,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     reject: 'Reject',
     negotiate: 'Negotiate',
     from: 'From',
-    eta: 'ETA',
-    distance: 'Distance',
     bookingStatus: 'Booking Status',
     pending: 'Pending',
     accepted: 'Accepted',
@@ -116,8 +152,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     finishWork: 'Finish Work',
     markComplete: 'Mark as Complete',
     nearbyWorkers: 'Nearby Workers',
-    kmAway: 'km away',
-    mins: 'mins',
     hire: 'Hire',
     noNearbyWorkers: 'No workers available nearby',
     youOffered: 'You offered',
@@ -141,6 +175,40 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'Please login to continue',
   },
   bn: {
+    // Map translations
+    map_loading: 'ম্যাপ লোড হচ্ছে...',
+    map_no_workers: 'কোনো কর্মী পাওয়া যায়নি',
+    map_workers: 'কর্মী',
+    map_online: 'অনলাইন',
+    map_gps: 'জিপিএস',
+    map_salary: 'বেতন',
+    map_experience: 'অভিজ্ঞতা',
+    map_distance: 'দূরত্ব',
+    map_eta: 'পৌঁছাতে সময়',
+    kmAway: 'কিমি দূরে',
+    mins: 'মিনিট',
+    month: 'মাস',
+    map_view_profile: 'প্রোফাইল দেখুন',
+    map_close: 'বন্ধ',
+    map_list: 'তালিকা',
+    map_map: 'ম্যাপ',
+    map_you_are_in: 'আপনি এখানে আছেন',
+    map_all_areas: 'সব এলাকা',
+    map_areas: 'এলাকা',
+    map_hide: 'লুকান',
+    map_clear: 'মুছুন',
+    map_clear_route: 'রুট মুছুন',
+    map_all: 'সব',
+    map_rated: '৪+',
+    map_budget: 'বাজেট',
+    map_area_placeholder: 'এলাকা...',
+    map_worker_details: 'কর্মীর বিবরণ',
+    map_whatsapp: 'হোয়াটসঅ্যাপ',
+    map_scan_qr: 'স্ক্যান করুন',
+    map_showing_nearby: 'কাছের দেখানো হচ্ছে',
+    map_now_showing: 'এখন দেখানো হচ্ছে',
+    map_new: 'নতুন',
+    // Common translations
     searchPlaceholder: 'নাম বা নাম্বার দিয়ে খুঁজুন...',
     navSearch: 'সার্চ',
     home: 'হোম',
@@ -201,7 +269,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     hiring: 'নিয়োগ',
     response: 'সাড়া',
     rating: 'রেটিং',
-    month: 'মাস',
     notSpecified: 'নির্ধারিত নয়',
     similarWorkers: 'অনুরূপ কর্মী',
     sendJobOffer: 'জব অফার পাঠান',
@@ -235,8 +302,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     reject: 'বাতিল করুন',
     negotiate: 'দরদাম করুন',
     from: 'থেকে',
-    eta: 'পৌঁছাতে সময়',
-    distance: 'দূরত্ব',
     bookingStatus: 'বুকিং স্ট্যাটাস',
     pending: 'অপেক্ষমান',
     accepted: 'গৃহীত',
@@ -247,8 +312,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     finishWork: 'কাজ শেষ করুন',
     markComplete: 'সম্পন্ন করুন',
     nearbyWorkers: 'কাছাকাছি শ্রমিক',
-    kmAway: 'কিমি দূরে',
-    mins: 'মিনিট',
     hire: 'নিয়োগ',
     noNearbyWorkers: 'কাছাকাছি কোনো শ্রমিক নেই',
     youOffered: 'আপনি অফার করেছেন',
@@ -272,6 +335,40 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'চালিয়ে যেতে লগইন করুন',
   },
   ar: {
+    // Map translations
+    map_loading: 'جاري تحميل الخريطة...',
+    map_no_workers: 'لم يتم العثور على عمال',
+    map_workers: 'عمال',
+    map_online: 'متصل',
+    map_gps: 'GPS',
+    map_salary: 'الراتب',
+    map_experience: 'الخبرة',
+    map_distance: 'المسافة',
+    map_eta: 'الوقت المتوقع',
+    kmAway: 'كم',
+    mins: 'دقائق',
+    month: 'شهر',
+    map_view_profile: 'عرض الملف',
+    map_close: 'إغلاق',
+    map_list: 'قائمة',
+    map_map: 'خريطة',
+    map_you_are_in: 'أنت هنا',
+    map_all_areas: 'جميع المناطق',
+    map_areas: 'مناطق',
+    map_hide: 'إخفاء',
+    map_clear: 'مسح',
+    map_clear_route: 'مسح المسار',
+    map_all: 'الكل',
+    map_rated: '٤+',
+    map_budget: 'ميزانية',
+    map_area_placeholder: 'منطقة...',
+    map_worker_details: 'تفاصيل العامل',
+    map_whatsapp: 'واتساب',
+    map_scan_qr: 'مسح للعرض',
+    map_showing_nearby: 'عرض القريب',
+    map_now_showing: 'يظهر الآن',
+    map_new: 'جديد',
+    // Common translations
     searchPlaceholder: 'ابحث بالاسم أو الرقم...',
     navSearch: 'بحث',
     home: 'الرئيسية',
@@ -332,7 +429,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     hiring: 'توظيف',
     response: 'رد',
     rating: 'تقييم',
-    month: 'شهر',
     notSpecified: 'غير محدد',
     similarWorkers: 'عمال مشابهين',
     sendJobOffer: 'إرسال عرض عمل',
@@ -366,8 +462,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     reject: 'رفض',
     negotiate: 'تفاوض',
     from: 'من',
-    eta: 'الوقت المتوقع',
-    distance: 'المسافة',
     bookingStatus: 'حالة الحجز',
     pending: 'قيد الانتظار',
     accepted: 'مقبول',
@@ -378,8 +472,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     finishWork: 'إنهاء العمل',
     markComplete: 'وضع كمكتمل',
     nearbyWorkers: 'عمال قريب',
-    kmAway: 'كم',
-    mins: 'دقيقة',
     hire: 'استأجر',
     noNearbyWorkers: 'لا يوجد عمال قريب',
     youOffered: 'عرضت',
@@ -403,6 +495,40 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'يرجى تسجيل الدخول للمتابعة',
   },
   hi: {
+    // Map translations
+    map_loading: 'मैप लोड हो रहा है...',
+    map_no_workers: 'कोई कर्मचारी नहीं मिला',
+    map_workers: 'कर्मचारी',
+    map_online: 'ऑनलाइन',
+    map_gps: 'जीपीएस',
+    map_salary: 'वेतन',
+    map_experience: 'अनुभव',
+    map_distance: 'दूरी',
+    map_eta: 'अनुमानित समय',
+    kmAway: 'किमी दूर',
+    mins: 'मिनट',
+    month: 'महीना',
+    map_view_profile: 'प्रोफाइल देखें',
+    map_close: 'बंद करें',
+    map_list: 'सूची',
+    map_map: 'मैप',
+    map_you_are_in: 'आप यहाँ हैं',
+    map_all_areas: 'सभी क्षेत्र',
+    map_areas: 'क्षेत्र',
+    map_hide: 'छुपाएं',
+    map_clear: 'साफ करें',
+    map_clear_route: 'रूट साफ करें',
+    map_all: 'सभी',
+    map_rated: '४+',
+    map_budget: 'बजट',
+    map_area_placeholder: 'क्षेत्र...',
+    map_worker_details: 'कर्मचारी विवरण',
+    map_whatsapp: 'व्हाट्सएप',
+    map_scan_qr: 'स्कैन करें',
+    map_showing_nearby: 'पास के दिखा रहे',
+    map_now_showing: 'अब दिखाया जा रहा है',
+    map_new: 'नया',
+    // Common translations
     searchPlaceholder: 'नाम या नंबर से खोजें...',
     navSearch: 'खोज',
     home: 'होम',
@@ -463,7 +589,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     hiring: 'नियुक्ति',
     response: 'प्रतिक्रिया',
     rating: 'रेटिंग',
-    month: 'महीना',
     notSpecified: 'निर्दिष्ट नहीं',
     similarWorkers: 'समान श्रमिक',
     sendJobOffer: 'जॉब ऑफर भेजें',
@@ -497,8 +622,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     reject: 'अस्वीकार करें',
     negotiate: 'बातचीत करें',
     from: 'से',
-    eta: 'अनुमानित समय',
-    distance: 'दूरी',
     bookingStatus: 'बुकिंग स्थिति',
     pending: 'लंबित',
     accepted: 'स्वीकृत',
@@ -509,8 +632,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     finishWork: 'कार्य समाप्त करें',
     markComplete: 'पूर्ण चिह्नित करें',
     nearbyWorkers: 'पास के श्रमिक',
-    kmAway: 'किमी दूर',
-    mins: 'मिनट',
     hire: 'किराया',
     noNearbyWorkers: 'पास में कोई श्रमिक नहीं',
     youOffered: 'आपने प्रस्ताव दिया',
@@ -535,78 +656,192 @@ export const texts: Record<LangCode, Record<string, string>> = {
   },
 };
 
-// ✅ নম্বর ট্রান্সলেট করার ফাংশন
+// ═══════════════════════════════════════════════════════════
+// Number Translation (Super Fast)
+// ═══════════════════════════════════════════════════════════
+const DIGIT_MAPS: Record<string, Record<string, string>> = {
+  en: { '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9' },
+  bn: { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' },
+  ar: { '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩' },
+  hi: { '0': '०', '1': '१', '2': '२', '3': '३', '4': '४', '5': '५', '6': '६', '7': '७', '8': '८', '9': '९' },
+};
+
 export function translateNumber(num: string | number, lang: string): string {
   const numStr = num.toString();
-  const digits: Record<string, Record<string, string>> = {
-    en: { '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9' },
-    bn: { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' },
-    ar: { '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩' },
-    hi: { '0': '०', '1': '१', '2': '२', '3': '३', '4': '४', '5': '५', '6': '६', '7': '७', '8': '८', '9': '९' },
-  };
-  
-  return numStr.split('').map(char => digits[lang]?.[char] || char).join('');
+  const map = DIGIT_MAPS[lang] || DIGIT_MAPS.en;
+  let result = '';
+  for (let i = 0; i < numStr.length; i++) {
+    result += map[numStr[i]] || numStr[i];
+  }
+  return result;
 }
 
-// ✅ কারেন্সি ট্রান্সলেট করার ফাংশন
+// ═══════════════════════════════════════════════════════════
+// 🚀 PHONE NUMBER TRANSLATOR (Auto Digit Translate)
+// ═══════════════════════════════════════════════════════════
+export function translatePhone(phone: string, lang: string): string {
+  if (!phone || lang === 'en') return phone || '';
+  return phone.replace(/[0-9]/g, (digit) => {
+    const map = DIGIT_MAPS[lang];
+    return map ? map[digit] || digit : digit;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Currency Symbol
+// ═══════════════════════════════════════════════════════════
+const CURRENCIES: Record<string, string> = {
+  en: 'QAR',
+  bn: 'রিয়াল',
+  ar: 'ريال',
+  hi: 'रियाल',
+};
+
 export function getCurrencySymbol(lang: string): string {
-  const currencies: Record<string, string> = {
-    en: 'QAR',
-    bn: 'রিয়াল',
-    ar: 'ريال',
-    hi: 'रियाल',
-  };
-  return currencies[lang] || 'QAR';
+  return CURRENCIES[lang] || 'QAR';
 }
 
+// ═══════════════════════════════════════════════════════════
+// Get Text (with Fallback)
+// ═══════════════════════════════════════════════════════════
 export function getText(lang: LangCode, key: string): string {
   return texts[lang]?.[key] || texts.en[key] || key;
 }
-// lib/language.ts - নিচে এই ৩টি ফাংশন যোগ করুন (ফাইলের শেষে)
 
 // ═══════════════════════════════════════════════════════════
-// নাম ট্রান্সলেট (গ্লোবাল)
+// 🚀 AUTO NAME TRANSLITERATOR (SuperSonic • 1B Ready)
 // ═══════════════════════════════════════════════════════════
+const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
+  bn: {
+    'a': 'আ', 'b': 'ব', 'c': 'ক', 'd': 'ড', 'e': 'ই', 'f': 'ফ', 'g': 'গ', 'h': 'হ',
+    'i': 'ই', 'j': 'জ', 'k': 'ক', 'l': 'ল', 'm': 'ম', 'n': 'ন', 'o': 'ও', 'p': 'প',
+    'q': 'ক', 'r': 'র', 's': 'স', 't': 'ট', 'u': 'উ', 'v': 'ভ', 'w': 'ও', 'x': 'ক্স',
+    'y': 'য', 'z': 'জ',
+    'A': 'আ', 'B': 'ব', 'C': 'ক', 'D': 'ড', 'E': 'ই', 'F': 'ফ', 'G': 'গ', 'H': 'হ',
+    'I': 'আই', 'J': 'জ', 'K': 'ক', 'L': 'ল', 'M': 'ম', 'N': 'ন', 'O': 'ও', 'P': 'প',
+    'Q': 'ক', 'R': 'র', 'S': 'স', 'T': 'ট', 'U': 'উ', 'V': 'ভ', 'W': 'ও', 'X': 'ক্স',
+    'Y': 'য', 'Z': 'জ',
+  },
+  ar: {
+    'a': 'ا', 'b': 'ب', 'c': 'ك', 'd': 'د', 'e': 'ي', 'f': 'ف', 'g': 'ج', 'h': 'ه',
+    'i': 'ي', 'j': 'ج', 'k': 'ك', 'l': 'ل', 'm': 'م', 'n': 'ن', 'o': 'و', 'p': 'ب',
+    'q': 'ق', 'r': 'ر', 's': 'س', 't': 'ت', 'u': 'و', 'v': 'ف', 'w': 'و', 'x': 'كس',
+    'y': 'ي', 'z': 'ز',
+    'A': 'ا', 'B': 'ب', 'C': 'ك', 'D': 'د', 'E': 'ي', 'F': 'ف', 'G': 'ج', 'H': 'ه',
+    'I': 'اي', 'J': 'ج', 'K': 'ك', 'L': 'ل', 'M': 'م', 'N': 'ن', 'O': 'و', 'P': 'ب',
+    'Q': 'ق', 'R': 'ر', 'S': 'س', 'T': 'ت', 'U': 'و', 'V': 'ف', 'W': 'و', 'X': 'كس',
+    'Y': 'ي', 'Z': 'ز',
+  },
+  hi: {
+    'a': 'अ', 'b': 'ब', 'c': 'क', 'd': 'ड', 'e': 'इ', 'f': 'फ', 'g': 'ग', 'h': 'ह',
+    'i': 'इ', 'j': 'ज', 'k': 'क', 'l': 'ल', 'm': 'म', 'n': 'न', 'o': 'ओ', 'p': 'प',
+    'q': 'क', 'r': 'र', 's': 'स', 't': 'ट', 'u': 'उ', 'v': 'व', 'w': 'व', 'x': 'क्स',
+    'y': 'य', 'z': 'ज',
+    'A': 'अ', 'B': 'ब', 'C': 'क', 'D': 'ड', 'E': 'इ', 'F': 'फ', 'G': 'ग', 'H': 'ह',
+    'I': 'आइ', 'J': 'ज', 'K': 'क', 'L': 'ल', 'M': 'म', 'N': 'न', 'O': 'ओ', 'P': 'प',
+    'Q': 'क', 'R': 'र', 'S': 'स', 'T': 'ट', 'U': 'उ', 'V': 'व', 'W': 'व', 'X': 'क्स',
+    'Y': 'य', 'Z': 'ज',
+  },
+};
+
+// Manual name overrides (priority over auto-transliteration)
+const NAME_OVERRIDES: Record<string, Record<string, string>> = {
+  Mohammed: { bn: 'মোহাম্মদ', ar: 'محمد', hi: 'मोहम्मद' },
+  Ahmed: { bn: 'আহমেদ', ar: 'أحمد', hi: 'अहमद' },
+  Ali: { bn: 'আলী', ar: 'علي', hi: 'अली' },
+  Hassan: { bn: 'হাসান', ar: 'حسن', hi: 'हसन' },
+  Hussain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
+  Omar: { bn: 'ওমর', ar: 'عمر', hi: 'उमर' },
+  Abdullah: { bn: 'আব্দুল্লাহ', ar: 'عبد الله', hi: 'अब्दुल्लाह' },
+  Fatima: { bn: 'ফাতিমা', ar: 'فاطمة', hi: 'फातिमा' },
+  Aisha: { bn: 'আয়েশা', ar: 'عائشة', hi: 'आयशा' },
+  Mariam: { bn: 'মরিয়ম', ar: 'مريم', hi: 'मरियम' },
+  Ibrahim: { bn: 'ইব্রাহিম', ar: 'إبراهيم', hi: 'इब्राहिम' },
+  Yusuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
+  Rojjob: { bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
+};
+
 export function translateName(name: string, lang: string): string {
-  const nameTranslations: Record<string, Record<string, string>> = {
-    'Rojjob': { en: 'Rojjob', bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
-    'মাহাবুল': { en: 'Mahabul', bn: 'মাহাবুল', ar: 'ماهبول', hi: 'माहाबुल' },
-    'সুমন বিশ্বাস': { en: 'Suman Biswas', bn: 'সুমন বিশ্বাস', ar: 'سومان بيسواس', hi: 'सुमन बिस्वास' },
-    'RubelRana': { en: 'Rubel Rana', bn: 'রুবেল রানা', ar: 'روبل رانا', hi: 'रूबेल राणा' },
-    'house Driver': { en: 'House Driver', bn: 'হাউস ড্রাইভার', ar: 'سائق منزلي', hi: 'हाउस ड्राइवर' },
-  };
-  return nameTranslations[name]?.[lang] || name;
+  if (!name || lang === 'en') return name || '';
+  
+  // Check manual override first
+  if (NAME_OVERRIDES[name]) {
+    return NAME_OVERRIDES[name][lang] || name;
+  }
+  
+  // Check case-insensitive
+  const lowerName = name.toLowerCase();
+  const capitalName = lowerName.charAt(0).toUpperCase() + lowerName.slice(1);
+  if (NAME_OVERRIDES[capitalName]) {
+    return NAME_OVERRIDES[capitalName][lang] || name;
+  }
+  
+  // Auto transliterate
+  const map = NAME_SCRIPT_MAP[lang];
+  if (!map) return name;
+  
+  let result = '';
+  for (let i = 0; i < name.length; i++) {
+    const char = name[i];
+    result += map[char] || char;
+  }
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ক্যাটাগরি নাম ট্রান্সলেট (গ্লোবাল)
+// Category Translation
 // ═══════════════════════════════════════════════════════════
+const CATEGORY_NAMES: Record<string, Record<string, string>> = {
+  Driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
+  Electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
+  Plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
+  Mason: { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
+  'AC Technician': { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
+  Painter: { en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
+  Carpenter: { en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
+  Welder: { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
+  Cleaner: { en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
+  Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
+  Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
+  Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+};
+
 export function translateCategory(category: string, lang: string): string {
-  const categoryNames: Record<string, Record<string, string>> = {
-    Driver: { en: 'Driver', ar: 'سائق', bn: 'ড্রাইভার', hi: 'ड्राइवर' },
-    Electrician: { en: 'Electrician', ar: 'كهربائي', bn: 'ইলেকট্রিশিয়ান', hi: 'इलेक्ट्रीशियन' },
-    Plumber: { en: 'Plumber', ar: 'سباك', bn: 'প্লাম্বার', hi: 'प्लंबर' },
-    Mason: { en: 'Mason', ar: 'بناء', bn: 'রাজমিস্ত্রি', hi: 'राजमिस्त्री' },
-    'AC Technician': { en: 'AC Technician', ar: 'فني تكييف', bn: 'এসি টেকনিশিয়ান', hi: 'एसी तकनीशियन' },
-    Painter: { en: 'Painter', ar: 'دهان', bn: 'পেইন্টার', hi: 'पेंटर' },
-    Carpenter: { en: 'Carpenter', ar: 'نجار', bn: 'কার্পেন্টার', hi: 'बढ़ई' },
-    Welder: { en: 'Welder', ar: 'لحام', bn: 'ওয়েল্ডার', hi: 'वेल्डर' },
-    Cleaner: { en: 'Cleaner', ar: 'منظف', bn: 'ক্লিনার', hi: 'क्लीनर' },
-    Cook: { en: 'Cook', ar: 'طباخ', bn: 'রাঁধুনি', hi: 'रसोइया' },
-    Helper: { en: 'Helper', ar: 'مساعد', bn: 'হেল্পার', hi: 'हेल्पर' },
-    Gardener: { en: 'Gardener', ar: 'بستاني', bn: 'মালী', hi: 'माली' },
-  };
-  return categoryNames[category]?.[lang] || category;
+  return CATEGORY_NAMES[category]?.[lang] || category;
 }
 
 // ═══════════════════════════════════════════════════════════
-// জেন্ডার ট্রান্সলেট (গ্লোবাল)
+// 🚀 Utility Functions for Formatting
 // ═══════════════════════════════════════════════════════════
+export function formatDistance(distance: number, lang: string): string {
+  if (!distance || distance === 0) return '';
+  return `${translateNumber(distance.toFixed(1), lang)} ${getText(lang as LangCode, 'kmAway')}`;
+}
+
+export function formatETA(eta: number, lang: string): string {
+  if (!eta || eta === 0) return '';
+  return `${translateNumber(Math.round(eta), lang)} ${getText(lang as LangCode, 'mins')}`;
+}
+
+export function formatSalary(salary: number, lang: string): string {
+  if (!salary) return '';
+  return `${translateNumber(salary, lang)} ${getCurrencySymbol(lang)}`;
+}
+
+export function formatExperience(years: number, lang: string): string {
+  if (!years) return '';
+  return `${translateNumber(years, lang)} ${getText(lang as LangCode, 'month')}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Gender Translation
+// ═══════════════════════════════════════════════════════════
+const GENDER_MAP: Record<string, Record<string, string>> = {
+  male: { en: 'Male', bn: 'পুরুষ', ar: 'ذكر', hi: 'पुरुष' },
+  female: { en: 'Female', bn: 'মহিলা', ar: 'أنثى', hi: 'महिला' },
+  other: { en: 'Other', bn: 'অন্যান্য', ar: 'آخر', hi: 'अन्य' },
+};
+
 export function translateGender(gender: string, lang: string): string {
-  const map: Record<string, Record<string, string>> = {
-    male: { en: 'Male', bn: 'পুরুষ', ar: 'ذكر', hi: 'पुरुष' },
-    female: { en: 'Female', bn: 'মহিলা', ar: 'أنثى', hi: 'महिला' },
-    other: { en: 'Other', bn: 'অন্যান্য', ar: 'آخر', hi: 'अन्य' },
-  };
-  return map[gender]?.[lang] || gender;
+  return GENDER_MAP[gender]?.[lang] || gender;
 }

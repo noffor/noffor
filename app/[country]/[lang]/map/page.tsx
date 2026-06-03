@@ -1,16 +1,13 @@
-// app/[country]/[lang]/map/page.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
+// app/[country]/[lang]/map/page.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • ফিক্সড
 "use client";
-import React,{useState,useEffect,useCallback,useMemo,useRef,startTransition,lazy,Suspense} from 'react';
+import React,{useState,useEffect,useCallback,useMemo,useRef,startTransition} from 'react';
 import {useParams,useSearchParams} from 'next/navigation';
 import {supabase} from '@/lib/supabase';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import MapFilters from '@/components/map/MapFilters';
+import LaborMap from '@/components/map/LaborMap';
 import {Loader2,AlertCircle,RefreshCw,MapPin,Users} from 'lucide-react';
-import {getText,LangCode} from '@/lib/language';
-
-// Lazy load map
-const LaborMap=lazy(()=>import('@/components/map/LaborMap'));
 
 // ═══════════════════════════════════════════════════════════
 // ৪ ভাষা ট্রান্সলেশন
@@ -124,11 +121,9 @@ export default function MapPage(){
           </div>
         )}
 
-        {/* Map */}
+        {/* ⭐ FIXED: Map - lazy + Suspense সরিয়ে সরাসরি render */}
         {!loading&&!error&&(
-          <Suspense fallback={<div className="w-full h-[500px] lg:h-[600px] rounded-xl border bg-gray-100 animate-pulse"/>}>
-            <LaborMap country={country} labors={filteredWorkers} lang={lang}/>
-          </Suspense>
+          <LaborMap country={country} labors={filteredWorkers} lang={lang}/>
         )}
 
         {/* No Workers */}
