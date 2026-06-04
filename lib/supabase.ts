@@ -1,4 +1,4 @@
-// lib/supabase.ts - ১ বিলিয়ন ইউজার • SSR Compatible • PKCE Fix
+// lib/supabase.ts - ১ বিলিয়ন ইউজার • SSR Compatible • PKCE Fix • Admin Ready
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
 // ═══════════════════════════════════════════════════════════
@@ -6,6 +6,7 @@ import { createBrowserClient, createServerClient } from '@supabase/ssr';
 // ═══════════════════════════════════════════════════════════
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // ═══════════════════════════════════════════════════════════
 // Browser Client (Client Components)
@@ -33,12 +34,115 @@ export function createServerSupabase(cookieStore: any) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 🆕 Admin Client (Service Role - Bypasses RLS)
+// ═══════════════════════════════════════════════════════════
+export function createAdminClient() {
+  if (!supabaseServiceKey) {
+    console.error('❌ SUPABASE_SERVICE_ROLE_KEY not found in environment');
+    throw new Error('Service role key is required for admin operations');
+  }
+  return createBrowserClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // Legacy Export - Auto-detect (Browser/Server)
 // ═══════════════════════════════════════════════════════════
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // ═══════════════════════════════════════════════════════════
-// Helper Functions
+// 🆕 Admin Helper Functions
+// ═══════════════════════════════════════════════════════════
+
+// অ্যাডমিন চেক (ক্লায়েন্ট সাইড)
+export async function isAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error || !data) return false;
+    return data.role === 'admin';
+  } catch {
+    return false;
+  }
+}
+
+// অ্যাডমিন চেক (সার্ভার সাইড - সার্ভিস রোল ব্যবহার করে)
+export async function verifyAdminServer(cookieStore: any): Promise<{
+  authorized: boolean;
+  userId?: string;
+  role?: string;
+}> {
+  try {
+    const serverClient = createServerSupabase(cookieStore);
+    const { data: { session } } = await serverClient.auth.getSession();
+    
+    if (!session?.user?.id) {
+      return { authorized: false };
+    }
+
+    // সার্ভিস রোল দিয়ে চেক (RLS বাইপাস)
+    if (supabaseServiceKey) {
+      const adminClient = createAdminClient();
+      const { data: profile } = await adminClient
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      return {
+        authorized: profile?.role === 'admin',
+        userId: session.user.id,
+        role: profile?.role || undefined,
+      };
+    }
+
+    // ফলব্যাক: সাধারণ ক্লায়েন্ট দিয়ে চেক
+    const { data: profile } = await serverClient
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    return {
+      authorized: profile?.role === 'admin',
+      userId: session.user.id,
+      role: profile?.role || undefined,
+    };
+  } catch (error) {
+    console.error('Admin verification error:', error);
+    return { authorized: false };
+  }
+}
+
+// অ্যাডমিন স্ট্যাটস লোড (সার্ভিস রোল দিয়ে)
+export async function getAdminStats() {
+  const client = supabaseServiceKey ? createAdminClient() : supabase;
+  
+  const [workersRes, onlineRes, employersRes, bidsRes] = await Promise.all([
+    client.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'labor'),
+    client.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'labor').eq('is_online', true),
+    client.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'employer'),
+    client.from('bids').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+  ]);
+
+  return {
+    totalWorkers: workersRes.count || 0,
+    onlineWorkers: onlineRes.count || 0,
+    totalEmployers: employersRes.count || 0,
+    activeBids: bidsRes.count || 0,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Existing Helper Functions (Unchanged)
 // ═══════════════════════════════════════════════════════════
 export async function getProfile(id: string) {
   const cacheKey = `profile:${id}`;
