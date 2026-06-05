@@ -9,14 +9,14 @@ export async function proxy(request: NextRequest) {
   // ═══════════════════════════════════════════════════════
   // Static files - bypass
   // ═══════════════════════════════════════════════════════
-  if (pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|css|js|woff2)$/)) {
+  if (pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|css|js|woff2|json)$/)) {
     return NextResponse.next();
   }
   
   // ═══════════════════════════════════════════════════════
   // Public routes - bypass (NO session check)
   // ═══════════════════════════════════════════════════════
-  const publicRoutes = ['/login', '/register', '/auth/', '/api/'];
+  const publicRoutes = ['/login', '/register', '/auth/', '/api/', '/dashboard'];
   const isPublicRoute = publicRoutes.some(route => pathname.includes(route));
   
   if (isPublicRoute) {
@@ -31,9 +31,9 @@ export async function proxy(request: NextRequest) {
   const lang = segments[1] || 'en';
 
   // ═══════════════════════════════════════════════════════
-  // Protected routes (need login)
+  // Protected routes (need login) - Dashboard removed!
   // ═══════════════════════════════════════════════════════
-  const protectedRoutes = ['/create', '/dashboard', '/tracking', '/bid'];
+  const protectedRoutes = ['/create', '/tracking', '/bid'];
   const needsAuth = protectedRoutes.some(route => pathname.includes(route));
   
   // Admin routes
@@ -51,7 +51,7 @@ export async function proxy(request: NextRequest) {
           cookies: {
             getAll: () => request.cookies.getAll(),
             setAll: (cookiesToSet) => {
-              cookiesToSet.forEach(({ name, value, options }) => {
+              cookiesToSet.forEach(({ name, value }) => {
                 request.cookies.set(name, value);
               });
             },
@@ -59,23 +59,22 @@ export async function proxy(request: NextRequest) {
         }
       );
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (sessionError || !session) {
+      if (!session) {
         const loginUrl = new URL(`/${country}/${lang}/login`, request.url);
         loginUrl.searchParams.set('redirect', pathname);
-        loginUrl.searchParams.set('error', 'session_expired');
         return NextResponse.redirect(loginUrl);
       }
 
       if (isAdminRoute) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profileError || !profile || profile.role !== 'admin') {
+        if (!profile || profile.role !== 'admin') {
           return NextResponse.redirect(new URL(`/${country}/${lang}`, request.url));
         }
       }
@@ -83,14 +82,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
       
     } catch (err) {
-      console.error('❌ Proxy error:', err);
       return NextResponse.next();
     }
   }
 
-  // ═══════════════════════════════════════════════════════
-  // Public page = always allow (no session check)
-  // ═══════════════════════════════════════════════════════
   return NextResponse.next();
 }
 
