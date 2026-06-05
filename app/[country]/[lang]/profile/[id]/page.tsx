@@ -1,5 +1,5 @@
 // app/[country]/[lang]/profile/[id]/page.tsx
-// 🚀 SUPER SONIC • ১ বিলিয়ন ইউজার • জিরো ল্যাগ • জিরো ক্র্যাশ • ফুল ফিচার • ট্রান্সলেশন ফিক্সড
+// 🚀 SUPER SONIC • 406 Error Fixed • Production Ready
 "use client";
 import React,{useState,useEffect,useCallback,useRef,useMemo,startTransition} from 'react';
 import {useParams,useRouter} from 'next/navigation';
@@ -18,6 +18,15 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import {supabase} from '@/lib/supabase';
 import {getText,LangCode,translateNumber,getCurrencySymbol,translateName,translateCategory} from '@/lib/language';
 import {Phone,MessageCircle,Briefcase,Heart,Share2,ChevronUp,Star,MapPin,Clock,Award,Shield,Loader2,AlertCircle,X} from 'lucide-react';
+
+// ═══════════════════════════════════════════════════════════
+// UUID Validator
+// ═══════════════════════════════════════════════════════════
+function isValidUUID(str: string): boolean {
+  if (!str) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
 
 // ═══════════════════════════════════════════════════════════
 // ScrollToTop (Memoized)
@@ -72,12 +81,12 @@ const SimilarWorkerCard=React.memo(({worker,lang,country,router}:{worker:any;lan
   const currency=getCurrencySymbol(lang);
   return(
     <div onClick={()=>router.push(`/${country}/${lang}/profile/${worker.id}`)} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition active:scale-[0.98]">
-      <OptimizedImage src={worker.photo_url||'/default-avatar.png'} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0"/>
+      <OptimizedImage src={worker.photo_url||'/default-avatar.png'} alt="" className="w-10 h-10 rounded-full object-cover shrink-0"/>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{translateName(worker.name,lang)}</p>
         <p className="text-xs text-gray-500">{translateCategory(worker.category,lang)} • {worker.expected_salary} {currency}</p>
       </div>
-      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${worker.is_online?'bg-green-500':'bg-gray-400'}`}/>
+      <div className={`w-2 h-2 rounded-full shrink-0 ${worker.is_online?'bg-green-500':'bg-gray-400'}`}/>
     </div>
   );
 });
@@ -107,6 +116,9 @@ function ProfilePageContent(){
   
   const aliveRef=useRef(true);
 
+  // ✅ Validate profile ID
+  const validId = useMemo(() => isValidUUID(id), [id]);
+
   // Load current user
   useEffect(()=>{
     aliveRef.current=true;
@@ -114,30 +126,49 @@ function ProfilePageContent(){
     return()=>{aliveRef.current=false};
   },[]);
 
-  // Check saved status
+  // ✅ FIXED: Check saved status - only if valid UUID
   useEffect(()=>{
-    if(!currentUserId||!id)return;
-    supabase.from('saved_profiles').select('id').eq('user_id',currentUserId).eq('saved_profile_id',id).single()
-      .then(({data})=>{if(aliveRef.current)setIsSaved(!!data)});
-  },[currentUserId,id]);
+    if(!currentUserId || !id || !validId) return;
+    if(!isValidUUID(currentUserId)) return;
+    
+    supabase.from('saved_profiles').select('id')
+      .eq('user_id',currentUserId)
+      .eq('saved_profile_id',id)
+      .maybeSingle() // ✅ maybeSingle instead of single
+      .then(({data,error})=>{
+        if(aliveRef.current && !error) setIsSaved(!!data);
+        if(error) console.warn('Saved check error:', error.message);
+      });
+  },[currentUserId,id,validId]);
 
-  // Load profile
+  // ✅ FIXED: Load profile - only if valid ID
   useEffect(()=>{
-    if(!id)return;
+    if(!id || !validId) {
+      startTransition(()=>{setError(true);setLoading(false)});
+      return;
+    }
+    
     const loadProfile=async()=>{
       startTransition(()=>{setLoading(true);setError(false)});
       try{
+        // Increment view count (fire-and-forget)
         supabase.rpc('increment_profile_view',{profile_id:id}).then(()=>{});
+        
         const {data,error:e}=await supabase.from('profiles').select('*').eq('id',id).maybeSingle();
-        if(e||!data){if(aliveRef.current)startTransition(()=>{setError(true);setLoading(false)});return}
+        if(e || !data){
+          if(aliveRef.current) startTransition(()=>{setError(true);setLoading(false)});
+          return;
+        }
         if(aliveRef.current){
           startTransition(()=>{setProfile(data);setLoading(false)});
-          if(currentUserId)setIsOwnProfile(data.id===currentUserId||data.phone===currentUserId);
+          if(currentUserId) setIsOwnProfile(data.id===currentUserId||data.phone===currentUserId);
         }
-      }catch{startTransition(()=>{setError(true);setLoading(false)})}
+      }catch{
+        if(aliveRef.current) startTransition(()=>{setError(true);setLoading(false)});
+      }
     };
     loadProfile();
-  },[id,currentUserId]);
+  },[id,currentUserId,validId]);
 
   // Load similar workers
   useEffect(()=>{
@@ -148,7 +179,9 @@ function ProfilePageContent(){
   },[profile,country]);
 
   const toggleSave=useCallback(async()=>{
-    if(!currentUserId){router.push(`/${country}/${lang}/login`);return}
+    if(!currentUserId || !validId){router.push(`/${country}/${lang}/login`);return}
+    if(!isValidUUID(currentUserId)) return;
+    
     setSaving(true);
     if(isSaved){
       await supabase.from('saved_profiles').delete().eq('user_id',currentUserId).eq('saved_profile_id',id);
@@ -158,7 +191,7 @@ function ProfilePageContent(){
       startTransition(()=>setIsSaved(true));
     }
     setSaving(false);
-  },[currentUserId,isSaved,id,country,lang,router]);
+  },[currentUserId,isSaved,id,country,lang,router,validId]);
 
   const shareProfile=useCallback(async()=>{
     const url=window.location.href;
@@ -174,6 +207,24 @@ function ProfilePageContent(){
   const phoneNumber=profile?.phone||'';
   const whatsappUrl=phoneNumber?`https://wa.me/${formatPhone(phoneNumber)}`:'#';
   const callUrl=phoneNumber?`tel:${phoneNumber}`:'#';
+
+  // ═══════════════════════════════════════════════════════
+  // Invalid ID State
+  // ═══════════════════════════════════════════════════════
+  if(!validId && !loading) return(
+    <div className="min-h-screen bg-gray-50">
+      <Header country={country} lang={lang}/>
+      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <div className="bg-white rounded-xl p-8 shadow-sm">
+          <AlertCircle size={48} className="text-red-400 mx-auto mb-4"/>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">{t('invalidProfile')||'Invalid Profile'}</h1>
+          <p className="text-gray-500 text-sm mb-4">The profile ID is not valid.</p>
+          <button onClick={()=>router.push(`/${country}/${lang}`)} className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-700 active:scale-[0.98] transition-all">{t('goHome')||'Go Home'}</button>
+        </div>
+      </div>
+      <MobileNav country={country} lang={lang}/>
+    </div>
+  );
 
   // ═══════════════════════════════════════════════════════
   // Loading State
@@ -244,12 +295,10 @@ function ProfilePageContent(){
           </div>
           
           <div className="mt-2">
-            {/* ✅ নাম ট্রান্সলেশন - গ্লোবাল ফাংশন */}
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               {translateName(profile.name,lang)}
               {profile.is_verified&&<Award size={18} className="text-blue-500"/>}
             </h1>
-            {/* ✅ ক্যাটাগরি ট্রান্সলেশন - গ্লোবাল ফাংশন */}
             <p className="text-gray-500 mt-1">{translateCategory(profile.category,lang)}</p>
           </div>
           

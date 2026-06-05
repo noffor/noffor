@@ -1,10 +1,8 @@
-// context/AppContext.tsx
+// context/AppContext.tsx - Fixed • No duplicate GPS
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { UserLocation, Notification } from '@/types';
-import { getCountryByCode } from '@/lib/utils';
 
 interface AppContextType {
   userLocation: UserLocation | null;
@@ -14,14 +12,22 @@ interface AppContextType {
   markAsRead: (id: string) => void;
   clearNotifications: () => void;
   addNotification: (notification: Partial<Notification>) => void;
-  currentCountry: any;
-  setCurrentCountry: (country: any) => void;
-  currentLang: string; // ⭐ নতুন
-  setCurrentLang: (lang: string) => void; // ⭐ নতুন
+  currentCountry: string;
+  currentLang: string;
   isOnline: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// Default locations for Gulf countries
+const DEFAULT_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+  qa: { lat: 25.2867, lng: 51.5333 },
+  ae: { lat: 25.2048, lng: 55.2708 },
+  sa: { lat: 24.7136, lng: 46.6753 },
+  kw: { lat: 29.3759, lng: 47.9774 },
+  bh: { lat: 26.2285, lng: 50.586 },
+  om: { lat: 23.588, lng: 58.3829 },
+};
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -31,7 +37,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return segments[0] || 'qa';
   };
 
-  // ⭐ URL থেকে lang বের করা
   const getLangFromURL = (): string => {
     const segments = pathname.split('/').filter(Boolean);
     return segments[1] || 'en';
@@ -39,39 +44,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentCountry, setCurrentCountry] = useState(getCountryByCode(getCountryFromURL()));
-  const [currentLang, setCurrentLang] = useState(getLangFromURL()); // ⭐ নতুন
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [currentCountry, setCurrentCountry] = useState(getCountryFromURL());
+  const [currentLang, setCurrentLang] = useState(getLangFromURL());
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
 
-  // URL চেঞ্জ হলে কান্ট্রি + lang আপডেট
+  // Update country/lang from URL
   useEffect(() => {
-    setCurrentCountry(getCountryByCode(getCountryFromURL()));
-    setCurrentLang(getLangFromURL()); // ⭐ lang আপডেট
+    setCurrentCountry(getCountryFromURL());
+    setCurrentLang(getLangFromURL());
   }, [pathname]);
 
-  // অনলাইন/অফলাইন
+  // Online/Offline listener
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      window.addEventListener('online', handleOnline);
-      window.addEventListener('offline', handleOffline);
-      return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
-      };
-    }
+    if (typeof window === 'undefined') return;
+    
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // জিওলোকেশন
+  // ✅ Location: Cache → Default (GPS removed from AppContext)
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => console.log('Location denied')
-      );
+    const country = getCountryFromURL();
+    const cacheKey = 'noffor_user_location';
+    
+    // Check cache
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.t < 120000) {
+            setUserLocation({ lat: parsed.lat, lng: parsed.lng });
+            return;
+          }
+        }
+      } catch {}
     }
-  }, []);
+    
+    // Set default for country
+    const defaultLoc = DEFAULT_LOCATIONS[country] || DEFAULT_LOCATIONS.qa;
+    setUserLocation(defaultLoc);
+  }, [pathname]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -100,9 +123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       userLocation, setUserLocation,
       notifications, unreadCount, markAsRead, clearNotifications, addNotification,
-      currentCountry, setCurrentCountry,
-      currentLang, setCurrentLang, // ⭐ নতুন
-      isOnline
+      currentCountry, currentLang, isOnline,
     }}>
       {children}
     </AppContext.Provider>

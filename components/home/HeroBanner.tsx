@@ -1,3 +1,5 @@
+// components/home/HeroBanner.tsx
+// 🚀 SUPER SONIC • MEMORY LEAK FIXED • PRODUCTION READY
 "use client";
 import React, { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +17,8 @@ const CONFIG = {
   SWIPE_THRESHOLD: 50,
   AUTO_PLAY_INTERVAL: 5000,
   THROTTLE_DELAY: 150,
+  MAX_RECONNECT_ATTEMPTS: 5,
+  POLLING_INTERVAL: 15000,
 };
 
 const memoryCache = new Map<string, { data: any; timestamp: number }>();
@@ -64,11 +68,6 @@ const optimizeImage = (url: string, w = 1200, q = 85): string => {
   if (url.includes('supabase.co/storage')) return `${url}?width=${w}&quality=${q}&format=webp&resize=cover`;
   return url;
 };
-
-function debounce<T extends (...args: any[]) => any>(fn: T, ms: number) {
-  let t: ReturnType<typeof setTimeout>;
-  return (...a: Parameters<T>) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}
 
 function throttle<T extends (...args: any[]) => any>(fn: T, ms: number) {
   let ok = true;
@@ -125,7 +124,7 @@ const BannerItem = React.memo(({ banner, current, total, lang, country, onPrev, 
       {total > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 lg:gap-1.5 z-10">
           {Array.from({ length: Math.min(total, 20) }).map((_, i) => (
-            <button key={i} onClick={() => onDotClick(i)} className={`flex-shrink-0 w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full transition-all duration-300 ${i === current ? 'bg-white w-3 lg:w-5' : 'bg-white/50 hover:bg-white/70'}`} aria-label={`Banner ${i + 1}`} />
+            <button key={i} onClick={() => onDotClick(i)} className={`shrink-0 w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full transition-all duration-300 ${i === current ? 'bg-white w-3 lg:w-5' : 'bg-white/50 hover:bg-white/70'}`} aria-label={`Banner ${i + 1}`} />
           ))}
         </div>
       )}
@@ -155,7 +154,7 @@ const ErrorState = React.memo(({ retry }: { retry: () => void }) => (
 ErrorState.displayName = 'ErrorState';
 
 // ═══════════════════════════════════════════════════════════
-// 🚀 মেইন হিরো ব্যানার
+// 🚀 মেইন হিরো ব্যানার (Memory Leak Fixed)
 // ═══════════════════════════════════════════════════════════
 export default function HeroBanner({ country, lang }: { country: string; lang: string }) {
   const t = useCallback((k: string) => getText(lang as LangCode, k), [lang]);
@@ -197,8 +196,7 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
       } catch {}
     }
 
-    setLoading(true);
-    setError(false);
+    startTransition(() => { setLoading(true); setError(false); });
 
     for (let r = 0; r <= CONFIG.MAX_RETRY; r++) {
       try {
@@ -232,6 +230,8 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
   loadRef.current = load;
 
   // ═══════════════════════════════════════════════════════
+  // Visibility + Intersection Observer
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
     const h = () => setVisible(!document.hidden);
     document.addEventListener('visibilitychange', h);
@@ -247,71 +247,84 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
   }, []);
 
   // ═══════════════════════════════════════════════════════
+  // ✅ FIXED: Realtime with proper cleanup
+  // ═══════════════════════════════════════════════════════
   useEffect(() => {
-  let channel: any = null;
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let channel: any = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isSubscribed = false;
+    let reconnectAttempts = 0;
 
-  const refresh = () => {
-    memoryCache.delete(`b:${country}:${lang}`);
-    loadRef.current?.(true);
-  };
+    const refresh = () => {
+      memoryCache.delete(`b:${country}:${lang}`);
+      loadRef.current?.(true);
+    };
 
-  const setupRealtime = async () => {
-    try {
-      // আগের চ্যানেল ক্লিনআপ
-      if (channel) {
-        await supabase.removeChannel(channel);
+    const handleRealtimeUpdate = (payload: any) => {
+      if (payload.eventType === 'INSERT') {
+        const newProfile = payload.new;
+        if (newProfile?.photo_url && alive.current) {
+          startTransition(() => {
+            setBanners((prev: any[]) => {
+              const filtered = prev.filter((b: any) => b.id !== newProfile.id);
+              return [newProfile, ...filtered].slice(0, CONFIG.BATCH_SIZE);
+            });
+            setCurrent(0);
+          });
+          const imgUrl = optimizeImage(newProfile.photo_url, 1200, 85);
+          if (imgUrl) ImagePreloader.preload([imgUrl]);
+        }
       }
-
-      channel = supabase
-        .channel(`banner-realtime-${country}-${Date.now()}`) // ইউনিক নাম
-        .on(
-          'postgres_changes',
-          {
-            event: '*',           // সব ইভেন্ট
-            schema: 'public',
-            table: 'profiles',
-            filter: `country=eq.${country}`,
-          },
-          () => {
-            console.log('🔔 Realtime update received!');
-            refresh();
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Realtime connected successfully');
-            // পোলিং বন্ধ
-            if (pollTimer) {
-              clearInterval(pollTimer);
-              pollTimer = null;
-            }
-          } else {
-            console.warn('⚠️ Realtime subscription failed:', status);
-            // পোলিং চালু
-            if (!pollTimer) {
-              pollTimer = setInterval(refresh, 15000);
-            }
-          }
-        });
-    } catch (err) {
-      console.error('❌ Realtime setup error:', err);
-      if (!pollTimer) {
-        pollTimer = setInterval(refresh, 15000);
+      if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+        refresh();
       }
-    }
-  };
+      setTimeout(() => {
+        memoryCache.delete(`b:${country}:${lang}`);
+        if (alive.current) loadRef.current?.(true);
+      }, 2000);
+    };
 
-  setupRealtime();
+    const setupRealtime = () => {
+      if (channel) { supabase.removeChannel(channel).catch(() => {}); channel = null; }
+      try {
+        channel = supabase
+          .channel(`banner-${country}-${Date.now()}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `country=eq.${country}` }, handleRealtimeUpdate)
+          .subscribe((status: string) => {
+            if (status === 'SUBSCRIBED') {
+              isSubscribed = true; reconnectAttempts = 0;
+              if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            }
+            if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              isSubscribed = false;
+              if (!pollTimer) pollTimer = setInterval(refresh, CONFIG.POLLING_INTERVAL);
+              if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                const delay = Math.min(3000 * reconnectAttempts, 15000);
+                if (reconnectTimer) clearTimeout(reconnectTimer);
+                reconnectTimer = setTimeout(() => { if (alive.current && !isSubscribed) setupRealtime(); }, delay);
+              }
+            }
+          });
+      } catch (err) {
+        if (!pollTimer) pollTimer = setInterval(refresh, CONFIG.POLLING_INTERVAL);
+      }
+    };
 
-  return () => {
-    if (pollTimer) clearInterval(pollTimer);
-    if (channel) {
-      supabase.removeChannel(channel).catch(() => {});
-    }
-  };
-}, [country, lang]);
+    setupRealtime();
 
+    // ✅ FIXED: Complete cleanup
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (channel) { supabase.removeChannel(channel).catch(() => {}); channel = null; }
+      memoryCache.clear();
+    };
+  }, [country, lang]);
+
+  // ═══════════════════════════════════════════════════════
+  // Initial load
   // ═══════════════════════════════════════════════════════
   useEffect(() => {
     alive.current = true;
@@ -319,6 +332,8 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     return () => { alive.current = false; };
   }, []);
 
+  // ═══════════════════════════════════════════════════════
+  // Auto-play
   // ═══════════════════════════════════════════════════════
   useEffect(() => {
     if (banners.length <= 1 || paused || !visible) {
@@ -329,10 +344,13 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [banners.length, paused, visible]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => { if (timer.current) clearInterval(timer.current); alive.current = false; };
   }, []);
 
+  // ═══════════════════════════════════════════════════════
+  // Handlers
   // ═══════════════════════════════════════════════════════
   const prev = useCallback(() => setCurrent(p => (p - 1 + banners.length) % banners.length), [banners.length]);
   const next = useCallback(() => setCurrent(p => (p + 1) % banners.length), [banners.length]);
@@ -356,6 +374,8 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     </div>
   ), [country, lang, t]);
 
+  // ═══════════════════════════════════════════════════════
+  // Render
   // ═══════════════════════════════════════════════════════
   if (loading) return <Skeleton />;
   if (error) return <ErrorState retry={retry} />;

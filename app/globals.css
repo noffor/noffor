@@ -34,8 +34,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   border: none !important;
   outline: none !important;
-  /* ✅ transform রিমুভ - FCP দ্রুত */
-  /* ✅ backface-visibility রিমুভ */
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -70,6 +68,98 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   MODAL BACKDROP - Global
+   ═══════════════════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UBER-STYLE BOOKING POPUP OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+.booking-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@media (min-width: 640px) {
+  .booking-popup-overlay {
+    align-items: center;
+  }
+}
+
+.booking-popup-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .booking-popup-card {
+    border-radius: 24px;
+    margin: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UBER-STYLE TRACKING CARD
+   ═══════════════════════════════════════════════════════════ */
+.tracking-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  padding: 16px;
+}
+
+.tracking-step {
+  transition: all 0.3s ease;
+}
+
+.tracking-step-active {
+  background: #dcfce7;
+  color: #16a34a;
+  ring: 2px solid #86efac;
+}
+
+.tracking-step-completed {
+  background: #16a34a;
+  color: white;
+}
+
+.tracking-line {
+  height: 2px;
+  flex: 1;
+  transition: background 0.3s ease;
+}
+
+.tracking-line-active {
+  background: #22c55e;
+}
+
+.tracking-line-inactive {
+  background: #e5e7eb;
+}
+
+/* ═══════════════════════════════════════════════════════════
    UTILITIES
    ═══════════════════════════════════════════════════════════ */
 @layer utilities {
@@ -85,13 +175,30 @@ body {
     from { transform: translateY(100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
   @keyframes scaleIn {
     from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
   }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+  }
+  @keyframes countdown-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
   .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-  .animate-slide-up { animation: slideUp 0.3s ease-out; }
+  .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+  .animate-slide-down { animation: slideDown 0.3s ease-out; }
   .animate-scale-in { animation: scaleIn 0.3s ease-out; }
+  .animate-pulse-green { animation: pulse-green 2s infinite; }
+  .animate-countdown { animation: countdown-pulse 1s infinite; }
+  
   .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .text-truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -103,6 +210,7 @@ body {
     border-radius: 0.5rem;
   }
   .gpu { transform: translateZ(0); backface-visibility: hidden; }
+  .will-change-gpu { will-change: transform; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -129,6 +237,47 @@ body {
   }
   .btn-primary:hover { background-color: #c2410c; }
   .btn-primary:active { transform: scale(0.97); }
+  
+  /* Uber-style buttons */
+  .btn-accept {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-accept:hover { transform: scale(1.02); box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4); }
+  .btn-accept:active { transform: scale(0.97); }
+  
+  .btn-reject {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    border: 2px solid #fecaca;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-reject:hover { background: #fee2e2; }
+  .btn-reject:active { transform: scale(0.97); }
+  
   .input {
     width: 100%;
     padding: 0.8rem;
@@ -177,20 +326,10 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   RTL + MODAL + GRID + CONTAINER
+   RTL + GRID + CONTAINER
    ═══════════════════════════════════════════════════════════ */
 [dir="rtl"] { text-align: right; }
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease-out;
-}
+
 .grid-responsive {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

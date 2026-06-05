@@ -1,24 +1,108 @@
+// app/[country]/[lang]/create/page.tsx
+// 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • Auth Protected • WebP • Full Translation
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { siteConfig } from '@/lib/config';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
-import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-const DROPDOWNS = {
-  experience: ['0-1 year', '1-3 years', '3-5 years', '5-7 years', '7-10 years', '10+ years'],
-  visaStatus: ['Transferable', 'Company Visa', 'Freelance Visa', 'Family Sponsorship', 'Visit Visa'],
-  sponsorship: ['Self Sponsorship', 'Company Sponsorship', 'Father Sponsorship', 'Husband Sponsorship'],
-  accommodation: ['Provided by Company', 'Own Arrangement', 'Shared Accommodation', 'Not Required'],
-  food: ['Provided by Company', 'Own Arrangement', 'Not Required'],
-  cities: ['Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Umm Salal', 'Al Daayen'],
-  areas: ['West Bay', 'The Pearl', 'Al Sadd', 'Bin Mahmoud', 'Old Airport', 'Industrial Area', 'Najma', 'Al Gharafa'],
-  jobTypes: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Freelance'],
-  urgency: ['Immediate', 'Within 3 days', 'Within a week', 'Flexible']
+// ═══════════════════════════════════════════════════════════
+// CATEGORY TRANSLATION MAP
+// ═══════════════════════════════════════════════════════════
+const CATEGORY_TRANSLATIONS: Record<string, Record<string, string>> = {
+  'Driver': { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
+  'Electrician': { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
+  'Plumber': { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
+  'Mason': { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
+  'AC Technician': { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
+  'Painter': { en: 'Painter', bn: 'রংমিস্ত্রি', ar: 'دهان', hi: 'पेंटर' },
+  'Carpenter': { en: 'Carpenter', bn: 'ছুতার', ar: 'نجار', hi: 'बढ़ई' },
+  'Cleaner': { en: 'Cleaner', bn: 'পরিচ্ছন্নতাকর্মী', ar: 'عامل نظافة', hi: 'सफाईकर्मी' },
+  'Cook': { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
+  'Helper': { en: 'Helper', bn: 'সহায়ক', ar: 'مساعد', hi: 'सहायक' },
+  'Gardener': { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+  'Welder': { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
+  'Security': { en: 'Security', bn: 'নিরাপত্তারক্ষী', ar: 'حارس أمن', hi: 'सुरक्षा गार्ड' },
+  'Teacher': { en: 'Teacher', bn: 'শিক্ষক', ar: 'معلم', hi: 'शिक्षक' },
+  'Nurse': { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
+  'Chef': { en: 'Chef', bn: 'শেফ', ar: 'طاهي', hi: 'शेफ' },
 };
 
+function translateCategory(category: string, lang: string): string {
+  return CATEGORY_TRANSLATIONS[category]?.[lang] || category;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DROPDOWNS (Translated - 4 Languages)
+// ═══════════════════════════════════════════════════════════
+const DROPDOWNS: Record<string, Record<string, string[]>> = {
+  experience: {
+    en: ['0-1 year', '1-3 years', '3-5 years', '5-7 years', '7-10 years', '10+ years'],
+    bn: ['০-১ বছর', '১-৩ বছর', '৩-৫ বছর', '৫-৭ বছর', '৭-১০ বছর', '১০+ বছর'],
+    ar: ['٠-١ سنة', '١-٣ سنوات', '٣-٥ سنوات', '٥-٧ سنوات', '٧-١٠ سنوات', 'أكثر من ١٠ سنوات'],
+    hi: ['0-1 वर्ष', '1-3 वर्ष', '3-5 वर्ष', '5-7 वर्ष', '7-10 वर्ष', '10+ वर्ष'],
+  },
+  visaStatus: {
+    en: ['Transferable', 'Company Visa', 'Freelance Visa', 'Family Sponsorship', 'Visit Visa'],
+    bn: ['ট্রান্সফারেবল', 'কোম্পানি ভিসা', 'ফ্রিল্যান্স ভিসা', 'পারিবারিক স্পন্সরশিপ', 'ভিজিট ভিসা'],
+    ar: ['قابل للتحويل', 'تأشيرة شركة', 'تأشيرة حرة', 'كفالة عائلية', 'تأشيرة زيارة'],
+    hi: ['ट्रांसफरेबल', 'कंपनी वीज़ा', 'फ्रीलांस वीज़ा', 'पारिवारिक प्रायोजन', 'विज़िट वीज़ा'],
+  },
+  sponsorship: {
+    en: ['Self Sponsorship', 'Company Sponsorship', 'Father Sponsorship', 'Husband Sponsorship'],
+    bn: ['নিজ স্পন্সরশিপ', 'কোম্পানি স্পন্সরশিপ', 'পিতার স্পন্সরশিপ', 'স্বামীর স্পন্সরশিপ'],
+    ar: ['كفالة ذاتية', 'كفالة شركة', 'كفالة الأب', 'كفالة الزوج'],
+    hi: ['स्वयं प्रायोजन', 'कंपनी प्रायोजन', 'पिता प्रायोजन', 'पति प्रायोजन'],
+  },
+  accommodation: {
+    en: ['Provided by Company', 'Own Arrangement', 'Shared Accommodation', 'Not Required'],
+    bn: ['কোম্পানি প্রদত্ত', 'নিজ ব্যবস্থা', 'শেয়ার্ড আবাসন', 'প্রয়োজন নেই'],
+    ar: ['توفره الشركة', 'ترتيب خاص', 'سكن مشترك', 'غير مطلوب'],
+    hi: ['कंपनी द्वारा', 'स्वयं व्यवस्था', 'साझा आवास', 'आवश्यक नहीं'],
+  },
+  food: {
+    en: ['Provided by Company', 'Own Arrangement', 'Not Required'],
+    bn: ['কোম্পানি প্রদত্ত', 'নিজ ব্যবস্থা', 'প্রয়োজন নেই'],
+    ar: ['توفره الشركة', 'ترتيب خاص', 'غير مطلوب'],
+    hi: ['कंपनी द्वारा', 'स्वयं व्यवस्था', 'आवश्यक नहीं'],
+  },
+  cities: {
+    en: ['Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Umm Salal', 'Al Daayen'],
+    bn: ['দোহা', 'আল রাইয়ান', 'আল ওয়াকরাহ', 'আল খোর', 'উম্ম সালাল', 'আল দায়েন'],
+    ar: ['الدوحة', 'الريان', 'الوكرة', 'الخور', 'أم صلال', 'الضعاين'],
+    hi: ['दोहा', 'अल रय्यान', 'अल वकराह', 'अल खोर', 'उम्म सलाल', 'अल दायेन'],
+  },
+  areas: {
+    en: ['West Bay', 'The Pearl', 'Al Sadd', 'Bin Mahmoud', 'Old Airport', 'Industrial Area', 'Najma', 'Al Gharafa'],
+    bn: ['ওয়েস্ট বে', 'দ্য পার্ল', 'আল সাদ্দ', 'বিন মাহমুদ', 'ওল্ড এয়ারপোর্ট', 'ইন্ডাস্ট্রিয়াল এরিয়া', 'নাজমা', 'আল ঘারাফা'],
+    ar: ['الخليج الغربي', 'اللؤلؤة', 'السد', 'بن محمود', 'المطار القديم', 'المنطقة الصناعية', 'نجمة', 'الغرافة'],
+    hi: ['वेस्ट बे', 'द पर्ल', 'अल सद्द', 'बिन महमूद', 'ओल्ड एयरपोर्ट', 'इंडस्ट्रियल एरिया', 'नजमा', 'अल घराफा'],
+  },
+  jobTypes: {
+    en: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Freelance'],
+    bn: ['ফুল-টাইম', 'পার্ট-টাইম', 'কন্ট্রাক্ট', 'অস্থায়ী', 'ফ্রিল্যান্স'],
+    ar: ['دوام كامل', 'دوام جزئي', 'عقد', 'مؤقت', 'عمل حر'],
+    hi: ['फुल-टाइम', 'पार्ट-टाइम', 'कॉन्ट्रैक्ट', 'अस्थायी', 'फ्रीलांस'],
+  },
+  urgency: {
+    en: ['Immediate', 'Within 3 days', 'Within a week', 'Flexible'],
+    bn: ['তাৎক্ষণিক', '৩ দিনের মধ্যে', 'এক সপ্তাহের মধ্যে', 'ফ্লেক্সিবল'],
+    ar: ['فوري', 'خلال ٣ أيام', 'خلال أسبوع', 'مرن'],
+    hi: ['तत्काल', '3 दिन के भीतर', 'एक सप्ताह के भीतर', 'लचीला'],
+  },
+};
+
+function getDropdownValues(key: string, lang: string): string[] {
+  const dropdown = DROPDOWNS[key];
+  if (!dropdown) return [];
+  return dropdown[lang] || dropdown['en'] || [];
+}
+
+// ═══════════════════════════════════════════════════════════
 const LANGUAGE_OPTIONS = [
   { value: 'English', label: 'English', native: 'English' },
   { value: 'Bengali', label: 'Bengali', native: 'বাংলা' },
@@ -32,7 +116,6 @@ const LANGUAGE_OPTIONS = [
   { value: 'Tagalog', label: 'Tagalog', native: 'Tagalog' }
 ];
 
-// Category based default images
 const getCategoryDefaultImage = (category: string): string => {
   const images: Record<string, string> = {
     'Driver': '/images/categories/driver.jpg',
@@ -51,6 +134,9 @@ const getCategoryDefaultImage = (category: string): string => {
   return images[category] || '/images/categories/default-job.jpg';
 };
 
+// ═══════════════════════════════════════════════════════════
+// WebP Image Compressor
+// ═══════════════════════════════════════════════════════════
 async function compressImage(file: File): Promise<Blob> {
   return new Promise(resolve => {
     const img = new Image();
@@ -66,6 +152,7 @@ async function compressImage(file: File): Promise<Blob> {
   });
 }
 
+// ═══════════════════════════════════════════════════════════
 const formTexts: Record<string, any> = {
   en: { 
     title: 'Create Profile', phone: 'Phone *', name: 'Full Name *', category: 'Category', 
@@ -173,12 +260,45 @@ const formTexts: Record<string, any> = {
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+// Auth Guard (১ বিলিয়ন ইউজার রেডি)
+// ═══════════════════════════════════════════════════════════
 export default function CreatePage() {
   const params = useParams();
   const country = (params as any).country || 'qa';
   const currentLang = (params as any).lang || 'en';
   const router = useRouter();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace(`/${country}/${currentLang}/login?redirect=/${country}/${currentLang}/create`);
+    }
+  }, [authLoading, isAuthenticated, country, currentLang, router]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
+          <p className="text-sm text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
+
+  return <CreatePageContent country={country} currentLang={currentLang} />;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CreatePageContent
+// ═══════════════════════════════════════════════════════════
+function CreatePageContent({ country, currentLang }: { country: string; currentLang: string }) {
+  const router = useRouter();
   const ft = formTexts[currentLang as keyof typeof formTexts] || formTexts.en;
+  const t = useCallback((key: string) => getDropdownValues(key, currentLang), [currentLang]);
   
   const [mode, setMode] = useState('');
   const [step, setStep] = useState(1);
@@ -218,7 +338,7 @@ export default function CreatePage() {
   const [workersNeeded, setWorkersNeeded] = useState('');
   const [urgency, setUrgency] = useState('');
   
-  // ✅ NEW: Job Image states (instead of company logo)
+  // Job Image states
   const [jobImageFile, setJobImageFile] = useState<File | null>(null);
   const [jobImagePrev, setJobImagePrev] = useState('');
   const [jobImageUploading, setJobImageUploading] = useState(false);
@@ -240,7 +360,6 @@ export default function CreatePage() {
     setWorkPreviews(workPreviews.filter((_, i) => i !== index));
   };
 
-  // ✅ Job Image handler
   const handleJobImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -259,7 +378,6 @@ export default function CreatePage() {
     }
   };
 
-  // Auto-set default image when category changes
   const handleCategoryChange = (cat: string) => {
     setJobCat(cat);
     if (useDefaultImage && !jobImageFile) {
@@ -337,7 +455,6 @@ Urgency: ${urgency || 'Not specified'}
 Description:
 ${jobDesc || 'No description provided'}`;
     
-    // Upload job image if exists
     let jobImageUrl = '';
     if (jobImageFile && !useDefaultImage) {
       try {
@@ -439,7 +556,9 @@ ${jobDesc || 'No description provided'}`;
               <input value={name} onChange={e => setName(e.target.value)} placeholder={ft.name} className="w-full p-3 border rounded-xl text-lg" />
               <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border rounded-xl text-lg">
                 <option value="">{ft.category}</option>
-                {siteConfig.categories.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+                {siteConfig.categories.map(c => (
+                  <option key={c.slug} value={c.name}>{translateCategory(c.name, currentLang)}</option>
+                ))}
               </select>
             </>
           )}
@@ -449,7 +568,7 @@ ${jobDesc || 'No description provided'}`;
               <div className="flex justify-center mb-2">
                 {photoPrev ? (
                   <div className="relative">
-                    <img src={photoPrev} className="w-28 h-28 rounded-full object-cover border-4 border-orange-300" />
+                    <img src={photoPrev} className="w-28 h-28 rounded-full object-cover border-4 border-orange-300" alt="Preview" />
                     <button onClick={() => { setPhotoFile(null); setPhotoPrev(''); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center">
                       <X size={16}/>
                     </button>
@@ -464,15 +583,15 @@ ${jobDesc || 'No description provided'}`;
               </div>
               <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.experience}</option>
-                {DROPDOWNS.experience.map(opt => <option key={opt}>{opt}</option>)}
+                {t('experience').map(opt => <option key={opt}>{opt}</option>)}
               </select>
               <select value={visaStatus} onChange={e => setVisaStatus(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.visaStatus}</option>
-                {DROPDOWNS.visaStatus.map(opt => <option key={opt}>{opt}</option>)}
+                {t('visaStatus').map(opt => <option key={opt}>{opt}</option>)}
               </select>
               <select value={sponsorship} onChange={e => setSponsorship(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.sponsorship}</option>
-                {DROPDOWNS.sponsorship.map(opt => <option key={opt}>{opt}</option>)}
+                {t('sponsorship').map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </>
           )}
@@ -482,19 +601,19 @@ ${jobDesc || 'No description provided'}`;
               <input value={salary} onChange={e => setSalary(e.target.value)} placeholder={ft.salary} className="w-full p-3 border rounded-xl" type="number" />
               <select value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.city}</option>
-                {DROPDOWNS.cities.map(opt => <option key={opt}>{opt}</option>)}
+                {t('cities').map(opt => <option key={opt}>{opt}</option>)}
               </select>
               <select value={area} onChange={e => setArea(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.area}</option>
-                {DROPDOWNS.areas.map(opt => <option key={opt}>{opt}</option>)}
+                {t('areas').map(opt => <option key={opt}>{opt}</option>)}
               </select>
               <select value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.accommodation}</option>
-                {DROPDOWNS.accommodation.map(opt => <option key={opt}>{opt}</option>)}
+                {t('accommodation').map(opt => <option key={opt}>{opt}</option>)}
               </select>
               <select value={food} onChange={e => setFood(e.target.value)} className="w-full p-3 border rounded-xl">
                 <option value="">{ft.food}</option>
-                {DROPDOWNS.food.map(opt => <option key={opt}>{opt}</option>)}
+                {t('food').map(opt => <option key={opt}>{opt}</option>)}
               </select>
             </>
           )}
@@ -522,7 +641,7 @@ ${jobDesc || 'No description provided'}`;
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {workPreviews.map((p, i) => (
                   <div key={i} className="relative">
-                    <img src={p} className="h-24 w-full object-cover rounded-lg"/>
+                    <img src={p} className="h-24 w-full object-cover rounded-lg" alt="Work" />
                     <button onClick={() => removeWorkPhoto(i)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
                       <X size={12}/>
                     </button>
@@ -545,7 +664,6 @@ ${jobDesc || 'No description provided'}`;
     </div>
   );
 
-  // ✅ Employer Form with Job Image (not company logo)
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
@@ -561,14 +679,13 @@ ${jobDesc || 'No description provided'}`;
             <Briefcase size={24}/> {ft.employerTitle}
           </h2>
           
-          {/* ✅ Job Image Upload - Simple & Fast */}
           <div className="mb-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {ft.jobImage || 'Job Image'}
             </label>
             {jobImagePrev ? (
               <div className="relative">
-                <img src={jobImagePrev} className="w-full h-32 rounded-xl object-cover border-2 border-blue-300" />
+                <img src={jobImagePrev} className="w-full h-32 rounded-xl object-cover border-2 border-blue-300" alt="Job" />
                 <button 
                   onClick={() => { setJobImageFile(null); setJobImagePrev(''); setUseDefaultImage(true); }} 
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
@@ -598,34 +715,25 @@ ${jobDesc || 'No description provided'}`;
           
           <select value={jobCat} onChange={e => handleCategoryChange(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.category}</option>
-            {siteConfig.categories.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+            {siteConfig.categories.map(c => (
+              <option key={c.slug} value={c.name}>{translateCategory(c.name, currentLang)}</option>
+            ))}
           </select>
           
           <input value={jobSalary} onChange={e => setJobSalary(e.target.value)} placeholder={ft.jobSalary} className="w-full p-3 border rounded-xl" />
           
-          <input 
-            value={jobLocation} 
-            onChange={e => setJobLocation(e.target.value)} 
-            placeholder={ft.jobLocation || 'Job Location'} 
-            className="w-full p-3 border rounded-xl" 
-          />
+          <input value={jobLocation} onChange={e => setJobLocation(e.target.value)} placeholder={ft.jobLocation || 'Job Location'} className="w-full p-3 border rounded-xl" />
           
           <select value={jobType} onChange={e => setJobType(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.jobType || 'Job Type'}</option>
-            {DROPDOWNS.jobTypes.map(opt => <option key={opt}>{opt}</option>)}
+            {t('jobTypes').map(opt => <option key={opt}>{opt}</option>)}
           </select>
           
-          <input 
-            value={workersNeeded} 
-            onChange={e => setWorkersNeeded(e.target.value)} 
-            placeholder={ft.workersNeeded || 'Workers Needed'} 
-            type="number"
-            className="w-full p-3 border rounded-xl" 
-          />
+          <input value={workersNeeded} onChange={e => setWorkersNeeded(e.target.value)} placeholder={ft.workersNeeded || 'Workers Needed'} type="number" className="w-full p-3 border rounded-xl" />
           
           <select value={urgency} onChange={e => setUrgency(e.target.value)} className="w-full p-3 border rounded-xl">
             <option value="">{ft.urgency || 'Urgency'}</option>
-            {DROPDOWNS.urgency.map(opt => <option key={opt}>{opt}</option>)}
+            {t('urgency').map(opt => <option key={opt}>{opt}</option>)}
           </select>
           
           <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder={ft.companyName} className="w-full p-3 border rounded-xl" />

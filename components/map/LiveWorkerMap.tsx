@@ -1,32 +1,27 @@
 // components/map/LiveWorkerMap.tsx
-// 🚀 1 Billion Users | Real-time | No Lag | No Crash | Full Language Support
+// 🚀 UBER-STYLE • Production Ready • All Fixed
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback, useMemo, startTransition, Suspense } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Navigation, X, Loader2, MapPin, Clock, Star, AlertCircle, RefreshCw } from 'lucide-react';
-import { getText, LangCode, translateNumber, getCurrencySymbol } from '@/lib/language';
-import MarkerPopup from './MarkerPopup';
+import { Loader2, MapPin, Navigation, UserPlus, X, Star, Clock } from 'lucide-react';
 
-// ═══════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════ TYPES ═══════════════════
 interface Worker {
   worker_id: string;
   latitude: number;
   longitude: number;
   is_online: boolean;
   last_seen: string;
-  expected_salary?: number;
-  profiles?: {
+  profile?: {
     name: string;
     photo_url: string;
     category: string;
     rating: number;
-    country: string;
   };
   distance?: number;
   eta?: number;
+  price_estimate?: number;
 }
 
 interface Props {
@@ -35,296 +30,446 @@ interface Props {
   userLat?: number;
   userLng?: number;
   onSelectWorker?: (worker: Worker) => void;
+  onQuickHire?: (worker: Worker) => void;
+  onClose?: () => void;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Static Data (Memory Optimized)
-// ═══════════════════════════════════════════════════════════
-const COUNTRY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  qa: { lat: 25.3548, lng: 51.1839 },
-  sa: { lat: 24.7136, lng: 46.6753 },
-  ae: { lat: 25.2048, lng: 55.2708 },
-  kw: { lat: 29.3759, lng: 47.9774 },
-  bh: { lat: 26.0667, lng: 50.5577 },
-  om: { lat: 23.5880, lng: 58.3829 },
+const COUNTRY_CENTERS: Record<string, [number, number]> = {
+  qa: [25.3548, 51.1839], sa: [24.7136, 46.6753], ae: [25.2048, 55.2708],
+  kw: [29.3759, 47.9774], bh: [26.0667, 50.5577], om: [23.5880, 58.3829],
 };
 
-// ═══════════════════════════════════════════════════════════
-// Math Helpers (Pure Functions - No Re-renders)
-// ═══════════════════════════════════════════════════════════
-const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+const T: Record<string, any> = {
+  en: {
+    loading: 'Finding workers near you...', noWorkers: 'No workers available nearby',
+    km: 'km', min: 'min', hireNow: 'Hire Now', yourLocation: '📍 Your Location',
+    tapWorker: 'Tap a worker to hire', findingLocation: 'Detecting your location...',
+    ipLocation: '📍 IP Location', gpsLocation: '📍 GPS Location',
+  },
+  bn: {
+    loading: 'আপনার আশেপাশে শ্রমিক খোঁজা হচ্ছে...', noWorkers: 'আশেপাশে কোনো শ্রমিক পাওয়া যায়নি',
+    km: 'কিমি', min: 'মিনিট', hireNow: 'এখনই হায়ার করুন', yourLocation: '📍 আপনার অবস্থান',
+    tapWorker: 'শ্রমিক সিলেক্ট করতে ট্যাপ করুন', findingLocation: 'আপনার লোকেশন খোঁজা হচ্ছে...',
+    ipLocation: '📍 আইপি লোকেশন', gpsLocation: '📍 জিপিএস লোকেশন',
+  },
+  ar: {
+    loading: 'جاري البحث عن عمال بالقرب منك...', noWorkers: 'لا يوجد عمال متاحون',
+    km: 'كم', min: 'دقيقة', hireNow: 'وظف الآن', yourLocation: '📍 موقعك',
+    tapWorker: 'اضغط على عامل للتوظيف', findingLocation: 'جاري تحديد موقعك...',
+    ipLocation: '📍 موقع IP', gpsLocation: '📍 موقع GPS',
+  },
+  hi: {
+    loading: 'आपके आसपास श्रमिक खोज रहे हैं...', noWorkers: 'आसपास कोई श्रमिक उपलब्ध नहीं',
+    km: 'किमी', min: 'मिनट', hireNow: 'अभी हायर करें', yourLocation: 'आपकी स्थिति',
+    tapWorker: 'श्रमिक चुनने के लिए टैप करें', findingLocation: 'आपकी लोकेशन ढूंढ रहे हैं...',
+    ipLocation: '📍 आईपी लोकेशन', gpsLocation: '📍 जीपीएस लोकेशन',
+  },
+};
+
+const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return +(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
 };
 
-const calcETA = (dist: number): number => Math.ceil((dist / 30) * 60);
+const getEta = (distance: number): number => Math.max(1, Math.ceil((distance / 30) * 60));
+const getPrice = (distance: number, rate: number = 25): number => Math.round(distance * 2 + (distance / 30) * rate);
 
-// ═══════════════════════════════════════════════════════════
-// Static Translations
-// ═══════════════════════════════════════════════════════════
-const T = {
-  en: { nearWorkers: 'Nearby Workers', noWorkers: 'No workers found', loading: 'Loading Map...', km: 'km', eta: 'ETA', min: 'min', hire: 'Hire', viewProfile: 'Profile', error: 'Failed to load', retry: 'Retry', allWorkers: 'All Workers', online: 'Online', offline: 'Offline' },
-  bn: { nearWorkers: 'কাছের শ্রমিক', noWorkers: 'কোনো শ্রমিক পাওয়া যায়নি', loading: 'ম্যাপ লোড হচ্ছে...', km: 'কিমি', eta: 'সময়', min: 'মিনিট', hire: 'নিয়োগ', viewProfile: 'প্রোফাইল', error: 'লোড ব্যর্থ', retry: 'আবার চেষ্টা', allWorkers: 'সব শ্রমিক', online: 'অনলাইন', offline: 'অফলাইন' },
-  ar: { nearWorkers: 'العمال القريبون', noWorkers: 'لم يتم العثور على عمال', loading: 'جاري تحميل الخريطة...', km: 'كم', eta: 'الوقت', min: 'دقيقة', hire: 'توظيف', viewProfile: 'الملف', error: 'فشل التحميل', retry: 'إعادة المحاولة', allWorkers: 'جميع العمال', online: 'متصل', offline: 'غير متصل' },
-  hi: { nearWorkers: 'पास के श्रमिक', noWorkers: 'कोई श्रमिक नहीं मिला', loading: 'मैप लोड हो रहा है...', km: 'किमी', eta: 'समय', min: 'मिनट', hire: 'किराया', viewProfile: 'प्रोफाइल', error: 'लोड विफल', retry: 'पुनः प्रयास', allWorkers: 'सभी श्रमिक', online: 'ऑनलाइन', offline: 'ऑफलाइन' },
-};
+const WorkerCard = memo(({ worker, isSelected, lang, tr, onClick, onHire }: {
+  worker: Worker; isSelected: boolean; lang: string; tr: any;
+  onClick: () => void; onHire: (worker: Worker) => void;
+}) => (
+  <div onClick={onClick} data-id={worker.worker_id}
+    className={`flex items-center gap-3 px-4 py-3 border-b cursor-pointer active:bg-blue-50 transition-all duration-200 ${isSelected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : 'border-l-[3px] border-l-transparent'}`}>
+    <div className="relative shrink-0">
+      {worker.profile?.photo_url ? (
+        <img src={worker.profile.photo_url} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-gray-200 shadow-sm" loading="lazy" />
+      ) : (
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg shadow-sm">👷</div>
+      )}
+      <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${worker.is_online ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2">
+        <p className="font-semibold text-sm truncate">{worker.profile?.name || 'Worker'}</p>
+        {worker.profile?.rating && worker.profile.rating >= 4.5 && (
+          <span className="flex items-center gap-0.5 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">
+            <Star size={8} fill="#f59e0b" className="text-amber-500" /> {worker.profile.rating}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-gray-500">{worker.profile?.category || 'General Worker'}</p>
+      <div className="flex items-center gap-3 mt-1 text-[11px]">
+        <span className="text-blue-600 font-bold flex items-center gap-0.5">📍 {worker.distance}{tr.km}</span>
+        <span className="text-green-600 font-bold flex items-center gap-0.5"><Clock size={10} /> {worker.eta}{tr.min}</span>
+        <span className="text-purple-600 font-bold">💰 {worker.price_estimate} QAR</span>
+      </div>
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); onHire(worker); }}
+      className="shrink-0 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full text-xs font-bold active:scale-95 transition-all shadow-md hover:shadow-lg flex items-center gap-1.5">
+      <UserPlus size={13} /> {tr.hireNow}
+    </button>
+  </div>
+));
+WorkerCard.displayName = 'WorkerCard';
 
-// Global References (for cleanup)
-let globalMap: any = null;
-let globalMarkers: any[] = [];
-let globalInterval: ReturnType<typeof setInterval> | null = null;
-
-// ═══════════════════════════════════════════════════════════
-// Main Component
-// ═══════════════════════════════════════════════════════════
-export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelectWorker }: Props) {
-  const tr = useMemo(() => T[lang as keyof typeof T] || T.en, [lang]);
-  const t = useCallback((key: string) => getText(lang as LangCode, key), [lang]);
-  
+export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelectWorker, onQuickHire, onClose }: Props) {
+  const tr = useMemo(() => T[lang] || T.en, [lang]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selected, setSelected] = useState<Worker | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  
-  const mapRef = useRef<HTMLDivElement>(null);
-  const LRef = useRef<any>(null);
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationSource, setLocationSource] = useState<'gps' | 'ip' | 'country'>('country');
+
+  const mapRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
+  const workerMarkersRef = useRef<Map<string, any>>(new Map());
+  const listRef = useRef<HTMLDivElement>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aliveRef = useRef(true);
+  const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
 
-  // Mount / Unmount
+  // ═══════ LOCATION DETECTION ═══════
   useEffect(() => {
-    setMounted(true);
     aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-      if (globalInterval) clearInterval(globalInterval);
-      if (globalMap) {
-        globalMarkers.forEach(m => globalMap?.removeLayer(m));
-        globalMap?.remove();
-        globalMap = null;
-        globalMarkers = [];
-      }
-    };
-  }, []);
 
-  // Initialize Map
-  useEffect(() => {
-    if (!mounted || typeof window === 'undefined' || !mapRef.current) return;
-    if (globalMap) {
-      globalMap.remove();
-      globalMap = null;
-      globalMarkers = [];
-    }
-
-    import('leaflet').then(L => {
-      if (!mapRef.current || !aliveRef.current) return;
-      LRef.current = L.default;
-
-      // Load CSS
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-
-      const center = COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
-      const map = L.map(mapRef.current, { zoomControl: true, attributionControl: false })
-        .setView([center.lat, center.lng], 12);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // User Location Marker
+    const detectLocation = async () => {
+      // Priority: Props > GPS > IP > Country default
       if (userLat && userLng) {
-        L.circleMarker([userLat, userLng], {
-          radius: 8,
-          color: '#3B82F6',
-          fillColor: '#3B82F6',
-          fillOpacity: 1,
-          weight: 3,
-        }).bindPopup(`<b>📍 ${t('map_you_are_in')}</b>`).addTo(map);
+        const loc = { lat: userLat, lng: userLng };
+        setUserLocation(loc);
+        userLocationRef.current = loc;
+        setLocationSource('gps');
+        return;
       }
 
-      globalMap = map;
-      loadWorkers();
-    }).catch(() => {
-      if (aliveRef.current) setError(true);
-      setLoading(false);
-    });
+      // Try GPS
+      if ('geolocation' in navigator) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 
+            });
+          });
+          if (aliveRef.current) {
+            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setUserLocation(loc);
+            userLocationRef.current = loc;
+            setLocationSource('gps');
+            return;
+          }
+        } catch {}
+      }
 
-    return () => {
-      if (globalInterval) clearInterval(globalInterval);
+      // Fallback to country center
+      const [lat, lng] = COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
+      const loc = { lat, lng };
+      setUserLocation(loc);
+      userLocationRef.current = loc;
+      setLocationSource('country');
     };
-  }, [mounted]);
 
-  // Country Change
-  useEffect(() => {
-    if (!globalMap || !mounted) return;
-    const center = COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
-    globalMap.setView([center.lat, center.lng], 12);
-    loadWorkers();
-  }, [country]);
+    detectLocation();
 
-  // Load Workers with Language Support
-  const loadWorkers = useCallback(async () => {
-    const map = globalMap;
-    if (!map || !LRef.current || !aliveRef.current) return;
+    return () => { aliveRef.current = false; };
+  }, [userLat, userLng, country]);
+
+  // ═══════ FETCH WORKERS (Stable reference) ═══════
+  const fetchWorkers = useCallback(async () => {
+    const map = mapRef.current;
+    const loc = userLocationRef.current;
+    if (!map || !(window as any).L || !loc) return;
 
     try {
-      const { data, error: e } = await supabase
+      // ✅ Single joined query via Supabase
+      const { data: locations, error } = await supabase
         .from('worker_locations')
-        .select('*, profiles:worker_id(name, photo_url, category, rating, country, expected_salary)')
-        .limit(200);
+        .select(`
+          worker_id,
+          latitude,
+          longitude,
+          is_online,
+          last_seen,
+          profiles:worker_id (
+            name,
+            photo_url,
+            category,
+            rating
+          )
+        `)
+        .eq('is_online', true)
+        .limit(100);
 
-      if (e) throw e;
-      if (!aliveRef.current) return;
+      if (error) { console.error('Fetch error:', error); setIsLoading(false); return; }
+      if (!locations || locations.length === 0) { 
+        setWorkers([]); 
+        setIsLoading(false); 
+        return; 
+      }
 
-      const L = LRef.current;
-      globalMarkers.forEach(mk => map.removeLayer(mk));
-      globalMarkers = [];
+      // Process with distance
+     const workerList: Worker[] = locations
+  .map((loc: any) => {
+    const distance = getDistance(
+      userLocationRef.current!.lat,
+      userLocationRef.current!.lng,
+      loc.latitude,
+      loc.longitude
+    );
+    return {
+            worker_id: loc.worker_id,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            is_online: loc.is_online,
+            last_seen: loc.last_seen,
+            profile: loc.profiles || undefined,
+            distance,
+            eta: getEta(distance),
+            price_estimate: getPrice(distance, 25),
+          };
+        })
+        .filter(w => (w.distance || 999) <= 50)
+        .sort((a, b) => (a.distance || 999) - (b.distance || 999));
 
-      const filtered = (data || []).filter((w: any) =>
-        !w.profiles?.country || w.profiles.country === country
-      );
+      setWorkers(workerList);
+      setIsLoading(false);
 
-      const enriched = filtered.map((w: any) => ({
-        ...w,
-        expected_salary: w.profiles?.expected_salary || 0,
-        distance: userLat ? calcDistance(userLat, userLng || 0, w.latitude, w.longitude) : undefined,
-        eta: userLat ? calcETA(calcDistance(userLat, userLng || 0, w.latitude, w.longitude)) : undefined,
-      })).sort((a: any, b: any) => (a.distance || 999) - (b.distance || 999));
+      // Update markers
+      workerMarkersRef.current.forEach(m => map.removeLayer(m));
+      workerMarkersRef.current.clear();
+      const L = (window as any).L;
 
-      // Add Markers with Translated Popups
-      enriched.forEach((worker: any, idx: number) => {
-        const isOnline = worker.is_online;
+      workerList.slice(0, 50).forEach((worker, i) => {
+        const colors = ['#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#10B981', '#F97316'];
         const marker = L.circleMarker([worker.latitude, worker.longitude], {
-          radius: idx === 0 ? 10 : 7,
-          color: '#fff',
-          fillColor: isOnline ? (idx === 0 ? '#22c55e' : '#3b82f6') : '#9ca3af',
-          fillOpacity: isOnline ? 1 : 0.5,
-          weight: 2,
+          radius: i < 3 ? 12 : 8, color: '#fff', fillColor: colors[i % colors.length], 
+          fillOpacity: 0.9, weight: 2.5,
         }).addTo(map);
 
-        // 🚀 Translated Popup Content
-        const salary = worker.expected_salary || 0;
-        const distance = worker.distance || 0;
-        const eta = worker.eta || 0;
-        const statusText = isOnline ? `🟢 ${tr.online}` : `🔴 ${tr.offline}`;
-        const workerName = worker.profiles?.name || 'Worker';
-
-        const popupHtml = `
-          <div style="min-width:180px; padding:6px; font-family:sans-serif;">
-            <b style="font-size:14px;">${workerName}</b><br/>
-            <span style="font-size:12px; color:#ea580c;">💰 ${translateNumber(salary, lang)} ${getCurrencySymbol(lang)}</span><br/>
-            ${distance > 0 ? `<span style="font-size:11px;">📍 ${t('map_distance')}: ${translateNumber(distance.toFixed(1), lang)} ${tr.km}</span><br/>` : ''}
-            ${eta > 0 ? `<span style="font-size:11px; color:#16a34a;">⏱️ ${t('map_eta')}: ${translateNumber(Math.round(eta), lang)} ${tr.min}</span><br/>` : ''}
-            <span style="font-size:10px; color:${isOnline ? '#16a34a' : '#6b7280'};">${statusText}</span>
+        marker.bindPopup(`
+          <div style="padding:10px;font-size:12px;min-width:160px;">
+            <b style="font-size:14px;">${worker.profile?.name || 'Worker'}</b>
+            <div style="color:#666;font-size:10px;">${worker.profile?.category || 'General'}</div>
+            <hr style="margin:6px 0;">
+            <div>📍 <b>${worker.distance}${tr.km}</b> | ⏱ <b>${worker.eta}${tr.min}</b></div>
+            <div>💰 <b>${worker.price_estimate} QAR</b></div>
           </div>
-        `;
+        `);
 
-        marker.bindPopup(popupHtml);
         marker.on('click', () => {
-          startTransition(() => {
-            setSelected(worker);
-            onSelectWorker?.(worker);
-          });
+          setSelectedWorker(worker);
+          onSelectWorker?.(worker);
         });
-        globalMarkers.push(marker);
+        workerMarkersRef.current.set(worker.worker_id, marker);
       });
-
-      startTransition(() => {
-        setWorkers(enriched);
-        setLoading(false);
-        setError(false);
-      });
-    } catch {
-      if (aliveRef.current) {
-        startTransition(() => setError(true));
-        setLoading(false);
-      }
+    } catch (err) { 
+      console.error('Fetch error:', err); 
+      setIsLoading(false); 
     }
-  }, [userLat, userLng, country, onSelectWorker, lang, tr, t]);
+  }, [tr, onSelectWorker]);
 
-  // Auto Refresh (15 seconds)
+  // ═══════ INIT MAP ═══════
   useEffect(() => {
-    if (!mounted) return;
-    globalInterval = setInterval(loadWorkers, 15000);
-    return () => {
-      if (globalInterval) clearInterval(globalInterval);
+    let map: any = null;
+    let attempts = 0;
+
+    const initMap = async () => {
+      try {
+        // Load Leaflet
+        if (!document.getElementById('leaflet-css')) {
+          const link = document.createElement('link');
+          link.id = 'leaflet-css'; link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(link);
+        }
+        if (!(window as any).L) {
+          await new Promise<void>((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => resolve();
+            document.head.appendChild(script);
+          });
+        }
+
+        // Wait for container
+        let container: HTMLElement | null = null;
+        while (attempts < 20) {
+          container = document.getElementById('hire-map');
+          if (container?.offsetHeight) break;
+          await new Promise(r => setTimeout(r, 200));
+          attempts++;
+        }
+        if (!container) return;
+
+        const [clat, clng] = userLocationRef.current 
+          ? [userLocationRef.current.lat, userLocationRef.current.lng] 
+          : COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
+
+        map = (window as any).L.map(container, {
+          center: [clat, clng], zoom: 13, zoomControl: false,
+          attributionControl: false,
+        });
+        (window as any).L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+          maxZoom: 19 
+        }).addTo(map);
+        
+        mapRef.current = map;
+        setTimeout(() => map?.invalidateSize(), 300);
+        setMapReady(true);
+        
+        // Fetch workers once map and location ready
+        if (userLocationRef.current) {
+          setTimeout(() => fetchWorkers(), 400);
+        }
+      } catch (err) { 
+        console.error('Map init error:', err); 
+        setIsLoading(false); 
+      }
     };
-  }, [loadWorkers, mounted]);
 
-  // Loading State
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="p-3 border-b bg-gradient-to-r from-blue-50 to-green-50">
-          <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <Navigation size={16} className="text-blue-600 animate-pulse" />
-            {tr.loading}
-          </span>
-        </div>
-        <div className="w-full h-64 lg:h-96 bg-gray-100 flex items-center justify-center">
-          <Loader2 size={32} className="animate-spin text-orange-500" />
-        </div>
-      </div>
-    );
-  }
+    setTimeout(initMap, 200);
 
-  // Error State
-  if (error) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="p-3 border-b bg-red-50">
-          <span className="text-sm font-bold text-red-600 flex items-center gap-2">
-            <AlertCircle size={16} />
-            {tr.error}
-          </span>
-        </div>
-        <div className="w-full h-64 lg:h-96 bg-gray-100 flex flex-col items-center justify-center gap-3">
-          <AlertCircle size={32} className="text-red-400" />
-          <button
-            onClick={loadWorkers}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700 active:scale-95 transition-all flex items-center gap-2"
-          >
-            <RefreshCw size={14} /> {tr.retry}
-          </button>
-        </div>
-      </div>
-    );
-  }
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+      if (map) { map.remove(); map = null; }
+      mapRef.current = null;
+    };
+  }, [country]);
+
+  // ═══════ USER MARKER ═══════
+  useEffect(() => {
+    if (!mapRef.current || !userLocation || !(window as any).L) return;
+    if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
+    
+    const markerColor = locationSource === 'gps' ? '#3B82F6' : '#F59E0B';
+    const markerLabel = locationSource === 'gps' ? tr.gpsLocation : tr.yourLocation;
+
+    userMarkerRef.current = (window as any).L.circleMarker(
+      [userLocation.lat, userLocation.lng], {
+        radius: 9, color: '#fff', fillColor: markerColor, fillOpacity: 1, weight: 3,
+      }
+    ).addTo(mapRef.current).bindPopup(`<b>${markerLabel}</b>`);
+    
+    mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
+    
+    // Fetch workers when location changes
+    fetchWorkers();
+  }, [userLocation, tr, locationSource, fetchWorkers]);
+
+  // ═══════ AUTO REFRESH ═══════
+  useEffect(() => {
+    if (!mapReady) return;
+    refreshTimerRef.current = setInterval(() => fetchWorkers(), 30000);
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    };
+  }, [mapReady, fetchWorkers]);
+
+  // ═══════ SCROLL TO SELECTED ═══════
+  useEffect(() => {
+    if (!selectedWorker || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-id="${selectedWorker.worker_id}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedWorker]);
+
+  const handleHire = useCallback((worker: Worker) => {
+    setSelectedWorker(worker);
+    onSelectWorker?.(worker);
+    onQuickHire?.(worker);
+  }, [onSelectWorker, onQuickHire]);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm" style={{ contain: 'layout style paint' }}>
-      {/* Header */}
-      <div className="p-3 border-b bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-between">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
-          <Navigation size={16} className="text-blue-600" />
-          {tr.allWorkers}
-          <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-mono">
-            {translateNumber(workers.length, lang)}
-          </span>
-        </h3>
-        <div className="flex items-center gap-2 text-[10px]">
-          <span className="flex items-center gap-1 text-gray-500"><span className="w-2 h-2 rounded-full bg-green-500" />{tr.online}</span>
-          <span className="flex items-center gap-1 text-gray-500"><span className="w-2 h-2 rounded-full bg-gray-400" />{tr.offline}</span>
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin size={18} className="text-green-400" />
+            <div>
+              {isLoading ? (
+                <p className="text-white font-bold text-sm">{tr.findingLocation}</p>
+              ) : (
+                <p className="text-white font-bold text-sm">
+                  {workers.length > 0 ? `${workers.length} workers nearby` : tr.noWorkers}
+                </p>
+              )}
+            </div>
+          </div>
+          {onClose && (
+            <button onClick={() => onClose?.()}
+              className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-90 transition">
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Map */}
-      <div ref={mapRef} className="w-full h-64 lg:h-96 relative bg-gray-100" style={{ minHeight: '300px' }} />
+      {/* MAP */}
+      <div id="hire-map" style={{ width: '100%', height: '280px', backgroundColor: '#e5e7eb', position: 'relative' }}>
+        {isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 z-50 gap-3">
+            <Loader2 size={40} className="animate-spin text-blue-500" />
+            <p className="text-sm text-gray-500 font-medium">{tr.findingLocation}</p>
+          </div>
+        )}
+      </div>
 
-      {/* Selected Worker Popup Bottom Sheet */}
-      {selected && (
-        <div className="p-3 border-t bg-white animate-in slide-in-from-bottom-2">
-          <MarkerPopup labor={selected} href={`/worker/${selected.worker_id}`} lang={lang} />
+      {/* WORKER LIST */}
+      <div ref={listRef} className="overflow-y-auto bg-white" style={{ maxHeight: '35vh', WebkitOverflowScrolling: 'touch' }}>
+        {!isLoading && workers.length === 0 ? (
+          <div className="p-10 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <MapPin size={28} className="text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-600 font-bold">{tr.noWorkers}</p>
+            <p className="text-xs text-gray-400 mt-1">Try again later</p>
+          </div>
+        ) : (
+          <>
+            <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm px-4 py-2 text-[11px] font-bold text-gray-500 border-b z-10 flex items-center justify-between">
+              <span>{workers.length} workers available</span>
+              <span className="text-gray-400 font-normal">{tr.tapWorker}</span>
+            </div>
+            {workers.slice(0, 50).map((worker) => (
+              <WorkerCard key={worker.worker_id} worker={worker}
+                isSelected={selectedWorker?.worker_id === worker.worker_id}
+                lang={lang} tr={tr}
+                onClick={() => { 
+                  setSelectedWorker(worker); 
+                  onSelectWorker?.(worker); 
+                  mapRef.current?.setView([worker.latitude, worker.longitude], 16); 
+                }}
+                onHire={handleHire} />
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* HIRE BAR */}
+      {selectedWorker && (
+        <div className="bg-white border-t-2 border-green-500 px-4 py-3 flex items-center gap-3 shadow-lg">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shrink-0">
+            {selectedWorker.profile?.photo_url ? (
+              <img src={selectedWorker.profile.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <UserPlus size={18} />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm truncate">{selectedWorker.profile?.name || 'Worker'}</p>
+            <p className="text-[10px] text-gray-500 flex items-center gap-2">
+              <span>📍 {selectedWorker.distance}{tr.km}</span>
+              <span>⏱ {selectedWorker.eta}{tr.min}</span>
+              <span className="text-purple-600 font-bold">💰 {selectedWorker.price_estimate} QAR</span>
+            </p>
+          </div>
+          <button onClick={() => handleHire(selectedWorker)}
+            className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full text-sm font-bold active:scale-95 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+            <UserPlus size={15} /> {tr.hireNow}
+          </button>
         </div>
       )}
     </div>
