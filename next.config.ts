@@ -23,17 +23,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js', '@supabase/ssr'],
   },
   
-  // ✅ Cache headers
+  // ✅ Cache headers (NO _next/static override)
   async headers() {
     return [
       {
         source: '/:all*(svg|jpg|png|webp|avif|woff2|css|js)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      {
-        source: '/_next/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],

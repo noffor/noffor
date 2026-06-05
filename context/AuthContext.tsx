@@ -202,8 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🔄 Initializing auth...');
         
-        // Small delay for cookies to be available (after redirect)
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Vercel-এ cookie delay-এর জন্য 1 second wait
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -211,7 +211,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (sessionError) {
           console.error('❌ getSession error:', sessionError.message);
-          setState(prev => ({ ...prev, loading: false }));
+          // FALLBACK: Cache check
+          const cached = getCachedProfile();
+          if (cached) {
+            console.log('⚡ Using cached profile (session error)');
+            setState(prev => ({
+              ...prev,
+              profile: cached,
+              loading: false,
+              isAuthenticated: true,
+            }));
+          } else {
+            setState(prev => ({ ...prev, loading: false }));
+          }
           return;
         }
         
@@ -220,12 +232,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setState(prev => ({ ...prev, session, user: session.user }));
           await loadProfile(session.user.id);
         } else {
-          console.log('ℹ️ No session found (user not logged in)');
-          setState(prev => ({ ...prev, loading: false }));
+          console.log('ℹ️ No session found');
+          
+          // EMERGENCY FIX: localStorage fallback
+          const cached = getCachedProfile();
+          if (cached) {
+            console.log('⚡ EMERGENCY: Using cached profile (no session)');
+            setState(prev => ({
+              ...prev,
+              profile: cached,
+              loading: false,
+              isAuthenticated: true,
+            }));
+          } else {
+            setState(prev => ({ ...prev, loading: false }));
+          }
         }
       } catch (err) {
         console.error('❌ Auth init error:', err);
-        if (mounted) setState(prev => ({ ...prev, loading: false }));
+        // FALLBACK: Cache check on error too
+        const cached = getCachedProfile();
+        if (cached) {
+          setState(prev => ({
+            ...prev,
+            profile: cached,
+            loading: false,
+            isAuthenticated: true,
+          }));
+        } else {
+          if (mounted) setState(prev => ({ ...prev, loading: false }));
+        }
       }
     };
 
@@ -240,7 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log(`🔐 Auth Event: ${event}`, session?.user?.id || 'no user');
         
-        // ✅ SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED
+        // SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
             setState(prev => ({ 
@@ -253,7 +289,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // ✅ SIGNED_OUT
+        // SIGNED_OUT
         if (event === 'SIGNED_OUT') {
           setState({ 
             session: null, 
@@ -268,7 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // ✅ USER_UPDATED
+        // USER_UPDATED
         if (event === 'USER_UPDATED') {
           if (session?.user) {
             setState(prev => ({ ...prev, session, user: session.user }));
