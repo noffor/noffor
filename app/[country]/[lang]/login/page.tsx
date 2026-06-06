@@ -1,8 +1,8 @@
-// app/[country]/[lang]/login/page.tsx
+// app/[country]/[lang]/login/page.tsx - FINAL FIXED
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase'; // ✅ Use createClient()
+import { supabase } from '@/lib/supabase'; // ✅ Singleton import
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
@@ -141,9 +141,6 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // ✅ Use the SAME supabase instance (singleton)
-      const supabase = createClient();
-      
       const callbackUrl = `${window.location.origin}/auth/callback?country=${encodeURIComponent(country)}&lang=${encodeURIComponent(lang)}&role=${encodeURIComponent(role)}&next=${encodeURIComponent(redirectTo)}`;
       
       console.log('🔑 Redirect to:', callbackUrl);
