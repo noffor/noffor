@@ -1,15 +1,13 @@
+// app/[country]/[lang]/login/page.tsx
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase'; // ✅ Use createClient()
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import { CheckCircle, Loader2, User, Building, Globe, LogIn } from 'lucide-react';
 
-// ═══════════════════════════════════════════════════════════
-// ৪ ভাষা ট্রান্সলেশন
-// ═══════════════════════════════════════════════════════════
 const T: Record<string, Record<string, string>> = {
   en: {
     login: 'Welcome',
@@ -73,9 +71,6 @@ const T: Record<string, Record<string, string>> = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════
-// Role Selector Component
-// ═══════════════════════════════════════════════════════════
 const RoleSelector = React.memo(({ role, setRole, tr }: {
   role: string;
   setRole: (r: string) => void;
@@ -110,9 +105,6 @@ const RoleSelector = React.memo(({ role, setRole, tr }: {
 ));
 RoleSelector.displayName = 'RoleSelector';
 
-// ═══════════════════════════════════════════════════════════
-// Main Login Page
-// ═══════════════════════════════════════════════════════════
 export default function LoginPage() {
   const params = useParams();
   const router = useRouter();
@@ -129,40 +121,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
-  // ✅ FIX 1: Prevent multiple redirects
   const hasRedirected = useRef(false);
 
-  // ✅ FIX 2: Auto redirect if already logged in (with guard)
+  // Auto redirect if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
       setSuccess(true);
-      
-      // Clear any stale auth-triggered loops
-      const timer = setTimeout(() => {
-        router.replace(redirectTo);
-      }, 1200);
-      
+      const timer = setTimeout(() => router.replace(redirectTo), 1200);
       return () => clearTimeout(timer);
     }
   }, [authLoading, isAuthenticated, redirectTo, router]);
 
-  // ═══════════════════════════════════════════════════════
   // Google Login
-  // ═══════════════════════════════════════════════════════
   const handleGoogleLogin = useCallback(async () => {
-    // ✅ FIX 3: Prevent double click
     if (loading || hasRedirected.current) return;
     
     setLoading(true);
     setError('');
 
     try {
-      // ✅ FIX 4: Use encodeURIComponent for redirectTo
+      // ✅ Use the SAME supabase instance (singleton)
+      const supabase = createClient();
+      
       const callbackUrl = `${window.location.origin}/auth/callback?country=${encodeURIComponent(country)}&lang=${encodeURIComponent(lang)}&role=${encodeURIComponent(role)}&next=${encodeURIComponent(redirectTo)}`;
       
-      console.log('🔑 Google login redirect to:', callbackUrl);
+      console.log('🔑 Redirect to:', callbackUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -175,11 +159,7 @@ export default function LoginPage() {
         },
       });
 
-      if (error) {
-        throw error;
-      }
-      
-      // ✅ FIX 5: Don't setLoading(false) - we're leaving the page
+      if (error) throw error;
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || tr.error);
@@ -187,7 +167,6 @@ export default function LoginPage() {
     }
   }, [country, lang, role, redirectTo, tr, loading]);
 
-  // Success screen
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 flex items-center justify-center">
@@ -197,15 +176,11 @@ export default function LoginPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr.loginSuccess}</h2>
           <p className="text-gray-500">{tr.redirecting}</p>
-          <div className="mt-4 w-48 h-1.5 bg-gray-200 rounded-full mx-auto overflow-hidden">
-            <div className="h-full bg-green-500 rounded-full animate-pulse" style={{ width: '100%' }} />
-          </div>
         </div>
       </div>
     );
   }
 
-  // Loading
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -217,9 +192,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50 pb-16 lg:pb-0">
       <Header country={country} lang={lang} />
-
       <div className="max-w-md mx-auto px-4 py-12 lg:py-20">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-200">
             <LogIn size={28} className="text-white" />
@@ -229,27 +202,19 @@ export default function LoginPage() {
             <Globe size={14} />
             {country.toUpperCase()} / {lang.toUpperCase()}
           </p>
-          {redirectTo !== `/${country}/${lang}/dashboard` && (
-            <p className="text-xs text-orange-500 mt-1 bg-orange-50 inline-block px-3 py-1 rounded-full">
-              {tr.redirectMessage}
-            </p>
-          )}
         </div>
 
-        {/* Role Selector */}
         <div className="mb-8">
           <p className="text-sm font-semibold text-gray-600 mb-3 text-center">{tr.selectRole}</p>
           <RoleSelector role={role} setRole={setRole} tr={tr} />
         </div>
 
-        {/* Error */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 text-center animate-shake">
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 text-center">
             ❌ {error}
           </div>
         )}
 
-        {/* Google Login Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
@@ -262,22 +227,14 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              <img 
-                src="https://www.google.com/favicon.ico" 
-                alt="Google" 
-                className="w-5 h-5" 
-              />
+              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
               {tr.google}
             </>
           )}
         </button>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-400 mt-8">
-          {tr.terms}
-        </p>
+        <p className="text-center text-xs text-gray-400 mt-8">{tr.terms}</p>
       </div>
-
       <MobileNav country={country} lang={lang} />
     </div>
   );

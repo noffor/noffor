@@ -1,4 +1,4 @@
-// lib/supabase.ts - Vercel Ready • Cookie API Fixed
+// lib/supabase.ts - Singleton Fix • PKCE Compatible
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
 // ═══════════════════════════════════════════════════════════
@@ -8,15 +8,28 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // ═══════════════════════════════════════════════════════════
-// Browser Client (Client Components)
+// ✅ SINGLETON: Only ONE browser instance ever
 // ═══════════════════════════════════════════════════════════
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+
 export function createClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  // Server-side: return fresh instance (no singleton needed)
+  if (typeof window === 'undefined') {
+    return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+  
+  // Browser: return SAME instance (PKCE verifier preserved)
+  if (browserClient) {
+    return browserClient;
+  }
+  
+  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
       storageKey: 'noffor_auth',
+      flowType: 'pkce', // ✅ Explicit PKCE
     },
     realtime: {
       params: {
@@ -24,10 +37,12 @@ export function createClient() {
       },
     },
   });
+  
+  return browserClient;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ FIXED: Server Client with Next.js 15+ cookie API
+// Server Client with Next.js 15+ cookie API
 // ═══════════════════════════════════════════════════════════
 export function createServerSupabase(cookieStore: any) {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -38,7 +53,6 @@ export function createServerSupabase(cookieStore: any) {
       setAll(cookiesToSet: any[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }: any) => {
-            // ✅ Next.js 15+/16+ compatible way
             cookieStore.set({
               name,
               value,
@@ -46,8 +60,7 @@ export function createServerSupabase(cookieStore: any) {
             });
           });
         } catch (error) {
-          // Vercel edge case: fallback
-          console.error('Cookie set error in createServerSupabase:', error);
+          console.error('Cookie set error:', error);
         }
       },
     },
@@ -55,40 +68,31 @@ export function createServerSupabase(cookieStore: any) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Admin Client (SERVER ONLY - Service Role)
+// Admin Client (SERVER ONLY)
 // ═══════════════════════════════════════════════════════════
 export function createAdminClient() {
   if (typeof window !== 'undefined') {
-    throw new Error('⛔ Admin client can only be used on server!');
+    throw new Error('⛔ Admin client server only!');
   }
   
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
-    throw new Error('❌ SUPABASE_SERVICE_ROLE_KEY is required');
+    throw new Error('❌ SUPABASE_SERVICE_ROLE_KEY required');
   }
   
   return createServerClient(supabaseUrl, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    cookies: {
-      getAll: () => [],
-      setAll: () => {},
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
+    cookies: { getAll: () => [], setAll: () => {} },
   });
 }
 
 // ═══════════════════════════════════════════════════════════
-// Legacy Export (Browser Client)
+// ✅ Singleton Export (SAME instance everywhere)
 // ═══════════════════════════════════════════════════════════
-export const supabase = typeof window !== 'undefined' 
-  ? createClient() 
+export const supabase = typeof window !== 'undefined'
+  ? createClient()
   : createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll: () => [],
-        setAll: () => {},
-      },
+      cookies: { getAll: () => [], setAll: () => {} },
     });
 
 // ═══════════════════════════════════════════════════════════
@@ -96,11 +100,7 @@ export const supabase = typeof window !== 'undefined'
 // ═══════════════════════════════════════════════════════════
 export async function getProfile(id: string) {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
-    .single();
-
+    .from('profiles').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
 }
@@ -144,10 +144,8 @@ export async function signOut() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('noffor_user');
       localStorage.removeItem('noffor_worker');
-      localStorage.removeItem('noffor_worker_online');
       sessionStorage.clear();
     }
-    
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   } catch (error) {
@@ -161,18 +159,9 @@ export async function signOut() {
 // ═══════════════════════════════════════════════════════════
 export async function uploadFile(bucket: string, path: string, file: File) {
   const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-    
+    .from(bucket).upload(path, file, { cacheControl: '3600', upsert: true });
   if (error) throw error;
-  
-  const { data: urlData } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(path);
-    
+  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
   return urlData.publicUrl;
 }
 
@@ -193,21 +182,11 @@ export async function callRPC(fn: string, params?: Record<string, any>) {
 // ═══════════════════════════════════════════════════════════
 // Health Check
 // ═══════════════════════════════════════════════════════════
-export async function checkConnection(): Promise<{
-  connected: boolean;
-  latency: number;
-}> {
+export async function checkConnection(): Promise<{ connected: boolean; latency: number }> {
   const start = performance.now();
   try {
-    const { error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1);
-      
-    return {
-      connected: !error,
-      latency: Math.round(performance.now() - start),
-    };
+    const { error } = await supabase.from('profiles').select('id').limit(1);
+    return { connected: !error, latency: Math.round(performance.now() - start) };
   } catch {
     return { connected: false, latency: -1 };
   }
@@ -217,24 +196,14 @@ export async function checkConnection(): Promise<{
 // Admin Helpers (SERVER ONLY)
 // ═══════════════════════════════════════════════════════════
 export async function verifyAdminServer(cookieStore: any): Promise<{
-  authorized: boolean;
-  userId?: string;
-  role?: string;
+  authorized: boolean; userId?: string; role?: string;
 }> {
   try {
     const serverClient = createServerSupabase(cookieStore);
     const { data: { session } } = await serverClient.auth.getSession();
-    
-    if (!session?.user?.id) {
-      return { authorized: false };
-    }
-
+    if (!session?.user?.id) return { authorized: false };
     const { data: profile } = await serverClient
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
+      .from('profiles').select('role').eq('id', session.user.id).maybeSingle();
     return {
       authorized: profile?.role === 'admin',
       userId: session.user.id,
@@ -248,9 +217,8 @@ export async function verifyAdminServer(cookieStore: any): Promise<{
 
 export async function getAdminStats() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  const client = serviceKey 
-    ? createAdminClient() 
+  const client = serviceKey
+    ? createAdminClient()
     : createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: { getAll: () => [], setAll: () => {} },
       });
