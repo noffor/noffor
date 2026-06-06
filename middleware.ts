@@ -1,4 +1,4 @@
-// middleware.ts - PKCE compatible
+// middleware.ts
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -6,35 +6,27 @@ import type { NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
-  // Static files skip
   if (pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|css|js|woff2|json|map)$/)) {
     return NextResponse.next();
   }
   
-  // Public routes skip
-  const publicRoutes = ['/login', '/register', '/auth/', '/api/', '/_next', '/favicon.ico'];
+  const publicRoutes = ['/login', '/register', '/auth/', '/api/', '/_next'];
   if (publicRoutes.some(r => pathname.includes(r))) {
     return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        flowType: 'pkce',
-        detectSessionInUrl: true,
-        persistSession: true,
-      },
+      auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true },
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
+            response.cookies.set(name, value, options);
           });
         },
       },
@@ -42,38 +34,25 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { session } } = await supabase.auth.getSession();
-
+  
   const segments = pathname.split('/').filter(Boolean);
   const country = segments[0] || 'qa';
   const lang = segments[1] || 'en';
 
-  // Root redirect
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/qa/en', request.url));
   }
 
-  // Protected routes
   const protectedRoutes = ['/create', '/tracking', '/bid', '/dashboard', '/settings', '/messages'];
   const needsAuth = protectedRoutes.some(r => pathname.includes(r));
-  const isAdminRoute = pathname.includes('/admin') && !pathname.includes('/admin/login');
 
-  if (needsAuth || isAdminRoute) {
-    if (!session) {
-      const loginUrl = new URL(`/${country}/${lang}/login`, request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    if (isAdminRoute) {
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', session.user.id).maybeSingle();
-      if (!profile || profile.role !== 'admin') {
-        return NextResponse.redirect(new URL(`/${country}/${lang}`, request.url));
-      }
-    }
+  if (needsAuth && !session) {
+    const loginUrl = new URL(`/${country}/${lang}/login`, request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {

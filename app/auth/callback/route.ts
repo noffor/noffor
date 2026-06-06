@@ -35,19 +35,22 @@ export async function GET(request: Request) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // ✅ Production-এ secure cookie
             cookieStore.set(name, value, {
               ...options,
               path: '/',
               secure: true,
               sameSite: 'lax',
-              maxAge: 60 * 60 * 24 * 30, // 30 days
+              maxAge: 60 * 60 * 24 * 30,
             });
           });
         },
       },
     }
   );
+
+  // ✅ ডিবাগিং - Vercel Logs-এ দেখতে পাবেন
+  console.log('🍪 All cookies:', cookieStore.getAll().map((c: any) => c.name));
+  console.log('🔄 Exchanging code:', code?.slice(0, 20) + '...');
 
   const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -59,7 +62,6 @@ export async function GET(request: Request) {
   const user = data?.user || data?.session?.user;
 
   if (user) {
-    // Profile upsert
     try {
       const { data: existing } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle();
       

@@ -29,7 +29,7 @@ export function createClient() {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storageKey: 'noffor_auth',
+      storageKey: 'sb-noffor-auth',
       // ✅ Vercel Serverless-এর জন্য Cookie-based storage
       storage: {
         getItem: (key: string) => {
