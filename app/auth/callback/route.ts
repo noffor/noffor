@@ -1,4 +1,4 @@
-// app/auth/callback/route.ts - IMPLICIT FLOW FIXED
+// app/auth/callback/route.ts - সম্পূর্ণ ফাইল
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -35,16 +35,16 @@ export async function GET(request: Request) {
     
     console.log('🍪 Cookie count:', cookieStore.getAll().length);
     
-    // ✅ IMPLICIT FLOW — no PKCE
+    // ✅ PKCE FLOW - সম্পূর্ণ পরিবর্তন
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         auth: {
-          flowType: 'implicit',
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false,
+          flowType: 'pkce',            // ✅ PKCE flow
+          autoRefreshToken: true,       // ✅ Token auto refresh
+          persistSession: true,         // ✅ Session persist
+          detectSessionInUrl: true,     // ✅ URL থেকে session detect
         },
         cookies: {
           getAll() {
@@ -58,7 +58,13 @@ export async function GET(request: Request) {
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value);
+                cookieStore.set(name, value, {
+                  ...options,
+                  path: '/',
+                  secure: process.env.NODE_ENV === 'production',
+                  sameSite: 'lax' as const,
+                  maxAge: 60 * 60 * 24 * 30, // 30 days
+                });
               });
               console.log('🍪 Cookies set:', cookiesToSet.length);
             } catch (e) {

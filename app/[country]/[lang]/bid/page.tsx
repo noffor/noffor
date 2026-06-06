@@ -706,48 +706,57 @@ export default function BidPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    return cache.get(cacheKey, async () => {
-      const { data: jobsData, error } = await supabase
-        .from('job_posts')
-        .select('*')
-        .eq('country', country)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .range((pageNum - 1) * 20, pageNum * 20 - 1)
-        .abortSignal(controller.signal);
+    // ✅ পরিবর্তন করুন:
+return cache.get(cacheKey, async () => {
+  // ✅ .abortSignal() রিমুভ
+  const { data: jobsData, error } = await supabase
+    .from('job_posts')
+    .select('*')
+    .eq('country', country)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .range((pageNum - 1) * 20, pageNum * 20 - 1);
 
-      if (error) throw error;
-      if (!jobsData || jobsData.length === 0) return { jobs: [], hasMore: false };
+  if (error) throw error;
+  
+  // ✅ Abort check manually
+  if (controller.signal.aborted) return { jobs: [], hasMore: false };
+  
+  if (!jobsData || jobsData.length === 0) return { jobs: [], hasMore: false };
 
-      // Batch fetch bids
-      const jobIds = jobsData.map((j: any) => j.id);
-      const { data: allBids } = await supabase
-        .from('bids')
-        .select('job_id, labor_phone')
-        .in('job_id', jobIds)
-        .abortSignal(controller.signal);
+  // Batch fetch bids
+  const jobIds = jobsData.map((j: any) => j.id);
+  
+  // ✅ .abortSignal() রিমুভ
+  const { data: allBids } = await supabase
+    .from('bids')
+    .select('job_id, labor_phone')
+    .in('job_id', jobIds);
 
-      const countMap: Record<string, number> = {};
-      const userBidMap: Record<string, boolean> = {};
-      
-      allBids?.forEach((b: any) => {
-        countMap[b.job_id] = (countMap[b.job_id] || 0) + 1;
-        if (userPhone && b.labor_phone === userPhone) {
-          userBidMap[b.job_id] = true;
-        }
-      });
+  // ✅ Abort check manually
+  if (controller.signal.aborted) return { jobs: [], hasMore: false };
 
-      const enriched = jobsData.map((job: any) => ({ 
-        ...job, 
-        bid_count: countMap[job.id] || 0,
-        user_bid: userBidMap[job.id] || false
-      }));
+  const countMap: Record<string, number> = {};
+  const userBidMap: Record<string, boolean> = {};
+  
+  allBids?.forEach((b: any) => {
+    countMap[b.job_id] = (countMap[b.job_id] || 0) + 1;
+    if (userPhone && b.labor_phone === userPhone) {
+      userBidMap[b.job_id] = true;
+    }
+  });
 
-      return { 
-        jobs: enriched, 
-        hasMore: jobsData.length === 20 
-      };
-    });
+  const enriched = jobsData.map((job: any) => ({ 
+    ...job, 
+    bid_count: countMap[job.id] || 0,
+    user_bid: userBidMap[job.id] || false
+  }));
+
+  return { 
+    jobs: enriched, 
+    hasMore: jobsData.length === 20 
+  };
+});
   }, [country, filter, userPhone, cache]);
 
   // ============ LOAD JOBS WITH PAGINATION ============
@@ -871,11 +880,11 @@ export default function BidPage() {
     loadJobs(true);
     
     return () => {
-      cleanup();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+  cleanup();
+  if (abortControllerRef.current) {
+    abortControllerRef.current.abort(); // ✅ এটা রাখতে হবে
+  }
+};
   }, [country, loadJobs, connectionManager]);
 
   // ============ POST JOB WITH OPTIMISTIC UPDATE ============

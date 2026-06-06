@@ -1,19 +1,19 @@
-// proxy.ts - Fixed • Next.js 16 Ready
+// middleware.ts - Root-এই তৈরি করুন
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
   console.log('🛡️ MW:', pathname);
   
-  // Static files
+  // Static files - skip
   if (pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|css|js|woff2|json|map)$/)) {
     return NextResponse.next();
   }
   
-  // Public routes
+  // Public routes - skip
   const publicRoutes = ['/login', '/register', '/auth/', '/api/', '/_next', '/favicon.ico'];
   if (publicRoutes.some(r => pathname.includes(r))) {
     return NextResponse.next();
@@ -28,6 +28,7 @@ export async function proxy(request: NextRequest) {
   const needsAuth = protectedRoutes.some(r => pathname.includes(r));
   const isAdminRoute = pathname.includes('/admin') && !pathname.includes('/admin/login');
 
+  // Root redirect
   if (pathname === '/' || pathname === '') {
     return NextResponse.redirect(new URL('/qa/en', request.url));
   }
@@ -44,7 +45,6 @@ export async function proxy(request: NextRequest) {
             },
             setAll(cookiesToSet) {
               cookiesToSet.forEach(({ name, value, options }) => {
-                // ✅ Next.js 15+/16+ API
                 request.cookies.set({
                   name,
                   value,

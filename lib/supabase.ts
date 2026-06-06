@@ -24,20 +24,19 @@ export function createClient() {
   }
   
   browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storageKey: 'noffor_auth',
-      // ✅ Change to:
-flowType: 'implicit',
+  auth: {
+    flowType: 'pkce',           // ✅ PKCE flow
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storageKey: 'noffor_auth',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
     },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-  });
+  },
+});
   
   return browserClient;
 }

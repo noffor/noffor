@@ -1,4 +1,4 @@
-// app/[country]/[lang]/login/page.tsx - FINAL FIXED
+// app/[country]/[lang]/login/page.tsx - FINAL FIXED • PKCE FLOW ENABLED
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -133,7 +133,7 @@ export default function LoginPage() {
     }
   }, [authLoading, isAuthenticated, redirectTo, router]);
 
-  // Google Login
+  // Google Login - ✅ PKCE Flow Enabled
   const handleGoogleLogin = useCallback(async () => {
     if (loading || hasRedirected.current) return;
     
@@ -141,9 +141,10 @@ export default function LoginPage() {
     setError('');
 
     try {
+      // ✅ callbackUrl ডিক্লেয়ার
       const callbackUrl = `${window.location.origin}/auth/callback?country=${encodeURIComponent(country)}&lang=${encodeURIComponent(lang)}&role=${encodeURIComponent(role)}&next=${encodeURIComponent(redirectTo)}`;
       
-      console.log('🔑 Redirect to:', callbackUrl);
+      console.log('🔑 PKCE Login - Redirect to:', callbackUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -153,18 +154,19 @@ export default function LoginPage() {
             access_type: 'offline',
             prompt: 'consent',
           },
-          skipBrowserRedirect: true, // ✅ PKCE bypass
+          // ✅ skipBrowserRedirect রিমুভ - PKCE flow নিজেই handle করবে
         },
       });
 
       if (error) throw error;
       
-      // ✅ Manual redirect to Google
+      // ✅ PKCE flow - Supabase redirect handle করবে
       if (data?.url) {
+        console.log('🔀 Redirecting to Google OAuth...');
         window.location.href = data.url;
       }
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
       setError(err.message || tr.error);
       setLoading(false);
     }
