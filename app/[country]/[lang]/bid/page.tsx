@@ -720,7 +720,7 @@ export default function BidPage() {
       if (!jobsData || jobsData.length === 0) return { jobs: [], hasMore: false };
 
       // Batch fetch bids
-      const jobIds = jobsData.map(j => j.id);
+      const jobIds = jobsData.map((j: any) => j.id);
       const { data: allBids } = await supabase
         .from('bids')
         .select('job_id, labor_phone')
@@ -730,14 +730,14 @@ export default function BidPage() {
       const countMap: Record<string, number> = {};
       const userBidMap: Record<string, boolean> = {};
       
-      allBids?.forEach(b => {
+      allBids?.forEach((b: any) => {
         countMap[b.job_id] = (countMap[b.job_id] || 0) + 1;
         if (userPhone && b.labor_phone === userPhone) {
           userBidMap[b.job_id] = true;
         }
       });
 
-      const enriched = jobsData.map(job => ({ 
+      const enriched = jobsData.map((job: any) => ({ 
         ...job, 
         bid_count: countMap[job.id] || 0,
         user_bid: userBidMap[job.id] || false
@@ -827,8 +827,8 @@ export default function BidPage() {
     const today = new Date().toDateString();
     setStats({
       total: data.length,
-      open: data.filter(j => j.status === 'open').length,
-      todayNew: data.filter(j => new Date(j.created_at).toDateString() === today).length,
+      open: data.filter((j: any) => j.status === 'open').length,
+      todayNew: data.filter((j: any) => new Date(j.created_at).toDateString() === today).length,
     });
   }, []);
 
@@ -1040,7 +1040,7 @@ export default function BidPage() {
   // ============ FILTERED JOBS WITH MEMOIZATION ============
   const filteredJobs = useMemo(() => {
     if (filter === 'all') return jobs;
-    return jobs.filter(j => j.category === filter);
+    return jobs.filter((j: any) => j.category === filter);
   }, [jobs, filter]);
 
   // ============ RENDER ============
@@ -1167,14 +1167,14 @@ export default function BidPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {filteredJobs.map(job => (
+                {filteredJobs.map((job: any) => (
                   <JobCard 
                     key={job.id} 
                     job={job} 
                     lang={lang}
                     userPhone={userPhone}
                     onBid={setShowBidForm} 
-                    onViewBids={(job) => {
+                    onViewBids={(job: any) => {
                       setShowBids(job);
                       loadBidsForJob(job.id);
                     }} 
@@ -1223,7 +1223,7 @@ export default function BidPage() {
                   <select value={category} onChange={e => setCategory(e.target.value)} 
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white">
                     <option value="">{tr.select_category}</option>
-                    {siteConfig.categories.map(c => <option key={c.slug} value={c.name}>{c.name}</option>)}
+                    {siteConfig.categories.map((c: any) => <option key={c.slug} value={c.name}>{c.name}</option>)}
                   </select>
                   
                   <div className="grid grid-cols-2 gap-2">
@@ -1373,10 +1373,10 @@ export default function BidPage() {
                   <div className="space-y-2">
                     <div className="mb-2 pb-2 border-b border-gray-100">
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <TrendingDown size={12} /> {bidList.length} {tr.bids} • {tr.lowest_bid}: {Math.min(...bidList.map(b => b.amount))} {tr.qar}
+                        <TrendingDown size={12} /> {bidList.length} {tr.bids} • {tr.lowest_bid}: {Math.min(...bidList.map((b: any) => b.amount))} {tr.qar}
                       </p>
                     </div>
-                    {bidList.map((bid, index) => (
+                    {bidList.map((bid: any, index: number) => (
                       <BidWorkerCard 
                         key={bid.id} 
                         bid={bid} 
@@ -1403,18 +1403,4 @@ export default function BidPage() {
       </div>
     </ErrorBoundary>
   );
-}
-
-// ============ SERVICE WORKER REGISTRATION ============
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(
-      (registration) => {
-        console.log('ServiceWorker registration successful:', registration.scope);
-      },
-      (err) => {
-        console.error('ServiceWorker registration failed:', err);
-      }
-    );
-  });
 }
