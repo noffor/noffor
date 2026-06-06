@@ -145,7 +145,7 @@ export default function LoginPage() {
       
       console.log('🔑 Redirect to:', callbackUrl);
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: callbackUrl,
@@ -153,10 +153,16 @@ export default function LoginPage() {
             access_type: 'offline',
             prompt: 'consent',
           },
+          skipBrowserRedirect: true, // ✅ PKCE bypass
         },
       });
 
       if (error) throw error;
+      
+      // ✅ Manual redirect to Google
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || tr.error);
