@@ -1,11 +1,10 @@
-// app/auth/callback/route.ts - Exchange Error Fixed
+// app/auth/callback/route.ts - IMPLICIT FLOW FIXED
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// ✅ Force dynamic runtime (NO edge cache)
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs'; // ✅ Edge না, Node.js use করুন
+export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   console.log('🔵 ====== CALLBACK HIT ======');
@@ -36,11 +35,17 @@ export async function GET(request: Request) {
     
     console.log('🍪 Cookie count:', cookieStore.getAll().length);
     
-    // ✅ SIMPLE Supabase client — no complex cookie options
+    // ✅ IMPLICIT FLOW — no PKCE
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
+        auth: {
+          flowType: 'implicit',
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
         cookies: {
           getAll() {
             try {
@@ -53,7 +58,6 @@ export async function GET(request: Request) {
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
-                // ✅ Simple set
                 cookieStore.set(name, value);
               });
               console.log('🍪 Cookies set:', cookiesToSet.length);
@@ -65,7 +69,6 @@ export async function GET(request: Request) {
       }
     );
 
-    // ✅ Exchange code for session
     console.log('🔄 Exchanging code for session...');
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
     
@@ -73,7 +76,6 @@ export async function GET(request: Request) {
       console.error('❌ Exchange error:', exchangeError);
       console.error('❌ Full error:', JSON.stringify(exchangeError));
       
-      // ✅ Redirect to login with specific error
       const loginUrl = new URL(`/${country}/${lang}/login`, origin);
       loginUrl.searchParams.set('error', 'exchange');
       loginUrl.searchParams.set('detail', exchangeError.message?.slice(0, 50) || 'unknown');
@@ -128,7 +130,6 @@ export async function GET(request: Request) {
       }
     } catch (dbError: any) {
       console.error('❌ DB error (non-critical):', dbError.message);
-      // Continue anyway — user is authenticated
     }
 
     const dashboardPath = role === 'employer' ? 'dashboard/employer' : 'dashboard';
