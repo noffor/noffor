@@ -29,7 +29,8 @@ export function createClient() {
       persistSession: true,
       detectSessionInUrl: true,
       storageKey: 'noffor_auth',
-      flowType: 'pkce', // ✅ Explicit PKCE
+      // ✅ Change to:
+flowType: 'implicit',
     },
     realtime: {
       params: {
