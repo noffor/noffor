@@ -1,4 +1,4 @@
-// lib/supabase.ts - Singleton Fix • PKCE Compatible
+// lib/supabase.ts - Singleton Fix • PKCE + Vercel Cookie Storage
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
 // ═══════════════════════════════════════════════════════════
@@ -24,19 +24,49 @@ export function createClient() {
   }
   
   browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'pkce',           // ✅ PKCE flow
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storageKey: 'noffor_auth',
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
+    auth: {
+      flowType: 'pkce',           // ✅ PKCE flow
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'noffor_auth',
+      // ✅ Vercel Serverless-এর জন্য Cookie-based storage
+      storage: {
+        getItem: (key: string) => {
+          if (typeof document === 'undefined') return null;
+          try {
+            const match = document.cookie.match(new RegExp(`(^| )${key}=([^;]+)`));
+            return match ? decodeURIComponent(match[2]) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (key: string, value: string) => {
+          if (typeof document === 'undefined') return;
+          try {
+            // ৩০ দিনের cookie, HTTPS-এ secure
+            const isSecure = location.protocol === 'https:';
+            document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=2592000; SameSite=Lax${isSecure ? '; secure' : ''}`;
+          } catch (err) {
+            console.error('Cookie set error:', err);
+          }
+        },
+        removeItem: (key: string) => {
+          if (typeof document === 'undefined') return;
+          try {
+            document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          } catch (err) {
+            console.error('Cookie remove error:', err);
+          }
+        },
+      },
     },
-  },
-});
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
   
   return browserClient;
 }
@@ -48,15 +78,21 @@ export function createServerSupabase(cookieStore: any) {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        try {
+          return cookieStore.getAll();
+        } catch {
+          return [];
+        }
       },
       setAll(cookiesToSet: any[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }: any) => {
-            cookieStore.set({
-              name,
-              value,
+            cookieStore.set(name, value, {
               ...options,
+              path: '/',
+              secure: true,
+              sameSite: 'lax' as const,
+              maxAge: 60 * 60 * 24 * 30, // 30 days
             });
           });
         } catch (error) {

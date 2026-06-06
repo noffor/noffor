@@ -1,116 +1,74 @@
-// app/auth/callback/route.ts - সম্পূর্ণ ফাইল
+// app/auth/callback/route.ts
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  console.log('🔵 ====== CALLBACK HIT ======');
-  
-  try {
-    const { searchParams, origin } = new URL(request.url);
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const error_description = searchParams.get('error_description');
-    const next = searchParams.get('next') || 'dashboard';
-    const country = searchParams.get('country') || 'qa';
-    const lang = searchParams.get('lang') || 'en';
-    const role = searchParams.get('role') || 'labor';
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+  const country = searchParams.get('country') || 'qa';
+  const lang = searchParams.get('lang') || 'en';
+  const role = searchParams.get('role') || 'labor';
 
-    console.log('📋 Params:', { hasCode: !!code, error, country, lang, role, origin });
+  if (error || !code) {
+    return NextResponse.redirect(`${origin}/${country}/${lang}/login?error=${error || 'no_code'}`);
+  }
 
-    if (error) {
-      console.error('❌ Google OAuth error:', error, error_description);
-      return NextResponse.redirect(`${origin}/${country}/${lang}/login?error=${error}`);
-    }
+  const cookieStore = await cookies();
 
-    if (!code) {
-      console.error('❌ No code in callback');
-      return NextResponse.redirect(`${origin}/${country}/${lang}/login?error=no_code`);
-    }
-
-    const cookieStore = await cookies();
-    
-    console.log('🍪 Cookie count:', cookieStore.getAll().length);
-    
-    // ✅ PKCE FLOW - সম্পূর্ণ পরিবর্তন
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          flowType: 'pkce',            // ✅ PKCE flow
-          autoRefreshToken: true,       // ✅ Token auto refresh
-          persistSession: true,         // ✅ Session persist
-          detectSessionInUrl: true,     // ✅ URL থেকে session detect
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-        cookies: {
-          getAll() {
-            try {
-              return cookieStore.getAll();
-            } catch (e) {
-              console.error('🍪 getAll error:', e);
-              return [];
-            }
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, {
-                  ...options,
-                  path: '/',
-                  secure: process.env.NODE_ENV === 'production',
-                  sameSite: 'lax' as const,
-                  maxAge: 60 * 60 * 24 * 30, // 30 days
-                });
-              });
-              console.log('🍪 Cookies set:', cookiesToSet.length);
-            } catch (e) {
-              console.error('🍪 setAll error:', e);
-            }
-          },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // ✅ Production-এ secure cookie
+            cookieStore.set(name, value, {
+              ...options,
+              path: '/',
+              secure: true,
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 30, // 30 days
+            });
+          });
         },
-      }
-    );
-
-    console.log('🔄 Exchanging code for session...');
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    
-    if (exchangeError) {
-      console.error('❌ Exchange error:', exchangeError);
-      console.error('❌ Full error:', JSON.stringify(exchangeError));
-      
-      const loginUrl = new URL(`/${country}/${lang}/login`, origin);
-      loginUrl.searchParams.set('error', 'exchange');
-      loginUrl.searchParams.set('detail', exchangeError.message?.slice(0, 50) || 'unknown');
-      return NextResponse.redirect(loginUrl);
+      },
     }
+  );
 
-    console.log('✅ Session exchanged successfully');
-    console.log('👤 User:', data?.user?.id?.slice(0, 10) + '...');
-    console.log('🔑 Session:', !!data?.session);
+  const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    const user = data?.user || data?.session?.user;
+  if (exchangeError) {
+    console.error('Exchange error:', exchangeError);
+    return NextResponse.redirect(`${origin}/${country}/${lang}/login?error=exchange&detail=${encodeURIComponent(exchangeError.message)}`);
+  }
 
-    if (!user) {
-      console.error('❌ No user in session data');
-      return NextResponse.redirect(`${origin}/${country}/${lang}/login?error=no_user`);
-    }
+  const user = data?.user || data?.session?.user;
 
+  if (user) {
     // Profile upsert
     try {
-      const { data: existing } = await supabase
-        .from('profiles').select('id').eq('id', user.id).maybeSingle();
-
+      const { data: existing } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle();
+      
       if (!existing) {
         await supabase.from('profiles').upsert({
           id: user.id,
           name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
           email: user.email || '',
           photo_url: user.user_metadata?.avatar_url || '',
-          phone: user.phone || '',
           role: role,
           country,
           profile_language: lang,
@@ -126,34 +84,15 @@ export async function GET(request: Request) {
           last_login: new Date().toISOString(),
         }).eq('id', user.id);
       }
-
-      if (role === 'labor') {
-        await supabase.from('worker_locations').upsert({
-          worker_id: user.id,
-          is_online: false,
-          last_seen: new Date().toISOString(),
-        }, { onConflict: 'worker_id' });
-      }
-    } catch (dbError: any) {
-      console.error('❌ DB error (non-critical):', dbError.message);
+    } catch (e) {
+      console.error('Profile error:', e);
     }
-
-    const dashboardPath = role === 'employer' ? 'dashboard/employer' : 'dashboard';
-    const redirectUrl = `${origin}/${country}/${lang}/${dashboardPath}`;
-    
-    console.log('🔀 Redirecting to:', redirectUrl);
-    console.log('✅ ====== CALLBACK COMPLETE ======');
-
-    const response = NextResponse.redirect(redirectUrl);
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
-    return response;
-
-  } catch (err: any) {
-    console.error('💥 FATAL Callback error:', err.message);
-    console.error('💥 Stack:', err.stack);
-    
-    const fallbackUrl = new URL('/qa/en/login', request.url);
-    fallbackUrl.searchParams.set('error', 'server');
-    return NextResponse.redirect(fallbackUrl);
   }
+
+  const dashboardPath = role === 'employer' ? 'dashboard/employer' : 'dashboard';
+  const redirectUrl = `${origin}/${country}/${lang}/${dashboardPath}`;
+  
+  const response = NextResponse.redirect(redirectUrl);
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
 }
