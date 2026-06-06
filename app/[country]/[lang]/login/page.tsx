@@ -1,6 +1,5 @@
-// app/[country]/[lang]/login/page.tsx
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -131,13 +130,21 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Auto redirect if already logged in
+  // ✅ FIX 1: Prevent multiple redirects
+  const hasRedirected = useRef(false);
+
+  // ✅ FIX 2: Auto redirect if already logged in (with guard)
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !hasRedirected.current) {
+      hasRedirected.current = true;
       setSuccess(true);
-      setTimeout(() => {
-        router.push(redirectTo);
-      }, 1000);
+      
+      // Clear any stale auth-triggered loops
+      const timer = setTimeout(() => {
+        router.replace(redirectTo);
+      }, 1200);
+      
+      return () => clearTimeout(timer);
     }
   }, [authLoading, isAuthenticated, redirectTo, router]);
 
@@ -145,14 +152,22 @@ export default function LoginPage() {
   // Google Login
   // ═══════════════════════════════════════════════════════
   const handleGoogleLogin = useCallback(async () => {
+    // ✅ FIX 3: Prevent double click
+    if (loading || hasRedirected.current) return;
+    
     setLoading(true);
     setError('');
 
     try {
+      // ✅ FIX 4: Use encodeURIComponent for redirectTo
+      const callbackUrl = `${window.location.origin}/auth/callback?country=${encodeURIComponent(country)}&lang=${encodeURIComponent(lang)}&role=${encodeURIComponent(role)}&next=${encodeURIComponent(redirectTo)}`;
+      
+      console.log('🔑 Google login redirect to:', callbackUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?country=${country}&lang=${lang}&role=${role}&next=${redirectTo}`,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -160,12 +175,17 @@ export default function LoginPage() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      // ✅ FIX 5: Don't setLoading(false) - we're leaving the page
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || tr.error);
       setLoading(false);
     }
-  }, [country, lang, role, redirectTo, tr]);
+  }, [country, lang, role, redirectTo, tr, loading]);
 
   // Success screen
   if (success) {

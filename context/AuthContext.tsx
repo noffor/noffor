@@ -1,4 +1,4 @@
-// context/AuthContext.tsx - Login Loop Fixed • Production Ready
+// context/AuthContext.tsx - Login Loop Fixed • Vercel Ready
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,6 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const router = useRouter();
 
+  // Track if initial auth check is done
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
   // ═══════════════════════════════════════════════════
   // Cache Helpers
   // ═══════════════════════════════════════════════════
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile.role === 'labor') {
         localStorage.setItem('noffor_worker', JSON.stringify(profile));
       }
+      console.log('💾 Profile cached');
     } catch (err) {
       console.error('Cache write error:', err);
     }
@@ -74,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load Profile
   // ═══════════════════════════════════════════════════
   const loadProfile = useCallback(async (userId: string) => {
-    console.log('👤 Loading profile for:', userId);
+    console.log('👤 Loading profile for:', userId?.slice(0, 8) + '...');
     
     try {
       // First try cache for instant UI
@@ -98,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('❌ Profile fetch error:', error.message);
-        // Use cache if available
         if (cached) {
           setState(prev => ({
             ...prev,
@@ -113,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (profile) {
-        console.log('✅ Profile loaded from DB:', profile.id);
+        console.log('✅ Profile loaded from DB:', profile.id?.slice(0, 8) + '...');
         setCachedProfile(profile);
         setState(prev => ({
           ...prev,
@@ -154,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (insertError) {
           console.error('❌ Profile create error:', insertError.message);
-          // Still set partial profile so user can use app
           setState(prev => ({
             ...prev,
             profile: newProfile,
@@ -162,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthenticated: true,
           }));
         } else if (created) {
-          console.log('✅ New profile created:', created.id);
+          console.log('✅ New profile created');
           setCachedProfile(created);
           setState(prev => ({
             ...prev,
@@ -177,7 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error('💥 Profile load error:', err);
-      // Use cache as fallback
       const cached = getCachedProfile();
       if (cached) {
         setState(prev => ({
@@ -193,17 +194,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getCachedProfile, setCachedProfile]);
 
   // ═══════════════════════════════════════════════════
-  // Initialize Auth
+  // Initialize Auth (ONE TIME)
   // ═══════════════════════════════════════════════════
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
 
     const initAuth = async () => {
       try {
-        console.log('🔄 Initializing auth...');
+        console.log('🔄 Initializing auth... (attempt', retryCount + 1, ')');
         
-        // Vercel-এ cookie delay-এর জন্য 1 second wait
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Vercel-এ cookie replication-এর জন্য wait
+        // Cold start-এ 2.5s, normal-এ 1.5s
+        const waitTime = retryCount === 0 ? 2500 : 1500;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -211,6 +216,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (sessionError) {
           console.error('❌ getSession error:', sessionError.message);
+          
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log('🔄 Retrying...');
+            return initAuth();
+          }
+          
           // FALLBACK: Cache check
           const cached = getCachedProfile();
           if (cached) {
@@ -224,20 +236,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setState(prev => ({ ...prev, loading: false }));
           }
+          setInitialCheckDone(true);
           return;
         }
         
         if (session?.user) {
-          console.log('✅ Session found:', session.user.id);
+          console.log('✅ Session found:', session.user.id?.slice(0, 8) + '...');
           setState(prev => ({ ...prev, session, user: session.user }));
           await loadProfile(session.user.id);
         } else {
           console.log('ℹ️ No session found');
           
-          // EMERGENCY FIX: localStorage fallback
+          // localStorage fallback
           const cached = getCachedProfile();
           if (cached) {
-            console.log('⚡ EMERGENCY: Using cached profile (no session)');
+            console.log('⚡ Using cached profile (no session)');
             setState(prev => ({
               ...prev,
               profile: cached,
@@ -248,9 +261,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setState(prev => ({ ...prev, loading: false }));
           }
         }
+        
+        setInitialCheckDone(true);
+        
       } catch (err) {
-        console.error('❌ Auth init error:', err);
-        // FALLBACK: Cache check on error too
+        console.error('💥 Auth init error:', err);
+        
+        if (retryCount < maxRetries - 1) {
+          retryCount++;
+          console.log('🔄 Retrying after error...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return initAuth();
+        }
+        
         const cached = getCachedProfile();
         if (cached) {
           setState(prev => ({
@@ -262,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           if (mounted) setState(prev => ({ ...prev, loading: false }));
         }
+        setInitialCheckDone(true);
       }
     };
 
@@ -274,7 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return;
         
-        console.log(`🔐 Auth Event: ${event}`, session?.user?.id || 'no user');
+        console.log(`🔐 Auth Event: ${event}`, session?.user?.id?.slice(0, 8) || 'no user');
         
         // SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
@@ -291,6 +315,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // SIGNED_OUT
         if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out');
           setState({ 
             session: null, 
             user: null, 
@@ -301,6 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('noffor_user');
             localStorage.removeItem('noffor_worker');
+            localStorage.removeItem('noffor_worker_online');
+            sessionStorage.clear();
           }
         }
         
@@ -318,7 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false; 
       subscription?.unsubscribe(); 
     };
-  }, [loadProfile]);
+  }, [loadProfile, getCachedProfile]); // ✅ Empty deps - runs once on mount
 
   // ═══════════════════════════════════════════════════
   // Sign Out
@@ -345,7 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: false 
       });
       
-      router.push('/');
+      router.push('/qa/en');
       router.refresh();
     } catch (err) {
       console.error('Sign out error:', err);
@@ -371,23 +398,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session: state.session,
     user: state.user,
     profile: state.profile,
-    loading: state.loading,
+    loading: state.loading && !initialCheckDone,
     isAuthenticated: state.isAuthenticated,
     signOut,
     refreshProfile,
     isAdmin,
-  }), [state, signOut, refreshProfile, isAdmin]);
+  }), [state, signOut, refreshProfile, isAdmin, initialCheckDone]);
 
   // Debug
   useEffect(() => {
     console.log('📊 Auth State:', {
       isAuthenticated: state.isAuthenticated,
       loading: state.loading,
+      initialCheckDone,
       hasProfile: !!state.profile,
       hasSession: !!state.session,
       userId: state.user?.id?.slice(0, 8),
     });
-  }, [state]);
+  }, [state, initialCheckDone]);
 
   return (
     <AuthContext.Provider value={value}>

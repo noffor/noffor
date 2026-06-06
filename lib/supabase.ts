@@ -1,4 +1,4 @@
-// lib/supabase.ts - ১ বিলিয়ন ইউজার • Security Fix • SSR Safe
+// lib/supabase.ts - Vercel Ready • Cookie API Fixed
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
 // ═══════════════════════════════════════════════════════════
@@ -6,9 +6,6 @@ import { createBrowserClient, createServerClient } from '@supabase/ssr';
 // ═══════════════════════════════════════════════════════════
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-// ✅ সার্ভিস রোল শুধু সার্ভারে!
-// ক্লায়েন্টে undefined হবে, এটাই সিকিউর
 
 // ═══════════════════════════════════════════════════════════
 // Browser Client (Client Components)
@@ -30,7 +27,7 @@ export function createClient() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Server Client (Server Components / Route Handlers)
+// ✅ FIXED: Server Client with Next.js 15+ cookie API
 // ═══════════════════════════════════════════════════════════
 export function createServerSupabase(cookieStore: any) {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -39,9 +36,19 @@ export function createServerSupabase(cookieStore: any) {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet: any[]) {
-        cookiesToSet.forEach(({ name, value, options }: any) =>
-          cookieStore.set(name, value, options)
-        );
+        try {
+          cookiesToSet.forEach(({ name, value, options }: any) => {
+            // ✅ Next.js 15+/16+ compatible way
+            cookieStore.set({
+              name,
+              value,
+              ...options,
+            });
+          });
+        } catch (error) {
+          // Vercel edge case: fallback
+          console.error('Cookie set error in createServerSupabase:', error);
+        }
       },
     },
   });
@@ -51,7 +58,6 @@ export function createServerSupabase(cookieStore: any) {
 // Admin Client (SERVER ONLY - Service Role)
 // ═══════════════════════════════════════════════════════════
 export function createAdminClient() {
-  // ✅ সার্ভার সাইড চেক
   if (typeof window !== 'undefined') {
     throw new Error('⛔ Admin client can only be used on server!');
   }
@@ -86,37 +92,9 @@ export const supabase = typeof window !== 'undefined'
     });
 
 // ═══════════════════════════════════════════════════════════
-// Safe Browser-only Helpers
-// ═══════════════════════════════════════════════════════════
-
-// ✅ Safe sessionStorage wrapper
-function getSessionCache<T>(key: string): T | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const cached = sessionStorage.getItem(key);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Date.now() - parsed.t < 30000) return parsed.data;
-    }
-  } catch {}
-  return null;
-}
-
-function setSessionCache(key: string, data: any): void {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.setItem(key, JSON.stringify({ data, t: Date.now() }));
-  } catch {}
-}
-
-// ═══════════════════════════════════════════════════════════
-// Profile Helpers (SSR Safe)
+// Profile Helpers
 // ═══════════════════════════════════════════════════════════
 export async function getProfile(id: string) {
-  // ✅ SSR-safe caching
-  const cached = getSessionCache<any>(`profile:${id}`);
-  if (cached) return cached;
-
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -124,8 +102,6 @@ export async function getProfile(id: string) {
     .single();
 
   if (error) throw error;
-  
-  setSessionCache(`profile:${id}`, data);
   return data;
 }
 
@@ -165,7 +141,6 @@ export async function getCurrentUser() {
 
 export async function signOut() {
   try {
-    // Clear all local data first
     if (typeof window !== 'undefined') {
       localStorage.removeItem('noffor_user');
       localStorage.removeItem('noffor_worker');
@@ -241,8 +216,6 @@ export async function checkConnection(): Promise<{
 // ═══════════════════════════════════════════════════════════
 // Admin Helpers (SERVER ONLY)
 // ═══════════════════════════════════════════════════════════
-
-// অ্যাডমিন চেক (সার্ভার সাইড)
 export async function verifyAdminServer(cookieStore: any): Promise<{
   authorized: boolean;
   userId?: string;
@@ -273,11 +246,9 @@ export async function verifyAdminServer(cookieStore: any): Promise<{
   }
 }
 
-// অ্যাডমিন স্ট্যাটস (সার্ভার সাইড - API Route থেকে কল হবে)
 export async function getAdminStats() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
-  // ✅ ফলব্যাক: anon key দিয়েও RLS পলিসি থাকলে কাজ করবে
   const client = serviceKey 
     ? createAdminClient() 
     : createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -302,7 +273,7 @@ export async function getAdminStats() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// টাইপস
+// Types
 // ═══════════════════════════════════════════════════════════
 export interface Profile {
   id: string;

@@ -1,6 +1,6 @@
 // context/AppContext.tsx - Fixed • No duplicate GPS
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { UserLocation, Notification } from '@/types';
 
@@ -44,14 +44,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentCountry, setCurrentCountry] = useState(getCountryFromURL());
-  const [currentLang, setCurrentLang] = useState(getLangFromURL());
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
+  const [currentCountry, setCurrentCountry] = useState('qa');
+  const [currentLang, setCurrentLang] = useState('en');
+  const [isOnline, setIsOnline] = useState(true);
+
+  // ✅ Fix: Proper initialization
+  const initialized = useRef(false);
+
+  // Initialize on mount
+  useEffect(() => {
+    setCurrentCountry(getCountryFromURL());
+    setCurrentLang(getLangFromURL());
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    initialized.current = true;
+  }, []);
 
   // Update country/lang from URL
   useEffect(() => {
+    if (!initialized.current) return;
     setCurrentCountry(getCountryFromURL());
     setCurrentLang(getLangFromURL());
   }, [pathname]);
@@ -72,12 +82,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Location: Cache → Default (GPS removed from AppContext)
+  // Location: Cache → Default
   useEffect(() => {
     const country = getCountryFromURL();
     const cacheKey = 'noffor_user_location';
     
-    // Check cache
     if (typeof window !== 'undefined') {
       try {
         const cached = sessionStorage.getItem(cacheKey);
@@ -91,7 +100,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
     
-    // Set default for country
     const defaultLoc = DEFAULT_LOCATIONS[country] || DEFAULT_LOCATIONS.qa;
     setUserLocation(defaultLoc);
   }, [pathname]);
