@@ -1,5 +1,6 @@
 // components/home/UnifiedList.tsx
 // 🚀 ১ বিলিয়ন ইউজার • TypeScript Error Free • Production Ready
+// ✅ Photo Filtered • WebP Optimized • Lazy Loaded
 "use client";
 import React, { useEffect, useState, useRef, useCallback, memo, useMemo, startTransition } from 'react';
 import { Star, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
@@ -17,14 +18,48 @@ const RETRY_MAX = 2;
 const dataCache = new Map<string, { data: any[]; timestamp: number }>();
 
 // ═══════════════════════════════════════════════════════════
-const getWebP = (url: string, w = 400): string => {
+// 🖼️ Image Preloader for smooth lazy loading
+class ImagePreloader {
+  private static cache = new Map<string, HTMLImageElement>();
+  private static queue: string[] = [];
+  private static loading = false;
+
+  static preload(urls: string[]) {
+    this.queue = [...new Set([...this.queue, ...urls])];
+    if (!this.loading) this.processQueue();
+  }
+
+  private static async processQueue() {
+    this.loading = true;
+    while (this.queue.length > 0) {
+      const batch = this.queue.splice(0, 3);
+      await Promise.allSettled(
+        batch.map(url =>
+          new Promise<void>((resolve) => {
+            if (this.cache.has(url)) { resolve(); return; }
+            const img = new Image();
+            img.onload = () => { this.cache.set(url, img); resolve(); };
+            img.onerror = () => { resolve(); };
+            img.src = url;
+          })
+        )
+      );
+    }
+    this.loading = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎨 WebP Optimization with multiple CDN support
+const getWebP = (url: string, w = 400, q = 80): string => {
   if (!url) return '';
-  if (url.includes('supabase.co/storage')) return `${url}?width=${w}&quality=80&format=webp`;
-  if (url.includes('cloudinary.com')) return url.replace('/upload/', `/upload/w_${w},q_80,f_webp/`);
+  if (url.includes('supabase.co/storage')) return `${url}?width=${w}&quality=${q}&format=webp&resize=cover`;
+  if (url.includes('cloudinary.com')) return url.replace('/upload/', `/upload/w_${w},q_${q},f_webp/`);
   return url;
 };
 
 // ═══════════════════════════════════════════════════════════
+// 📸 Category-wise default images (only as last resort)
 const defaultImages: Record<string, string> = {
   'Driver': '/images/default-driver.jpg', 'Electrician': '/images/default-electrician.jpg',
   'Plumber': '/images/default-plumber.jpg', 'Mason': '/images/default-mason.jpg',
@@ -66,58 +101,143 @@ const T: Record<string, Record<string, string>> = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// 🎴 Individual Item Card with WebP + Lazy Loading
 const ItemCard = memo(({ item, country, lang, isLabor }: {
   item: any; country: string; lang: string; isLabor: boolean;
 }) => {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLAnchorElement>(null);
   const tr = useMemo(() => T[lang] || T.en, [lang]);
 
+  // ✅ Smart image source with WebP priority
   const imageSrc = useMemo(() => {
-    if (imgError) return '/default-avatar.png';
-    if (item.photo_url && item.photo_url !== '/avatar.png' && item.photo_url !== '/default-avatar.png') return getWebP(item.photo_url, 400);
-    if (isLabor && item.category) return defaultImages[item.category] || '/default-avatar.png';
+    if (imgError) {
+      if (isLabor && item.category && defaultImages[item.category]) {
+        return getWebP(defaultImages[item.category], 400, 70);
+      }
+      return '/default-avatar.png';
+    }
+    if (item.photo_url && 
+        item.photo_url !== '/avatar.png' && 
+        item.photo_url !== '/default-avatar.png' &&
+        item.photo_url !== '') {
+      return getWebP(item.photo_url, 400, 80);
+    }
+    if (isLabor && item.category && defaultImages[item.category]) {
+      return getWebP(defaultImages[item.category], 400, 70);
+    }
     return '/default-avatar.png';
   }, [item.photo_url, item.category, imgError, isLabor]);
 
+  // 👁️ Intersection Observer for lazy loading
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' } // Preload 200px before visible
+    );
+    
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // 🖼️ Preload image when card becomes visible
+  useEffect(() => {
+    if (isVisible && imageSrc && imageSrc !== '/default-avatar.png') {
+      ImagePreloader.preload([imageSrc]);
+    }
+  }, [isVisible, imageSrc]);
+
   const displayName = useMemo(() => translateName(item.name, lang), [item.name, lang]);
-  const displayCategory = useMemo(() => isLabor ? translateCategory(item.category, lang) : (item.bio?.split('\n')[0]?.replace('Job: ', '')?.slice(0, 25) || translateCategory(item.category, lang) || 'Job'), [item.category, item.bio, lang, isLabor]);
-  const displaySalary = useMemo(() => item.expected_salary ? `${translateNumber(String(item.expected_salary).slice(0, 10), lang)} QAR` : tr.nego, [item.expected_salary, lang, tr]);
-  const displayRating = useMemo(() => item.rating ? translateNumber(item.rating, lang) : tr.new, [item.rating, lang, tr]);
+  const displayCategory = useMemo(() => isLabor 
+    ? translateCategory(item.category, lang) 
+    : (item.bio?.split('\n')[0]?.replace('Job: ', '')?.slice(0, 25) || translateCategory(item.category, lang) || 'Job'), 
+  [item.category, item.bio, lang, isLabor]);
+  
+  const displaySalary = useMemo(() => item.expected_salary 
+    ? `${translateNumber(String(item.expected_salary).slice(0, 10), lang)} QAR` 
+    : tr.nego, 
+  [item.expected_salary, lang, tr]);
+  
+  const displayRating = useMemo(() => item.rating 
+    ? translateNumber(item.rating, lang) 
+    : tr.new, 
+  [item.rating, lang, tr]);
 
   return (
-    <a href={`/${country}/${lang}/profile/${item.id}`}
+    <a 
+      ref={cardRef}
+      href={`/${country}/${lang}/profile/${item.id}`}
       className="bg-white rounded-xl border overflow-hidden no-underline hover:shadow-lg transition-all active:scale-[0.98] group"
-      style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}>
+      style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden', contain: 'layout style paint' }}
+    >
       <div className="relative">
         <div className="w-full h-24 lg:h-40 bg-gray-200 relative overflow-hidden">
-          {!imgLoaded && !imgError && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
-          <img src={imageSrc} alt={displayName}
-            className={`w-full h-24 lg:h-40 object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-            loading="lazy" decoding="async"
-            onLoad={() => startTransition(() => setImgLoaded(true))}
-            onError={() => startTransition(() => setImgError(true))} />
+          {/* Skeleton loader */}
+          {!imgLoaded && !imgError && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
+          
+          {/* ✅ Lazy loaded image with WebP */}
+          {isVisible && (
+            <img 
+              src={imageSrc} 
+              alt={displayName}
+              className={`w-full h-24 lg:h-40 object-cover object-center transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              loading="lazy" 
+              decoding="async"
+              onLoad={() => startTransition(() => setImgLoaded(true))}
+              onError={() => startTransition(() => setImgError(true))}
+              width={400}
+              height={160}
+              style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden', contentVisibility: 'auto' }}
+            />
+          )}
+          
+          {/* Placeholder when not visible yet */}
+          {!isVisible && (
+            <div className="absolute inset-0 bg-gray-200" />
+          )}
         </div>
+        
+        {/* Online badge */}
         {item.is_online && isLabor && (
-          <span className="absolute top-1 left-1 bg-green-500 text-white text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full animate-pulse">
+          <span className="absolute top-1 left-1 bg-green-500 text-white text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full animate-pulse z-10">
             {tr.online}
           </span>
         )}
-        <span className={`absolute top-1 right-1 text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full ${isLabor ? 'bg-orange-500' : 'bg-blue-500'} text-white`}>
+        
+        {/* Worker/Job badge */}
+        <span className={`absolute top-1 right-1 text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full z-10 ${isLabor ? 'bg-orange-500' : 'bg-blue-500'} text-white`}>
           {isLabor ? tr.worker : tr.job}
         </span>
       </div>
+      
+      {/* Card Content */}
       <div className="p-1.5 lg:p-2">
         <h4 className="font-medium text-gray-800 text-[10px] lg:text-sm truncate group-hover:text-orange-600 transition-colors">
           {displayName}
         </h4>
         <p className="text-[9px] lg:text-xs text-gray-500 truncate">{displayCategory}</p>
+        
         <div className="flex items-center gap-0.5 mt-0.5">
           <Star size={10} className="text-yellow-500" fill="#EAB308" />
           <span className="text-[9px] lg:text-xs font-medium">{displayRating}</span>
         </div>
+        
         <div className="flex items-center justify-between mt-0.5">
-          <span className="text-[8px] lg:text-[10px] font-bold text-orange-600 truncate max-w-[60px]">💰 {displaySalary}</span>
+          <span className="text-[8px] lg:text-[10px] font-bold text-orange-600 truncate max-w-[60px]">
+            💰 {displaySalary}
+          </span>
           {item.city && (
             <span className="text-[8px] lg:text-[10px] text-gray-500 truncate flex items-center gap-0.5">
               <MapPin size={8} />{item.city}
@@ -131,6 +251,7 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
 ItemCard.displayName = 'ItemCard';
 
 // ═══════════════════════════════════════════════════════════
+// 🚀 Main UnifiedList Component
 export default function UnifiedList({ type, country, lang }: Props) {
   const tr = useMemo(() => T[lang] || T.en, [lang]);
   const [items, setItems] = useState<any[]>([]);
@@ -151,7 +272,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
   const isLabor = type === 'labor';
 
   // ═══════════════════════════════════════════════════════
-  // ✅ Fixed: Supabase v2 compatible (no abortSignal)
+  // 📡 Data Loading with Photo Filter + WebP Support
   const loadItems = useCallback(async (reset = false): Promise<any[]> => {
     if (!country || !aliveRef.current) return [];
 
@@ -165,16 +286,27 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
     if (!reset) {
       const cached = dataCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        // Preload cached images
+        const urls = cached.data
+          .map((item: any) => getWebP(item.photo_url, 400, 80))
+          .filter((url: string) => url && url !== '/default-avatar.png');
+        ImagePreloader.preload(urls);
+        return cached.data;
+      }
     }
 
     try {
-      // Get total count first
+      // ✅ Count query with photo filter
       const { count, error: countErr } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', type)
-        .eq('country', country);
+        .eq('country', country)
+        .not('photo_url', 'is', null)
+        .neq('photo_url', '/default-avatar.png')
+        .neq('photo_url', '/avatar.png')
+        .neq('photo_url', '');
 
       if (!aliveRef.current || controller.signal.aborted) return [];
       if (countErr) throw countErr;
@@ -189,11 +321,16 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
       const safeTo = Math.min(from + ITEMS_PER_PAGE - 1, total - 1, MAX_ITEMS - 1);
 
+      // ✅ Fetch query with photo filter
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', type)
         .eq('country', country)
+        .not('photo_url', 'is', null)
+        .neq('photo_url', '/default-avatar.png')
+        .neq('photo_url', '/avatar.png')
+        .neq('photo_url', '')
         .order('created_at', { ascending: false })
         .range(from, safeTo);
 
@@ -203,7 +340,15 @@ export default function UnifiedList({ type, country, lang }: Props) {
       const result = data || [];
       setHasMore((safeTo + 1) < total && (safeTo + 1) < MAX_ITEMS);
 
+      // Cache with timestamp
       dataCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      
+      // 🖼️ Preload first batch of images
+      const urls = result
+        .map((item: any) => getWebP(item.photo_url, 400, 80))
+        .filter((url: string) => url && url !== '/default-avatar.png');
+      ImagePreloader.preload(urls);
+      
       retryRef.current = 0;
       return result;
 

@@ -1,4 +1,5 @@
 // components/category/ProfileCard.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
+// ✅ Photo Filter Fixed • WebP Optimized
 import React,{useState,useMemo,startTransition} from 'react';
 import {Star,MapPin,Briefcase,Award,Wifi} from 'lucide-react';
 import {translateName,translateCategory,translateNumber,getCurrencySymbol} from '@/lib/language';
@@ -14,10 +15,11 @@ const T:Record<string,Record<string,string>>={
 };
 
 // ═══════════════════════════════════════════════════════════
-// WebP ইমেজ
+// WebP ইমেজ with Bad URL Filter
 // ═══════════════════════════════════════════════════════════
 const getWebP=(url:string):string=>{
-  if(!url)return'/default-avatar.png';
+  // ✅ Null, empty, bad URLs filter
+  if(!url || url==='/avatar.png' || url==='/default-avatar.png' || url==='')return '';
   if(url.includes('supabase.co/storage'))return`${url}?width=400&quality=80&format=webp`;
   return url;
 };
@@ -44,14 +46,28 @@ const ProfileCard=React.memo(({profile,href,lang='en'}:Props)=>{
     return amount?`${translateNumber(amount,lang)} ${getCurrencySymbol(lang)}`:tr.nego;
   },[profile.expected_salary,lang,tr]);
   const displayRating=useMemo(()=>profile.rating?translateNumber(profile.rating,lang):tr.new,[profile.rating,lang,tr]);
-  const imageSrc=useMemo(()=>imgError?'/default-avatar.png':getWebP(profile.photo_url),[profile.photo_url,imgError]);
+  
+  // ✅ Fixed: Smart image source with fallback
+  const imageSrc=useMemo(()=>{
+    if(imgError)return'/default-avatar.png';
+    const webpUrl=getWebP(profile.photo_url);
+    return webpUrl || '/default-avatar.png'; // getWebP returns '' for bad URLs
+  },[profile.photo_url,imgError]);
 
   return(
     <a href={href} className="bg-white rounded-xl border overflow-hidden no-underline hover:shadow-lg transition-all active:scale-[0.98] block group" style={{transform:'translateZ(0)'}}>
       {/* Image */}
       <div className="relative h-40 bg-gray-200 overflow-hidden">
         {!imgLoaded&&!imgError&&<div className="absolute inset-0 bg-gray-200 animate-pulse"/>}
-        <img src={imageSrc} alt={displayName} className={`w-full h-40 object-cover transition-opacity duration-300 ${imgLoaded?'opacity-100':'opacity-0'}`} loading="lazy" decoding="async" onLoad={()=>startTransition(()=>setImgLoaded(true))} onError={()=>startTransition(()=>setImgError(true))}/>
+        <img 
+          src={imageSrc} 
+          alt={displayName} 
+          className={`w-full h-40 object-cover transition-opacity duration-300 ${imgLoaded?'opacity-100':'opacity-0'}`} 
+          loading="lazy" 
+          decoding="async" 
+          onLoad={()=>startTransition(()=>setImgLoaded(true))} 
+          onError={()=>startTransition(()=>setImgError(true))}
+        />
         {/* Badges */}
         {profile.is_online&&<span className="absolute top-2 left-2 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"><Wifi size={10}/>{tr.online}</span>}
         {profile.is_featured&&<span className="absolute top-2 right-2 bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full">⭐ {tr.featured}</span>}

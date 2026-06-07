@@ -1,4 +1,5 @@
 // app/[country]/[lang]/search/page.tsx - ১ বিলিয়ন ইউজার সুপারসনিক • লাইভ সার্চ • অটো সাজেস্ট • ফুল ফিচার
+// ✅ Photo Filtered • WebP Optimized
 "use client";
 import React,{useState,useEffect,useCallback,useMemo,useRef,startTransition} from 'react';
 import {useParams,useSearchParams,useRouter} from 'next/navigation';
@@ -20,6 +21,26 @@ const CONFIG={
   MAX_RECENT:8,
   CACHE_TTL:60000,
   MIN_QUERY_LENGTH:1,
+};
+
+// ═══════════════════════════════════════════════════════════
+// ✅ WebP Helper
+// ═══════════════════════════════════════════════════════════
+const getWebP=(url:string,w=400):string=>{
+  if(!url || url==='/avatar.png' || url==='/default-avatar.png' || url==='')return'';
+  if(url.includes('supabase.co/storage'))return`${url}?width=${w}&quality=80&format=webp`;
+  return url;
+};
+
+// ═══════════════════════════════════════════════════════════
+// ✅ Photo Filter Helper (reusable)
+// ═══════════════════════════════════════════════════════════
+const applyPhotoFilter=(query:any)=>{
+  return query
+    .not('photo_url','is',null)
+    .neq('photo_url','/default-avatar.png')
+    .neq('photo_url','/avatar.png')
+    .neq('photo_url','');
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -98,17 +119,19 @@ const POPULAR_SEARCHES=[
 ];
 
 // ═══════════════════════════════════════════════════════════
-// সাজেশন কার্ড (Memoized)
+// ✅ সাজেশন কার্ড (Memoized) - Fixed Image
 // ═══════════════════════════════════════════════════════════
 const SuggestionCard=React.memo(({profile,lang,country,onClick}:{
   profile:any;lang:string;country:string;onClick:()=>void;
 })=>{
   const isPhone=profile._type==='phone';
+  const webpUrl=getWebP(profile.photo_url,100);
+  
   return(
     <button onClick={onClick} className="w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors active:bg-gray-100">
-      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-        {profile.photo_url?(
-          <img src={profile.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy"/>
+      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {webpUrl?(
+          <img src={webpUrl} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy"/>
         ):(
           isPhone?<Phone size={14} className="text-gray-400"/>:<User size={14} className="text-gray-400"/>
         )}
@@ -185,7 +208,7 @@ export default function SearchPage(){
     try{localStorage.setItem('recent_searches_v2',JSON.stringify(updated))}catch{}
   };
 
-  // ✅ লাইভ সাজেশন ফেচ (ডেবাউন্সড)
+  // ✅ লাইভ সাজেশন ফেচ (ডেবাউন্সড) - Fixed with Photo Filter
   const fetchSuggestions=useCallback(debounce(async(query:string)=>{
     if(!query.trim()||query.length<CONFIG.MIN_QUERY_LENGTH||!aliveRef.current){
       setSuggestions([]);
@@ -214,11 +237,11 @@ export default function SearchPage(){
       let phoneResults:any[]=[];
       let nameResults:any[]=[];
 
-      // Phone search
+      // ✅ Phone search with photo filter
       if(isPhone||isNumber){
-        const {data:phoneData}=await supabase
+        const {data:phoneData}=await applyPhotoFilter(supabase
           .from('profiles')
-          .select('id,name,phone,photo_url,category,rating,is_online')
+          .select('id,name,phone,photo_url,category,rating,is_online'))
           .ilike('phone',`%${cleanQuery.replace(/[\s\-()]/g,'')}%`)
           .eq('country',country)
           .limit(3)
@@ -226,11 +249,11 @@ export default function SearchPage(){
         phoneResults=(phoneData||[]).map((p:any)=>({...p,_type:'phone'}));
       }
 
-      // Name/Category search (if not pure phone number)
+      // ✅ Name/Category search with photo filter
       if(!isPhone||cleanQuery.length>=3){
-        const {data:nameData}=await supabase
+        const {data:nameData}=await applyPhotoFilter(supabase
           .from('profiles')
-          .select('id,name,phone,photo_url,category,rating,is_online')
+          .select('id,name,phone,photo_url,category,rating,is_online'))
           .or(`name.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%`)
           .eq('country',country)
           .limit(5)
@@ -258,6 +281,7 @@ export default function SearchPage(){
     fetchSuggestions(value);
   },[fetchSuggestions]);
 
+  // ✅ Main Search with Photo Filter
   const performSearch=useCallback(async(query:string)=>{
     if(!query.trim()||!aliveRef.current)return;
     
@@ -273,7 +297,8 @@ export default function SearchPage(){
       const cleanQuery=query.trim();
       const isPhone=/^[0-9+\-\s()]+$/.test(cleanQuery);
       
-      let qr=supabase.from('profiles').select('*').eq('country',country);
+      // ✅ Base query with photo filter
+      let qr=applyPhotoFilter(supabase.from('profiles').select('*')).eq('country',country);
       if(isPhone)qr=qr.ilike('phone',`%${cleanQuery.replace(/[\s\-()]/g,'')}%`);
       else qr=qr.or(`name.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%`);
       
