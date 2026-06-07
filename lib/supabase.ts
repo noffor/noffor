@@ -18,48 +18,17 @@ export function createClient() {
     return createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
   
-  // Browser: return SAME instance (PKCE verifier preserved)
+  // Browser: return SAME instance
   if (browserClient) {
     return browserClient;
   }
   
   browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      flowType: 'pkce',           // ✅ PKCE flow
+      flowType: 'implicit',
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storageKey: 'sb-noffor-auth',
-      // ✅ Vercel Serverless-এর জন্য Cookie-based storage
-      storage: {
-        getItem: (key: string) => {
-          if (typeof document === 'undefined') return null;
-          try {
-            const match = document.cookie.match(new RegExp(`(^| )${key}=([^;]+)`));
-            return match ? decodeURIComponent(match[2]) : null;
-          } catch {
-            return null;
-          }
-        },
-        setItem: (key: string, value: string) => {
-          if (typeof document === 'undefined') return;
-          try {
-            // ৩০ দিনের cookie, HTTPS-এ secure
-            const isSecure = location.protocol === 'https:';
-            document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=2592000; SameSite=Lax${isSecure ? '; secure' : ''}`;
-          } catch (err) {
-            console.error('Cookie set error:', err);
-          }
-        },
-        removeItem: (key: string) => {
-          if (typeof document === 'undefined') return;
-          try {
-            document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-          } catch (err) {
-            console.error('Cookie remove error:', err);
-          }
-        },
-      },
     },
     realtime: {
       params: {
