@@ -19,6 +19,8 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.includes('/login') ||
     pathname.includes('/register') ||
+    pathname.includes('/privacy') ||
+    pathname.includes('/help') ||
     pathname.startsWith('/api/')
   ) {
     return NextResponse.next();
