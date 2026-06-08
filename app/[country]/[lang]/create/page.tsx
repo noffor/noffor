@@ -1,5 +1,6 @@
 // app/[country]/[lang]/create/page.tsx
 // 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • Auth Protected • WebP • Full Translation
+// ✅ is_public + is_verified FIXED
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -386,6 +387,7 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
     }
   };
 
+  // ✅ FIXED: handleLaborSubmit with is_verified + is_public
   const handleLaborSubmit = async () => {
     if (!phone || !name) {
       setError('Phone & Name required');
@@ -417,13 +419,14 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
         if (data) workUrls.push(supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl);
       }
       
-      // ✅ FIXED: Added is_public: true for labor profile
+      // ✅ FIXED: Added is_verified: true + is_public: true
       const { error: insertError } = await supabase.from('profiles').insert({
         phone, name, role: 'labor', category, country, city, area, experience,
         expected_salary: salary ? `${salary} QAR` : null, license, languages: languages || null,
         visa_status: visaStatus, sponsorship, accommodation, food, bio, photo_url: photoUrl, 
         photos: workUrls, rating: 0, total_reviews: 0, is_online: true, 
-        is_public: true,  // ✅ ADDED - Profile will show in Banner/Home
+        is_verified: true,  // ✅ ADDED - Auto-verify labor profile
+        is_public: true,     // ✅ ADDED - Profile will show in Banner/Home
         profile_language: currentLang, created_at: new Date().toISOString()
       });
       
@@ -437,6 +440,7 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
     }
   };
 
+  // ✅ FIXED: handleEmployerSubmit with is_verified + is_public
   const handleEmployerSubmit = async () => {
     if (!companyPhone || !companyName || !jobTitle) {
       setError('Please fill company phone, company name and job title');
@@ -474,12 +478,13 @@ ${jobDesc || 'No description provided'}`;
     }
     
     try {
-      // ✅ FIXED: Added is_public: true for employer profile
+      // ✅ FIXED: Added is_verified: true + is_public: true
       const { error: insertError } = await supabase.from('profiles').insert({
         phone: companyPhone, name: companyName, role: 'employer', 
         category: jobCat || 'General', expected_salary: formattedSalary, bio: formattedBio,
         city: 'Doha', country: country, rating: 0, total_reviews: 0, is_online: true,
-        is_public: true,  // ✅ ADDED - Job will show in Banner/Home
+        is_verified: true,  // ✅ ADDED - Auto-verify employer
+        is_public: true,     // ✅ ADDED - Job will show in Banner/Home
         profile_language: currentLang, created_at: new Date().toISOString(),
         photo_url: jobImageUrl || '/default-job.jpg'
       });
