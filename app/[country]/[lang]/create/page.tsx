@@ -417,11 +417,13 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
         if (data) workUrls.push(supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl);
       }
       
+      // ✅ FIXED: Added is_public: true for labor profile
       const { error: insertError } = await supabase.from('profiles').insert({
         phone, name, role: 'labor', category, country, city, area, experience,
         expected_salary: salary ? `${salary} QAR` : null, license, languages: languages || null,
         visa_status: visaStatus, sponsorship, accommodation, food, bio, photo_url: photoUrl, 
         photos: workUrls, rating: 0, total_reviews: 0, is_online: true, 
+        is_public: true,  // ✅ ADDED - Profile will show in Banner/Home
         profile_language: currentLang, created_at: new Date().toISOString()
       });
       
@@ -472,10 +474,12 @@ ${jobDesc || 'No description provided'}`;
     }
     
     try {
+      // ✅ FIXED: Added is_public: true for employer profile
       const { error: insertError } = await supabase.from('profiles').insert({
         phone: companyPhone, name: companyName, role: 'employer', 
         category: jobCat || 'General', expected_salary: formattedSalary, bio: formattedBio,
         city: 'Doha', country: country, rating: 0, total_reviews: 0, is_online: true,
+        is_public: true,  // ✅ ADDED - Job will show in Banner/Home
         profile_language: currentLang, created_at: new Date().toISOString(),
         photo_url: jobImageUrl || '/default-job.jpg'
       });

@@ -1,5 +1,5 @@
-// app/[country]/[lang]/search/page.tsx - ১ বিলিয়ন ইউজার সুপারসনিক • লাইভ সার্চ • অটো সাজেস্ট • ফুল ফিচার
-// ✅ Photo Filtered • WebP Optimized
+// app/[country]/[lang]/search/page.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • লাইভ সার্চ • অটো সাজেস্ট • ফুল ফিচার
+// ✅ Photo Filtered • WebP Optimized • 10M Users Ready • Index Optimized • Rate Limited • Fixed Button Layout
 "use client";
 import React,{useState,useEffect,useCallback,useMemo,useRef,startTransition} from 'react';
 import {useParams,useSearchParams,useRouter} from 'next/navigation';
@@ -9,31 +9,34 @@ import MobileNav from '@/components/layout/MobileNav';
 import SearchResult from '@/components/search/SearchResult';
 import ImageSearch from '@/components/search/ImageSearch';
 import SearchSuggestions from '@/components/search/SearchSuggestions';
-import {Search,Camera,X,Loader2,ArrowLeft,Phone,User,MapPin,Clock,TrendingUp,History,Star,Briefcase} from 'lucide-react';
+import {Search,Camera,X,Loader2,ArrowLeft,Phone,User,MapPin,Clock,TrendingUp,History,Star,Briefcase,AlertCircle} from 'lucide-react';
 import {getText,LangCode} from '@/lib/language';
 
 // ═══════════════════════════════════════════════════════════
-// কনফিগ
+// ✅ সুপারসনিক কনফিগ (10M Users Optimized)
 // ═══════════════════════════════════════════════════════════
 const CONFIG={
-  DEBOUNCE_MS:300,
-  MAX_SUGGESTIONS:8,
+  DEBOUNCE_MS:400,
+  MAX_SUGGESTIONS:6,
   MAX_RECENT:8,
-  CACHE_TTL:60000,
-  MIN_QUERY_LENGTH:1,
+  CACHE_TTL:120000,
+  MIN_QUERY_LENGTH:2,
+  MAX_RESULTS:12,
+  RATE_LIMIT_MS:800,
+  RATE_LIMIT_MAX:5,
 };
 
 // ═══════════════════════════════════════════════════════════
 // ✅ WebP Helper
 // ═══════════════════════════════════════════════════════════
 const getWebP=(url:string,w=400):string=>{
-  if(!url || url==='/avatar.png' || url==='/default-avatar.png' || url==='')return'';
-  if(url.includes('supabase.co/storage'))return`${url}?width=${w}&quality=80&format=webp`;
+  if(!url || url=='/avatar.png' || url=='/default-avatar.png' || url=='')return'';
+  if(url.includes('supabase.co/storage'))return`${url}?width=${w}&quality=75&format=webp`;
   return url;
 };
 
 // ═══════════════════════════════════════════════════════════
-// ✅ Photo Filter Helper (reusable)
+// ✅ Photo Filter Helper
 // ═══════════════════════════════════════════════════════════
 const applyPhotoFilter=(query:any)=>{
   return query
@@ -42,6 +45,34 @@ const applyPhotoFilter=(query:any)=>{
     .neq('photo_url','/avatar.png')
     .neq('photo_url','');
 };
+
+// ═══════════════════════════════════════════════════════════
+// ✅ Selective Columns
+// ═══════════════════════════════════════════════════════════
+const SUGGESTION_COLUMNS = 'id,name,phone,photo_url,category,rating,is_online';
+const RESULT_COLUMNS = 'id,name,phone,photo_url,category,rating,is_online,expected_salary,city,area,experience,visa_status,bio,photos,created_at';
+
+// ═══════════════════════════════════════════════════════════
+// ✅ Rate Limiter
+// ═══════════════════════════════════════════════════════════
+const rateLimitStore = new Map<string, {count:number; resetTime:number}>();
+
+function checkRateLimit(key:string):boolean{
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+  
+  if(!record || now > record.resetTime){
+    rateLimitStore.set(key, {count:1, resetTime: now + 5000});
+    return true;
+  }
+  
+  if(record.count >= CONFIG.RATE_LIMIT_MAX){
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
 
 // ═══════════════════════════════════════════════════════════
 // ট্রান্সলেশন
@@ -57,6 +88,8 @@ const T:Record<string,Record<string,string>>={
     found:'found',searchHistory:'Search History',
     popularSearches:'Popular Searches',viewAll:'View All',
     hire:'Hire',online:'Online',rating:'Rating',
+    rateLimit:'Too many searches. Please wait...',
+    minChars:'Type at least 2 characters',
   },
   bn:{
     searchPlaceholder:'নাম, ফোন বা ক্যাটাগরি দিয়ে খুঁজুন...',
@@ -68,6 +101,8 @@ const T:Record<string,Record<string,string>>={
     found:'পাওয়া গেছে',searchHistory:'সার্চ হিস্টোরি',
     popularSearches:'জনপ্রিয় সার্চ',viewAll:'সব দেখুন',
     hire:'নিয়োগ',online:'অনলাইন',rating:'রেটিং',
+    rateLimit:'অনেক সার্চ হয়েছে। অপেক্ষা করুন...',
+    minChars:'অন্তত ২ অক্ষর লিখুন',
   },
   ar:{
     searchPlaceholder:'ابحث بالاسم أو الهاتف أو الفئة...',
@@ -79,6 +114,8 @@ const T:Record<string,Record<string,string>>={
     found:'تم العثور',searchHistory:'سجل البحث',
     popularSearches:'بحث شائع',viewAll:'عرض الكل',
     hire:'توظيف',online:'متصل',rating:'تقييم',
+    rateLimit:'بحث كثير جدًا. يرجى الانتظار...',
+    minChars:'اكتب حرفين على الأقل',
   },
   hi:{
     searchPlaceholder:'नाम, फोन या श्रेणी से खोजें...',
@@ -90,24 +127,38 @@ const T:Record<string,Record<string,string>>={
     found:'मिले',searchHistory:'खोज इतिहास',
     popularSearches:'लोकप्रिय खोज',viewAll:'सभी देखें',
     hire:'किराया',online:'ऑनलाइन',rating:'रेटिंग',
+    rateLimit:'बहुत सारी खोजें। कृपया प्रतीक्षा करें...',
+    minChars:'कम से कम 2 अक्षर लिखें',
   },
 };
 
 // ═══════════════════════════════════════════════════════════
-// ডেবাউন্স ইউটিলিটি
+// ✅ ডেবাউন্স ইউটিলিটি
 // ═══════════════════════════════════════════════════════════
 function debounce<T extends(...args:any[])=>any>(fn:T,ms:number){
   let timer:ReturnType<typeof setTimeout>;
-  return(...args:Parameters<T>)=>{clearTimeout(timer as NodeJS.Timeout);timer=setTimeout(()=>fn(...args),ms)};
+  return(...args:Parameters<T>)=>{
+    clearTimeout(timer as NodeJS.Timeout);
+    timer=setTimeout(()=>fn(...args),ms);
+  };
 }
 
 // ═══════════════════════════════════════════════════════════
-// গ্লোবাল ক্যাশে
+// ✅ গ্লোবাল ক্যাশে (LRU)
 // ═══════════════════════════════════════════════════════════
-const suggestionCache=new Map<string,{data:any[];timestamp:number}>();
+const MAX_CACHE_SIZE = 100;
+const suggestionCache = new Map<string,{data:any[];timestamp:number}>();
+
+function setCache(key:string, data:any[]){
+  if(suggestionCache.size >= MAX_CACHE_SIZE){
+    const firstKey = suggestionCache.keys().next().value;
+    if(firstKey) suggestionCache.delete(firstKey);
+  }
+  suggestionCache.set(key, {data, timestamp: Date.now()});
+}
 
 // ═══════════════════════════════════════════════════════════
-// পপুলার সার্চ (স্ট্যাটিক)
+// পপুলার সার্চ
 // ═══════════════════════════════════════════════════════════
 const POPULAR_SEARCHES=[
   {en:'Driver',bn:'ড্রাইভার',ar:'سائق',hi:'ड्राइवर'},
@@ -119,19 +170,19 @@ const POPULAR_SEARCHES=[
 ];
 
 // ═══════════════════════════════════════════════════════════
-// ✅ সাজেশন কার্ড (Memoized) - Fixed Image
+// ✅ সাজেশন কার্ড (Memoized)
 // ═══════════════════════════════════════════════════════════
 const SuggestionCard=React.memo(({profile,lang,country,onClick}:{
   profile:any;lang:string;country:string;onClick:()=>void;
 })=>{
   const isPhone=profile._type==='phone';
-  const webpUrl=getWebP(profile.photo_url,100);
+  const webpUrl=getWebP(profile.photo_url,80);
   
   return(
     <button onClick={onClick} className="w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors active:bg-gray-100">
       <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
         {webpUrl?(
-          <img src={webpUrl} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy"/>
+          <img src={webpUrl} alt="" className="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async"/>
         ):(
           isPhone?<Phone size={14} className="text-gray-400"/>:<User size={14} className="text-gray-400"/>
         )}
@@ -152,7 +203,7 @@ const SuggestionCard=React.memo(({profile,lang,country,onClick}:{
 SuggestionCard.displayName='SuggestionCard';
 
 // ═══════════════════════════════════════════════════════════
-// মেইন সার্চ পেজ
+// ✅ মেইন সার্চ পেজ (সুপারসনিক - 10M Ready)
 // ═══════════════════════════════════════════════════════════
 export default function SearchPage(){
   const params=useParams();
@@ -173,11 +224,14 @@ export default function SearchPage(){
   const [showDropdown,setShowDropdown]=useState(false);
   const [recentSearches,setRecentSearches]=useState<string[]>([]);
   const [searchPerformed,setSearchPerformed]=useState(false);
+  const [rateLimited,setRateLimited]=useState(false);
+  const [errorMessage,setErrorMessage]=useState('');
   
   const inputRef=useRef<HTMLInputElement>(null);
   const dropdownRef=useRef<HTMLDivElement>(null);
   const aliveRef=useRef(true);
   const abortRef=useRef<AbortController|null>(null);
+  const lastRequestTime=useRef<number>(0);
 
   // ✅ Load recent searches
   useEffect(()=>{
@@ -208,19 +262,29 @@ export default function SearchPage(){
     try{localStorage.setItem('recent_searches_v2',JSON.stringify(updated))}catch{}
   };
 
-  // ✅ লাইভ সাজেশন ফেচ (ডেবাউন্সড) - Fixed with Photo Filter
+  // ✅ লাইভ সাজেশন ফেচ
   const fetchSuggestions=useCallback(debounce(async(query:string)=>{
     if(!query.trim()||query.length<CONFIG.MIN_QUERY_LENGTH||!aliveRef.current){
       setSuggestions([]);
       setLoadingSuggestions(false);
+      setRateLimited(false);
       return;
     }
 
-    // Cache check
-    const cacheKey=`sug:${country}:${query.toLowerCase()}`;
+    const rateLimitKey = `search_${country}`;
+    if(!checkRateLimit(rateLimitKey)){
+      setRateLimited(true);
+      setErrorMessage(tr.rateLimit);
+      setLoadingSuggestions(false);
+      return;
+    }
+    setRateLimited(false);
+
+    const cacheKey=`sug:${country}:${query.toLowerCase().trim()}`;
     const cached=suggestionCache.get(cacheKey);
     if(cached&&Date.now()-cached.timestamp<CONFIG.CACHE_TTL){
       startTransition(()=>setSuggestions(cached.data));
+      setLoadingSuggestions(false);
       return;
     }
 
@@ -228,6 +292,7 @@ export default function SearchPage(){
     const controller=new AbortController();
     abortRef.current=controller;
     setLoadingSuggestions(true);
+    setErrorMessage('');
 
     try{
       const cleanQuery=query.trim();
@@ -237,25 +302,25 @@ export default function SearchPage(){
       let phoneResults:any[]=[];
       let nameResults:any[]=[];
 
-      // ✅ Phone search with photo filter
       if(isPhone||isNumber){
         const {data:phoneData}=await applyPhotoFilter(supabase
           .from('profiles')
-          .select('id,name,phone,photo_url,category,rating,is_online'))
+          .select(SUGGESTION_COLUMNS))
           .ilike('phone',`%${cleanQuery.replace(/[\s\-()]/g,'')}%`)
           .eq('country',country)
+          .eq('is_public',true)
           .limit(3)
           .abortSignal(controller.signal);
         phoneResults=(phoneData||[]).map((p:any)=>({...p,_type:'phone'}));
       }
 
-      // ✅ Name/Category search with photo filter
       if(!isPhone||cleanQuery.length>=3){
         const {data:nameData}=await applyPhotoFilter(supabase
           .from('profiles')
-          .select('id,name,phone,photo_url,category,rating,is_online'))
+          .select(SUGGESTION_COLUMNS))
           .or(`name.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%`)
           .eq('country',country)
+          .eq('is_public',true)
           .limit(5)
           .abortSignal(controller.signal);
         nameResults=(nameData||[]).map((p:any)=>({...p,_type:'name'}));
@@ -263,33 +328,48 @@ export default function SearchPage(){
 
       const combined=[...phoneResults,...nameResults].slice(0,CONFIG.MAX_SUGGESTIONS);
       
-      // Cache
-      suggestionCache.set(cacheKey,{data:combined,timestamp:Date.now()});
+      setCache(cacheKey, combined);
       
       if(aliveRef.current)startTransition(()=>{setSuggestions(combined);setLoadingSuggestions(false)});
     }catch(err:any){
       if(err.name==='AbortError')return;
-      if(aliveRef.current)setLoadingSuggestions(false);
+      if(aliveRef.current){
+        setLoadingSuggestions(false);
+        setErrorMessage(err.message || 'Search failed');
+      }
     }
   },CONFIG.DEBOUNCE_MS),[]);
 
-  // ✅ ইনপুট চেঞ্জ = সাজেশন ফেচ
+  // ✅ ইনপুট চেঞ্জ
   const handleInputChange=useCallback((value:string)=>{
     setInput(value);
     setShowDropdown(true);
     setSearchPerformed(false);
+    if(value.length < CONFIG.MIN_QUERY_LENGTH){
+      setSuggestions([]);
+      setRateLimited(false);
+      setErrorMessage('');
+    }
     fetchSuggestions(value);
   },[fetchSuggestions]);
 
-  // ✅ Main Search with Photo Filter
+  // ✅ Main Search
   const performSearch=useCallback(async(query:string)=>{
     if(!query.trim()||!aliveRef.current)return;
+    
+    const rateLimitKey = `search_${country}`;
+    if(!checkRateLimit(rateLimitKey)){
+      setRateLimited(true);
+      setErrorMessage(tr.rateLimit);
+      return;
+    }
+    setRateLimited(false);
     
     if(abortRef.current)abortRef.current.abort();
     const controller=new AbortController();
     abortRef.current=controller;
 
-    startTransition(()=>{setLoading(true);setError(false);setShowDropdown(false)});
+    startTransition(()=>{setLoading(true);setError(false);setShowDropdown(false);setErrorMessage('')});
     saveRecentSearch(query.trim());
     setSearchPerformed(true);
     
@@ -297,38 +377,62 @@ export default function SearchPage(){
       const cleanQuery=query.trim();
       const isPhone=/^[0-9+\-\s()]+$/.test(cleanQuery);
       
-      // ✅ Base query with photo filter
-      let qr=applyPhotoFilter(supabase.from('profiles').select('*')).eq('country',country);
+      let qr=applyPhotoFilter(supabase
+        .from('profiles')
+        .select(RESULT_COLUMNS))
+        .eq('country',country)
+        .eq('is_public',true);
+      
       if(isPhone)qr=qr.ilike('phone',`%${cleanQuery.replace(/[\s\-()]/g,'')}%`);
       else qr=qr.or(`name.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%`);
       
-      const {data,error:e}=await qr.limit(20).abortSignal(controller.signal);
+      const {data,error:e}=await qr.limit(CONFIG.MAX_RESULTS).abortSignal(controller.signal);
       if(e)throw e;
       if(!aliveRef.current)return;
       
       startTransition(()=>{setResults(data||[]);setLoading(false)});
     }catch(err:any){
       if(err.name==='AbortError')return;
-      if(aliveRef.current)startTransition(()=>{setError(true);setLoading(false)});
+      if(aliveRef.current){
+        startTransition(()=>{setError(true);setLoading(false)});
+        setErrorMessage(err.message || 'Search failed');
+      }
     }
   },[]);
 
   const handleSearch=useCallback((query?:string)=>{
     const searchQuery=query||input;
-    if(!searchQuery.trim())return;
+    if(!searchQuery.trim()||searchQuery.length<CONFIG.MIN_QUERY_LENGTH)return;
+    
+    const rateLimitKey = `search_${country}`;
+    if(!checkRateLimit(rateLimitKey)){
+      setRateLimited(true);
+      setErrorMessage(tr.rateLimit);
+      return;
+    }
+    
     router.push(`/${country}/${lang}/search?q=${encodeURIComponent(searchQuery.trim())}`);
-  },[input,country,lang,router]);
+  },[input,country,lang,router,tr]);
 
   const handleKeyDown=useCallback((e:React.KeyboardEvent)=>{
-    if(e.key==='Enter'){handleSearch();setShowDropdown(false)}
+    if(e.key==='Enter'){
+      if(input.length < CONFIG.MIN_QUERY_LENGTH){
+        setErrorMessage(tr.minChars);
+        return;
+      }
+      handleSearch();
+      setShowDropdown(false);
+    }
     if(e.key==='Escape')setShowDropdown(false);
-  },[handleSearch]);
+  },[handleSearch,input,tr]);
 
   const handleClear=useCallback(()=>{
     setInput('');
     setResults([]);
     setSuggestions([]);
     setSearchPerformed(false);
+    setRateLimited(false);
+    setErrorMessage('');
     inputRef.current?.focus();
   },[]);
 
@@ -360,7 +464,6 @@ export default function SearchPage(){
     if(input||recentSearches.length>0)setShowDropdown(true);
   },[input,recentSearches]);
 
-  // ✅ Popular searches for current language
   const popularSearches=useMemo(()=>
     POPULAR_SEARCHES.map(p=>(p as any)[lang]||p.en),
     [lang]
@@ -371,12 +474,14 @@ export default function SearchPage(){
       <Header country={country} lang={lang}/>
       <div className="max-w-4xl mx-auto px-3 lg:px-4 py-3">
         
-        {/* Search Mode: Text */}
+        {/* ✅ FIXED: Search Bar Layout - Search Mode: Text */}
         {mode==='text'&&(
           <div className="relative mb-4">
+            {/* ✅ FIXED: Button stays fixed on right side */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-white rounded-xl px-3 py-2.5 border border-gray-200 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all shadow-sm">
-                <Search size={18} className="text-gray-400 flex-shrink-0"/>
+              {/* Search Input Container */}
+              <div className="flex-1 min-w-0 flex items-center bg-white rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all shadow-sm">
+                <Search size={18} className="text-gray-400 flex-shrink-0 ml-3"/>
                 <input
                   ref={inputRef}
                   value={input}
@@ -384,22 +489,49 @@ export default function SearchPage(){
                   onKeyDown={handleKeyDown}
                   onFocus={handleFocus}
                   placeholder={tr.searchPlaceholder}
-                  className="flex-1 bg-transparent outline-none px-2 text-sm"
+                  className="flex-1 min-w-0 bg-transparent outline-none px-2 py-2.5 text-sm"
                   autoFocus
+                  minLength={CONFIG.MIN_QUERY_LENGTH}
                 />
-                {input&&(
-                  <button onClick={handleClear} className="p-0.5 hover:bg-gray-100 rounded-full"><X size={14} className="text-gray-400"/></button>
-                )}
-                <button onClick={()=>setMode('image')} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Image Search">
-                  <Camera size={18} className="text-gray-400"/>
-                </button>
+                {/* Action Buttons - Fixed width, always visible */}
+                <div className="flex items-center flex-shrink-0 gap-1 pr-2">
+                  {input&&(
+                    <button onClick={handleClear} className="p-1 hover:bg-gray-100 rounded-full transition-colors" aria-label="Clear">
+                      <X size={16} className="text-gray-400"/>
+                    </button>
+                  )}
+                  <button onClick={()=>setMode('image')} className="p-1 hover:bg-gray-100 rounded-lg transition-colors" title="Image Search" aria-label="Image Search">
+                    <Camera size={18} className="text-gray-400"/>
+                  </button>
+                </div>
               </div>
-              <button onClick={()=>handleSearch()} disabled={!input.trim()} className="px-4 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 disabled:opacity-50 active:scale-[0.98] transition-all">
+              {/* ✅ FIXED: Search Button - flex-shrink-0 keeps it from moving */}
+              <button 
+                onClick={()=>handleSearch()} 
+                disabled={!input.trim()||input.length<CONFIG.MIN_QUERY_LENGTH} 
+                className="flex-shrink-0 px-4 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 disabled:opacity-50 active:scale-[0.98] transition-all whitespace-nowrap"
+              >
                 {tr.navSearch}
               </button>
             </div>
 
-            {/* ✅ সাজেশন ড্রপডাউন */}
+            {/* Error Message / Rate Limit Warning */}
+            {errorMessage&&(
+              <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                <AlertCircle size={14} className="text-amber-600 flex-shrink-0"/>
+                <p className="text-xs text-amber-700">{errorMessage}</p>
+              </div>
+            )}
+
+            {/* Rate Limit Indicator */}
+            {rateLimited&&(
+              <div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                <AlertCircle size={14} className="text-red-600 flex-shrink-0"/>
+                <p className="text-xs text-red-700">{tr.rateLimit}</p>
+              </div>
+            )}
+
+            {/* সাজেশন ড্রপডাউন */}
             {showDropdown&&!searchPerformed&&(
               <div ref={dropdownRef} className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border shadow-lg z-50 overflow-hidden max-h-[400px] overflow-y-auto">
                 
@@ -455,7 +587,14 @@ export default function SearchPage(){
                   </div>
                 )}
 
-                {/* No suggestions */}
+                {/* No suggestions / Min length hint */}
+                {!loadingSuggestions&&suggestions.length===0&&input&&input.length<CONFIG.MIN_QUERY_LENGTH&&(
+                  <div className="px-3 py-4 text-center">
+                    <p className="text-sm text-gray-400">{tr.minChars}</p>
+                  </div>
+                )}
+
+                {/* No suggestions found */}
                 {!loadingSuggestions&&suggestions.length===0&&input&&input.length>=CONFIG.MIN_QUERY_LENGTH&&(
                   <div className="px-3 py-4 text-center">
                     <p className="text-sm text-gray-400">{tr.noSuggestions}</p>
@@ -467,7 +606,7 @@ export default function SearchPage(){
         )}
 
         {/* Search Mode: Image */}
-        {mode==='image'&&(
+        {mode=='image'&&(
           <div>
             <button onClick={()=>setMode('text')} className="text-sm text-orange-600 mb-3 flex items-center gap-1 hover:text-orange-700 transition-colors">
               <ArrowLeft size={14}/>{tr.back}
