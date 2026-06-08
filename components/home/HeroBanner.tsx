@@ -258,8 +258,10 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
         const { data, error: e } = await supabase
           .from('profiles')
           .select('id,name,role,category,expected_salary,photo_url,is_online,country,created_at,is_verified')
-          .eq('country', country)
-          .not('photo_url', 'is', null)              // ✅ No null photos
+          // ✅ Replace with:
+.eq('country', country)
+.eq('is_public', true)
+.not('photo_url', 'is', null)              // ✅ No null photos
           .neq('photo_url', '/default-avatar.png')    // ✅ No default avatar
           .neq('photo_url', '/avatar.png')            // ✅ No generic avatar
           .or('role.eq.employer,is_verified.eq.true') // ✅ Only employers OR verified workers

@@ -1,4 +1,5 @@
 // components/home/CategoryBanner.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
+// ✅ is_public filter added
 "use client";
 import React,{useEffect,useState,useCallback,useMemo,useRef,startTransition} from 'react';
 import {supabase} from '@/lib/supabase';
@@ -67,16 +68,40 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
 
     if(!isRetry)startTransition(()=>setLoading(true));
     try{
-      const{data,error:e}=await supabase.from('profiles').select('*').eq('role','labor').eq('category',slug).eq('country',country).order('created_at',{ascending:false}).limit(CONFIG.BATCH_SIZE);
+      // ✅ Banners query with is_public filter
+      const{data,error:e}=await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role','labor')
+        .eq('category',slug)
+        .eq('country',country)
+        .eq('is_public',true)  // ✅ ONLY PUBLIC
+        .order('created_at',{ascending:false})
+        .limit(CONFIG.BATCH_SIZE);
+      
       if(e)throw e;
       if(!aliveRef.current)return;
 
       const result=data||[];
       dataCache.set(cacheKey,{data:result,timestamp:Date.now()});
 
-      // Get stats
-      const{count:total}=await supabase.from('profiles').select('*',{count:'exact',head:true}).eq('role','labor').eq('category',slug).eq('country',country);
-      const{count:online}=await supabase.from('profiles').select('*',{count:'exact',head:true}).eq('role','labor').eq('category',slug).eq('country',country).eq('is_online',true);
+      // ✅ Stats query with is_public filter
+      const{count:total}=await supabase
+        .from('profiles')
+        .select('*',{count:'exact',head:true})
+        .eq('role','labor')
+        .eq('category',slug)
+        .eq('country',country)
+        .eq('is_public',true);  // ✅ ONLY PUBLIC
+
+      const{count:online}=await supabase
+        .from('profiles')
+        .select('*',{count:'exact',head:true})
+        .eq('role','labor')
+        .eq('category',slug)
+        .eq('country',country)
+        .eq('is_online',true)
+        .eq('is_public',true);  // ✅ ONLY PUBLIC
 
       startTransition(()=>{setBanners(result);setStats({total:total||0,online:online||0});setLoading(false);setError(false)});
       retryRef.current=0;
@@ -89,9 +114,28 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
   // Realtime
   useEffect(()=>{
     aliveRef.current=true;loadBanners();
-    const channel=supabase.channel(`cb:${slug}:${Date.now()}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'profiles',filter:`country=eq.${country}`},(payload:any)=>{
-      if(payload.new.role==='labor'&&payload.new.category===slug&&aliveRef.current){startTransition(()=>{setBanners(prev=>[payload.new,...prev].slice(0,CONFIG.BATCH_SIZE));setStats(prev=>({total:prev.total+1,online:payload.new.is_online?prev.online+1:prev.online}))})}
-    }).subscribe();
+    const channel=supabase
+      .channel(`cb:${slug}:${Date.now()}`)
+      .on('postgres_changes',{
+        event:'INSERT',
+        schema:'public',
+        table:'profiles',
+        filter:`country=eq.${country}`
+      },(payload:any)=>{
+        // ✅ Only add if public
+        if(payload.new.role==='labor' && 
+           payload.new.category===slug && 
+           payload.new.is_public===true &&  // ✅ ONLY PUBLIC
+           aliveRef.current){
+          startTransition(()=>{
+            setBanners(prev=>[payload.new,...prev].slice(0,CONFIG.BATCH_SIZE));
+            setStats(prev=>({
+              total:prev.total+1,
+              online:payload.new.is_online?prev.online+1:prev.online
+            }));
+          });
+        }
+      }).subscribe();
     return()=>{aliveRef.current=false;supabase.removeChannel(channel)};
   },[country,slug,loadBanners]);
 

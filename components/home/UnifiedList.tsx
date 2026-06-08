@@ -302,8 +302,10 @@ export default function UnifiedList({ type, country, lang }: Props) {
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', type)
-        .eq('country', country)
-        .not('photo_url', 'is', null)
+        // ✅ Replace with:
+.eq('country', country)
+.eq('is_public', true)
+.not('photo_url', 'is', null)
         .neq('photo_url', '/default-avatar.png')
         .neq('photo_url', '/avatar.png')
         .neq('photo_url', '');
@@ -326,8 +328,10 @@ export default function UnifiedList({ type, country, lang }: Props) {
         .from('profiles')
         .select('*')
         .eq('role', type)
-        .eq('country', country)
-        .not('photo_url', 'is', null)
+        // ✅ Replace with:
+.eq('country', country)
+.eq('is_public', true)
+.not('photo_url', 'is', null)
         .neq('photo_url', '/default-avatar.png')
         .neq('photo_url', '/avatar.png')
         .neq('photo_url', '')

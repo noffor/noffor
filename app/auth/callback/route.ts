@@ -63,14 +63,22 @@ export async function GET(request: Request) {
             name: user.user_metadata?.full_name || 'User',
             email: user.email || '',
             photo_url: user.user_metadata?.avatar_url || '',
-            role, country, profile_language: lang,
-            is_online: false, is_verified: true,
-            rating: 0, total_reviews: 0,
+            role, 
+            country, 
+            profile_language: lang,
+            is_online: false, 
+            is_verified: true,
+            is_public: false,        // ✅ LOGIN = NOT PUBLIC
+            rating: 0, 
+            total_reviews: 0,
             created_at: new Date().toISOString(),
             last_login: new Date().toISOString(),
           }, { onConflict: 'id' });
         } else {
-          await supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', user.id);
+          await supabase.from('profiles').update({ 
+            last_login: new Date().toISOString(),
+            // is_public false রাখো, চেঞ্জ করো না
+          }).eq('id', user.id);
         }
       } catch (e) {}
     }

@@ -1,4 +1,5 @@
 // components/category/GridMobile.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
+// ✅ is_public filter added
 "use client";
 import React,{useState,useCallback,useMemo,startTransition} from 'react';
 import {supabase} from '@/lib/supabase';
@@ -43,7 +44,14 @@ const GridMobile=React.memo(({profiles,country,lang,totalCount,categoryName}:Pro
     try{
       const from=page*ITEMS_PER_PAGE;
       const to=from+ITEMS_PER_PAGE-1;
-      const{data,error:e}=await supabase.from('profiles').select('*').eq('category',categoryName).eq('country',country).range(from,to);
+      // ✅ Fixed query with is_public filter
+      const{data,error:e}=await supabase
+        .from('profiles')
+        .select('*')
+        .eq('category',categoryName)
+        .eq('country',country)
+        .eq('is_public',true)  // ✅ ONLY PUBLIC
+        .range(from,to);
       if(e)throw e;
       if(data)startTransition(()=>{setItems(p=>[...p,...data]);setPage(p=>p+1)});
     }catch{startTransition(()=>setError(true))}
