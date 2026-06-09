@@ -1,5 +1,5 @@
 // components/home/CategoryBanner.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
-// ✅ is_public filter added
+// ✅ is_public filter + Slug→Category Mapping Fixed
 "use client";
 import React,{useEffect,useState,useCallback,useMemo,useRef,startTransition} from 'react';
 import {supabase} from '@/lib/supabase';
@@ -10,6 +10,28 @@ import {translateCategory,translateName,translateNumber,getCurrencySymbol} from 
 // কনফিগ
 // ═══════════════════════════════════════════════════════════
 const CONFIG={BATCH_SIZE:20,CACHE_TTL:60000,AUTO_PLAY_MS:5000,RETRY_MAX:2};
+
+// ═══════════════════════════════════════════════════════════
+// ✅ SLUG → CATEGORY MAPPING
+// ═══════════════════════════════════════════════════════════
+const SLUG_TO_CATEGORY:Record<string,string>={
+  'driver':'Driver',
+  'electrician':'Electrician',
+  'plumber':'Plumber',
+  'mason':'Mason',
+  'ac-technician':'AC Technician',
+  'painter':'Painter',
+  'carpenter':'Carpenter',
+  'cleaner':'Cleaner',
+  'cook':'Cook',
+  'helper':'Helper',
+  'gardener':'Gardener',
+  'welder':'Welder',
+  'security':'Security',
+  'teacher':'Teacher',
+  'nurse':'Nurse',
+  'chef':'Chef',
+};
 
 // ═══════════════════════════════════════════════════════════
 // WebP ইমেজ
@@ -45,7 +67,11 @@ interface Props{slug:string;lang?:string;country?:string}
 // ═══════════════════════════════════════════════════════════
 const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
   const tr=useMemo(()=>T[lang]||T.en,[lang]);
-  const categoryName=useMemo(()=>translateCategory(slug,lang),[slug,lang]);
+  
+  // ✅ FIXED: slug → সঠিক Category Name
+  const categoryName=useMemo(()=>SLUG_TO_CATEGORY[slug]||slug,[slug]);
+  const displayCategoryName=useMemo(()=>translateCategory(categoryName,lang),[categoryName,lang]);
+  
   const[banners,setBanners]=useState<any[]>([]);
   const[current,setCurrent]=useState(0);
   const[loading,setLoading]=useState(true);
@@ -56,10 +82,10 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
   const aliveRef=useRef(true);
   const retryRef=useRef(0);
 
-  // Load banners (cache-first)
+  // ✅ FIXED: Load banners with CATEGORY NAME (not slug)
   const loadBanners=useCallback(async(isRetry=false)=>{
     if(!aliveRef.current)return;
-    const cacheKey=`cb:${country}:${slug}`;
+    const cacheKey=`cb:${country}:${categoryName}`;
 
     if(!isRetry){
       const cached=dataCache.get(cacheKey);
@@ -68,14 +94,14 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
 
     if(!isRetry)startTransition(()=>setLoading(true));
     try{
-      // ✅ Banners query with is_public filter
+      // ✅ Banners query with CATEGORY NAME + is_public
       const{data,error:e}=await supabase
         .from('profiles')
         .select('*')
         .eq('role','labor')
-        .eq('category',slug)
+        .eq('category',categoryName)     // ✅ "Driver" not "driver"
         .eq('country',country)
-        .eq('is_public',true)  // ✅ ONLY PUBLIC
+        .eq('is_public',true)
         .order('created_at',{ascending:false})
         .limit(CONFIG.BATCH_SIZE);
       
@@ -85,23 +111,23 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
       const result=data||[];
       dataCache.set(cacheKey,{data:result,timestamp:Date.now()});
 
-      // ✅ Stats query with is_public filter
+      // ✅ Stats query with CATEGORY NAME + is_public
       const{count:total}=await supabase
         .from('profiles')
         .select('*',{count:'exact',head:true})
         .eq('role','labor')
-        .eq('category',slug)
+        .eq('category',categoryName)     // ✅ "Driver" not "driver"
         .eq('country',country)
-        .eq('is_public',true);  // ✅ ONLY PUBLIC
+        .eq('is_public',true);
 
       const{count:online}=await supabase
         .from('profiles')
         .select('*',{count:'exact',head:true})
         .eq('role','labor')
-        .eq('category',slug)
+        .eq('category',categoryName)     // ✅ "Driver" not "driver"
         .eq('country',country)
         .eq('is_online',true)
-        .eq('is_public',true);  // ✅ ONLY PUBLIC
+        .eq('is_public',true);
 
       startTransition(()=>{setBanners(result);setStats({total:total||0,online:online||0});setLoading(false);setError(false)});
       retryRef.current=0;
@@ -109,23 +135,23 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
       if(retryRef.current<CONFIG.RETRY_MAX){retryRef.current++;loadBanners(true);return}
       if(aliveRef.current)startTransition(()=>{setError(true);setLoading(false)});
     }
-  },[country,slug]);
+  },[country,categoryName]);
 
-  // Realtime
+  // ✅ FIXED: Realtime with CATEGORY NAME
   useEffect(()=>{
     aliveRef.current=true;loadBanners();
     const channel=supabase
-      .channel(`cb:${slug}:${Date.now()}`)
+      .channel(`cb:${categoryName}:${Date.now()}`)
       .on('postgres_changes',{
         event:'INSERT',
         schema:'public',
         table:'profiles',
         filter:`country=eq.${country}`
       },(payload:any)=>{
-        // ✅ Only add if public
+        // ✅ Only add if category matches + is_public
         if(payload.new.role==='labor' && 
-           payload.new.category===slug && 
-           payload.new.is_public===true &&  // ✅ ONLY PUBLIC
+           payload.new.category===categoryName &&  // ✅ "Driver" match
+           payload.new.is_public===true && 
            aliveRef.current){
           startTransition(()=>{
             setBanners(prev=>[payload.new,...prev].slice(0,CONFIG.BATCH_SIZE));
@@ -137,7 +163,7 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
         }
       }).subscribe();
     return()=>{aliveRef.current=false;supabase.removeChannel(channel)};
-  },[country,slug,loadBanners]);
+  },[country,categoryName,loadBanners]);
 
   // Auto play
   useEffect(()=>{
@@ -171,7 +197,7 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
   if(banners.length===0)return(
     <div className="relative w-full h-40 lg:h-56 rounded-xl overflow-hidden bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
       <div className="text-center text-white px-4">
-        <p className="text-xl lg:text-3xl font-bold">{categoryName}</p>
+        <p className="text-xl lg:text-3xl font-bold">{displayCategoryName}</p>
         <p className="text-sm opacity-80 mt-2">{tr.noResults}</p>
         <a href={`/${country}/${lang}/create`} className="inline-block mt-3 px-4 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition active:scale-95">{tr.createProfile}</a>
       </div>
@@ -201,7 +227,7 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
       {/* Content */}
       <a href={`/${country}/${lang}/profile/${banner.id}`} className="absolute bottom-4 left-4 right-4 text-white no-underline block">
         <div className="flex items-center gap-2 mb-1">
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500">{categoryName}</span>
+          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-500">{displayCategoryName}</span>
           {banner.is_online&&<span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>}
         </div>
         <h2 className="text-base lg:text-2xl font-bold truncate drop-shadow-lg">{displayName}</h2>
@@ -210,7 +236,7 @@ const CategoryBanner=React.memo(({slug,lang='en',country='qa'}:Props)=>{
 
       {/* Stats */}
       <div className="absolute top-3 left-3 flex gap-2">
-        <span className="bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">{stats.total} {categoryName}</span>
+        <span className="bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">{stats.total} {displayCategoryName}</span>
         <span className="bg-green-500/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">{stats.online} {tr.online}</span>
       </div>
 

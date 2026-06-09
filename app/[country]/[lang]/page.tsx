@@ -1,5 +1,5 @@
 // app/[country]/[lang]/page.tsx
-// 🚀 BALANCED LAZY LOADING • FAST FCP • LOW MEMORY
+// 🚀 BALANCED LAZY LOADING • FAST FCP • LOW MEMORY • is_public FIXED
 "use client";
 import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from 'react';
 import { useParams } from 'next/navigation';
@@ -7,21 +7,16 @@ import { supabase } from '@/lib/supabase';
 import { Crosshair, Wifi, WifiOff, X } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-// ✅ CRITICAL: Eager load for fast FCP
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import HeroBanner from '@/components/home/HeroBanner';
 
-// ✅ SECONDARY: Lazy load for low memory
 const Sidebar = lazy(() => import('@/components/layout/Sidebar'));
 const CategoryGrid = lazy(() => import('@/components/home/CategoryGrid'));
 const UnifiedList = lazy(() => import('@/components/home/UnifiedList'));
 const HomeTabs = lazy(() => import('@/components/home/HomeTabs'));
 const LiveWorkerMap = lazy(() => import('@/components/map/LiveWorkerMap'));
 
-// ═══════════════════════════════════════════════════════════
-// কনফিগ
-// ═══════════════════════════════════════════════════════════
 const CONFIG = {
   ONLINE_CACHE_KEY: 'noffor_worker_online',
   WORKER_CACHE_KEY: 'noffor_worker',
@@ -39,9 +34,6 @@ const CONFIG = {
   } as Record<string, { lat: number; lng: number }>,
 } as const;
 
-// ═══════════════════════════════════════════════════════════
-// ৪ ভাষা
-// ═══════════════════════════════════════════════════════════
 const T: Record<string, Record<string, string>> = {
   en: {
     quick: 'Quick', hire: 'Hire', online: 'Online', offline: 'Offline',
@@ -61,9 +53,6 @@ const T: Record<string, Record<string, string>> = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════
-// Safe Storage Helpers
-// ═══════════════════════════════════════════════════════════
 function getStorageItem(key: string): string | null {
   if (typeof window === 'undefined') return null;
   try { return sessionStorage.getItem(key) || localStorage.getItem(key); } catch { return null; }
@@ -74,9 +63,6 @@ function setStorageItem(key: string, value: string): void {
   try { sessionStorage.setItem(key, value); localStorage.setItem(key, value); } catch {}
 }
 
-// ═══════════════════════════════════════════════════════════
-// Sub-components (Memoized)
-// ═══════════════════════════════════════════════════════════
 const LoginToast = React.memo(({ message, dismiss, onClose }: {
   message: string; dismiss: string; onClose: () => void;
 }) => (
@@ -109,9 +95,6 @@ const MapToggle = React.memo(({ showMap, onClick, lang }: { showMap: boolean; on
 });
 MapToggle.displayName = 'MapToggle';
 
-// ═══════════════════════════════════════════════════════════
-// Layout Components
-// ═══════════════════════════════════════════════════════════
 const PCLayout = React.memo(({ country, lang, showMap, userLocation, online, toggleMap, toggleOnline }: {
   country: string; lang: string; showMap: boolean;
   userLocation: { lat: number; lng: number } | null;
@@ -249,6 +232,7 @@ function HomePage() {
 
   const toggleMap = useCallback(() => startTransition(() => setShowMap(prev => !prev)), []);
   
+  // ✅ FIXED: toggleOnline with is_public: true when going online
   const toggleOnline = useCallback(async () => {
     const workerData = getStorageItem(CONFIG.WORKER_CACHE_KEY);
     if (!workerData) {
@@ -265,7 +249,12 @@ function HomePage() {
     setStorageItem(CONFIG.ONLINE_CACHE_KEY, JSON.stringify(nextState));
     try {
       const profile = JSON.parse(workerData);
-      await supabase.from('profiles').update({ is_online: nextState }).eq('id', profile.id);
+      // ✅ When going online, set is_public: true
+      const updateData: any = { is_online: nextState };
+      if (nextState) {
+        updateData.is_public = true;
+      }
+      await supabase.from('profiles').update(updateData).eq('id', profile.id);
     } catch (err) {
       console.error('Toggle online error:', err);
       startTransition(() => setOnline(!nextState));
@@ -275,14 +264,13 @@ function HomePage() {
   if (!mounted) return <div className="min-h-screen bg-gray-50" />;
 
   const isDesktop = !isMobile;
-  const txt = T[lang] || T.en;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header country={country} lang={lang} />
       
       {showLoginToast && (
-        <LoginToast message={txt.loginRequired} dismiss={txt.dismiss} onClose={() => { setShowLoginToast(false); toastShownRef.current = false; }} />
+        <LoginToast message={T[lang]?.loginRequired || T.en.loginRequired} dismiss={T[lang]?.dismiss || T.en.dismiss} onClose={() => { setShowLoginToast(false); toastShownRef.current = false; }} />
       )}
       
       <main className="max-w-7xl mx-auto px-3 lg:px-4 py-3">

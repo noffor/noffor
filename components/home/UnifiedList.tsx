@@ -1,6 +1,6 @@
 // components/home/UnifiedList.tsx
 // 🚀 ১ বিলিয়ন ইউজার • TypeScript Error Free • Production Ready
-// ✅ Photo Filtered • WebP Optimized • Lazy Loaded
+// ✅ Photo Filtered • WebP Optimized • Lazy Loaded • is_public FIXED
 "use client";
 import React, { useEffect, useState, useRef, useCallback, memo, useMemo, startTransition } from 'react';
 import { Star, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
@@ -18,7 +18,6 @@ const RETRY_MAX = 2;
 const dataCache = new Map<string, { data: any[]; timestamp: number }>();
 
 // ═══════════════════════════════════════════════════════════
-// 🖼️ Image Preloader for smooth lazy loading
 class ImagePreloader {
   private static cache = new Map<string, HTMLImageElement>();
   private static queue: string[] = [];
@@ -49,8 +48,6 @@ class ImagePreloader {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🎨 WebP Optimization with multiple CDN support
 const getWebP = (url: string, w = 400, q = 80): string => {
   if (!url) return '';
   if (url.includes('supabase.co/storage')) return `${url}?width=${w}&quality=${q}&format=webp&resize=cover`;
@@ -58,8 +55,6 @@ const getWebP = (url: string, w = 400, q = 80): string => {
   return url;
 };
 
-// ═══════════════════════════════════════════════════════════
-// 📸 Category-wise default images (only as last resort)
 const defaultImages: Record<string, string> = {
   'Driver': '/images/default-driver.jpg', 'Electrician': '/images/default-electrician.jpg',
   'Plumber': '/images/default-plumber.jpg', 'Mason': '/images/default-mason.jpg',
@@ -68,7 +63,6 @@ const defaultImages: Record<string, string> = {
   'Cook': '/images/default-cook.jpg', 'Helper': '/images/default-helper.jpg',
 };
 
-// ═══════════════════════════════════════════════════════════
 const T: Record<string, Record<string, string>> = {
   en: {
     online: 'Online', worker: 'Worker', job: 'Job', new: 'New', nego: 'Nego',
@@ -100,8 +94,6 @@ const T: Record<string, Record<string, string>> = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════
-// 🎴 Individual Item Card with WebP + Lazy Loading
 const ItemCard = memo(({ item, country, lang, isLabor }: {
   item: any; country: string; lang: string; isLabor: boolean;
 }) => {
@@ -111,7 +103,6 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
   const cardRef = useRef<HTMLAnchorElement>(null);
   const tr = useMemo(() => T[lang] || T.en, [lang]);
 
-  // ✅ Smart image source with WebP priority
   const imageSrc = useMemo(() => {
     if (imgError) {
       if (isLabor && item.category && defaultImages[item.category]) {
@@ -131,11 +122,9 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
     return '/default-avatar.png';
   }, [item.photo_url, item.category, imgError, isLabor]);
 
-  // 👁️ Intersection Observer for lazy loading
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
-    
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -143,14 +132,12 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' } // Preload 200px before visible
+      { threshold: 0.1, rootMargin: '200px' }
     );
-    
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  // 🖼️ Preload image when card becomes visible
   useEffect(() => {
     if (isVisible && imageSrc && imageSrc !== '/default-avatar.png') {
       ImagePreloader.preload([imageSrc]);
@@ -182,12 +169,9 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
     >
       <div className="relative">
         <div className="w-full h-24 lg:h-40 bg-gray-200 relative overflow-hidden">
-          {/* Skeleton loader */}
           {!imgLoaded && !imgError && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse" />
           )}
-          
-          {/* ✅ Lazy loaded image with WebP */}
           {isVisible && (
             <img 
               src={imageSrc} 
@@ -202,38 +186,28 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
               style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden', contentVisibility: 'auto' }}
             />
           )}
-          
-          {/* Placeholder when not visible yet */}
           {!isVisible && (
             <div className="absolute inset-0 bg-gray-200" />
           )}
         </div>
-        
-        {/* Online badge */}
         {item.is_online && isLabor && (
           <span className="absolute top-1 left-1 bg-green-500 text-white text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full animate-pulse z-10">
             {tr.online}
           </span>
         )}
-        
-        {/* Worker/Job badge */}
         <span className={`absolute top-1 right-1 text-[7px] lg:text-xs px-1.5 py-0.5 rounded-full z-10 ${isLabor ? 'bg-orange-500' : 'bg-blue-500'} text-white`}>
           {isLabor ? tr.worker : tr.job}
         </span>
       </div>
-      
-      {/* Card Content */}
       <div className="p-1.5 lg:p-2">
         <h4 className="font-medium text-gray-800 text-[10px] lg:text-sm truncate group-hover:text-orange-600 transition-colors">
           {displayName}
         </h4>
         <p className="text-[9px] lg:text-xs text-gray-500 truncate">{displayCategory}</p>
-        
         <div className="flex items-center gap-0.5 mt-0.5">
           <Star size={10} className="text-yellow-500" fill="#EAB308" />
           <span className="text-[9px] lg:text-xs font-medium">{displayRating}</span>
         </div>
-        
         <div className="flex items-center justify-between mt-0.5">
           <span className="text-[8px] lg:text-[10px] font-bold text-orange-600 truncate max-w-[60px]">
             💰 {displaySalary}
@@ -251,7 +225,7 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
 ItemCard.displayName = 'ItemCard';
 
 // ═══════════════════════════════════════════════════════════
-// 🚀 Main UnifiedList Component
+// 🚀 Main UnifiedList Component (is_public FIXED)
 export default function UnifiedList({ type, country, lang }: Props) {
   const tr = useMemo(() => T[lang] || T.en, [lang]);
   const [items, setItems] = useState<any[]>([]);
@@ -271,8 +245,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
   const isLabor = type === 'labor';
 
-  // ═══════════════════════════════════════════════════════
-  // 📡 Data Loading with Photo Filter + WebP Support
+  // ✅ FIXED: Data Loading with is_public filter
   const loadItems = useCallback(async (reset = false): Promise<any[]> => {
     if (!country || !aliveRef.current) return [];
 
@@ -287,7 +260,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
     if (!reset) {
       const cached = dataCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        // Preload cached images
         const urls = cached.data
           .map((item: any) => getWebP(item.photo_url, 400, 80))
           .filter((url: string) => url && url !== '/default-avatar.png');
@@ -297,15 +269,14 @@ export default function UnifiedList({ type, country, lang }: Props) {
     }
 
     try {
-      // ✅ Count query with photo filter
+      // ✅ FIXED: Count query with is_public filter
       const { count, error: countErr } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', type)
-        // ✅ Replace with:
-.eq('country', country)
-.eq('is_public', true)
-.not('photo_url', 'is', null)
+        .eq('country', country)
+        .eq('is_public', true)
+        .not('photo_url', 'is', null)
         .neq('photo_url', '/default-avatar.png')
         .neq('photo_url', '/avatar.png')
         .neq('photo_url', '');
@@ -323,15 +294,14 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
       const safeTo = Math.min(from + ITEMS_PER_PAGE - 1, total - 1, MAX_ITEMS - 1);
 
-      // ✅ Fetch query with photo filter
+      // ✅ FIXED: Fetch query with is_public filter
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', type)
-        // ✅ Replace with:
-.eq('country', country)
-.eq('is_public', true)
-.not('photo_url', 'is', null)
+        .eq('country', country)
+        .eq('is_public', true)
+        .not('photo_url', 'is', null)
         .neq('photo_url', '/default-avatar.png')
         .neq('photo_url', '/avatar.png')
         .neq('photo_url', '')
@@ -344,10 +314,8 @@ export default function UnifiedList({ type, country, lang }: Props) {
       const result = data || [];
       setHasMore((safeTo + 1) < total && (safeTo + 1) < MAX_ITEMS);
 
-      // Cache with timestamp
       dataCache.set(cacheKey, { data: result, timestamp: Date.now() });
       
-      // 🖼️ Preload first batch of images
       const urls = result
         .map((item: any) => getWebP(item.photo_url, 400, 80))
         .filter((url: string) => url && url !== '/default-avatar.png');
@@ -368,10 +336,33 @@ export default function UnifiedList({ type, country, lang }: Props) {
   }, [type, country]);
 
   // ═══════════════════════════════════════════════════════
+  // ✅ FIXED: Fast initial load with sessionStorage
   useEffect(() => {
     aliveRef.current = true;
+    
+    // 🚀 Step 1: Try sessionStorage cache first (0ms)
+    const cacheKey = `ul:${type}:${country}:0`;
+    try {
+      const cached = dataCache.get(cacheKey);
+      if (!cached) {
+        const sc = sessionStorage.getItem(`ul_${type}_${country}`);
+        if (sc) {
+          const p = JSON.parse(sc);
+          if (Date.now() - p.t < CACHE_TTL) {
+            dataCache.set(cacheKey, { data: p.d, timestamp: p.t });
+            startTransition(() => {
+              setItems(p.d);
+              setTotalCount(p.total || p.d.length);
+              setLoading(false);
+            });
+          }
+        }
+      }
+    } catch {}
+    
+    // 🚀 Step 2: Supabase fetch
     const init = async () => {
-      startTransition(() => { setLoading(true); setError(null); });
+      startTransition(() => { if (items.length === 0) setLoading(true); setError(null); });
       pageRef.current = 0;
       const data = await loadItems(true);
       if (aliveRef.current) {
@@ -380,6 +371,12 @@ export default function UnifiedList({ type, country, lang }: Props) {
           pageRef.current = 1;
           setLoading(false);
         });
+        // ✅ Cache to sessionStorage
+        try {
+          sessionStorage.setItem(`ul_${type}_${country}`, JSON.stringify({
+            d: data, t: Date.now(), total: totalCount || data.length
+          }));
+        } catch {}
       }
     };
     init();
@@ -389,7 +386,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
     };
   }, [country, lang, type, loadItems]);
 
-  // ═══════════════════════════════════════════════════════
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || loading || !aliveRef.current) return;
     startTransition(() => setLoadingMore(true));
@@ -403,26 +399,21 @@ export default function UnifiedList({ type, country, lang }: Props) {
     startTransition(() => setLoadingMore(false));
   }, [loadingMore, hasMore, loadItems, loading]);
 
-  // ═══════════════════════════════════════════════════════
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
-
     observerRef.current = new IntersectionObserver(([e]) => {
       if (e.isIntersecting && hasMore && !loading && !loadingMore && items.length < MAX_ITEMS) {
         if (loadMoreTimerRef.current) clearTimeout(loadMoreTimerRef.current);
         loadMoreTimerRef.current = setTimeout(loadMore, 300);
       }
     }, { threshold: 0.5, rootMargin: '100px' });
-
     if (loaderRef.current) observerRef.current.observe(loaderRef.current);
-
     return () => {
       observerRef.current?.disconnect();
       if (loadMoreTimerRef.current) clearTimeout(loadMoreTimerRef.current);
     };
   }, [hasMore, loading, loadingMore, items.length, loadMore]);
 
-  // ═══════════════════════════════════════════════════════
   const skeletons = useMemo(() => Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
     <div key={i} className="bg-white rounded-xl border overflow-hidden animate-pulse">
       <div className="w-full h-24 lg:h-40 bg-gray-200" />
@@ -433,7 +424,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
     </div>
   )), []);
 
-  // ═══════════════════════════════════════════════════════
   if (error) return (
     <div className="bg-white rounded-xl p-6 text-center border">
       <AlertCircle size={32} className="text-red-400 mx-auto mb-3" />
@@ -485,7 +475,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
           {tr.viewAll}
         </a>
       </div>
-
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
         {items.map((item, idx) => (
           <ItemCard
@@ -497,7 +486,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
           />
         ))}
       </div>
-
       {hasMore && items.length < MAX_ITEMS && (
         <div ref={loaderRef} className="py-3 text-center">
           {loadingMore ? (
@@ -510,7 +498,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
           )}
         </div>
       )}
-
       {!hasMore && items.length > 0 && (
         <div className="text-center py-2">
           <p className="text-[9px] lg:text-[10px] text-gray-400 select-none">

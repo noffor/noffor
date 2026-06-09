@@ -1,4 +1,5 @@
 // components/home/OnlineToggle.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা
+// ✅ is_public ফিক্সড
 "use client";
 import React,{useState,useEffect,useCallback,useMemo,startTransition} from 'react';
 import {supabase} from '@/lib/supabase';
@@ -58,10 +59,21 @@ const OnlineToggle=React.memo(({profileId,initial,lang,onStatusChange}:Props)=>{
       }catch{startTransition(()=>{setError(tr.enableLocation);setLoading(false)});return}
     }
 
-    // Update Supabase
+    // ✅ Update Supabase with is_public set to true when going online
+    const updateData: any = {
+      is_online: next,
+      last_online: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // ✅ When going online, ensure is_public is true
+    if (next) {
+      updateData.is_public = true;
+    }
+    
     const{error:updateError}=await supabase
       .from('profiles')
-      .update({is_online:next,last_online:new Date().toISOString(),updated_at:new Date().toISOString()})
+      .update(updateData)
       .eq('id',profileId);
 
     if(updateError){startTransition(()=>{setError(updateError.message);setLoading(false)});return}
@@ -71,7 +83,12 @@ const OnlineToggle=React.memo(({profileId,initial,lang,onStatusChange}:Props)=>{
     localStorage.setItem('noffor_worker_online',JSON.stringify(next));
     
     const stored=localStorage.getItem('noffor_user');
-    if(stored){const user=JSON.parse(stored);user.is_online=next;localStorage.setItem('noffor_user',JSON.stringify(user))}
+    if(stored){
+      const user=JSON.parse(stored);
+      user.is_online=next;
+      if (next) user.is_public = true;  // ✅ Update local cache too
+      localStorage.setItem('noffor_user',JSON.stringify(user));
+    }
     
     onStatusChange?.(next);
     window.dispatchEvent(new CustomEvent('worker-online-status',{detail:{online:next,workerId:profileId}}));

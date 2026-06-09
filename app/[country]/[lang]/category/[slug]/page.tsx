@@ -1,5 +1,5 @@
 // app/[country]/[lang]/category/[slug]/page.tsx
-// 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • is_public ফিক্সড • WebP • ০ ল্যাগ
+// 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • Slug→Category Mapping Fixed
 "use client";
 import React,{useEffect,useState,useRef,useCallback,useMemo,startTransition} from 'react';
 import {useParams,useSearchParams} from 'next/navigation';
@@ -33,6 +33,28 @@ const CONFIG={
 };
 
 // ═══════════════════════════════════════════════════════════
+// ✅ SLUG → CATEGORY MAPPING (Case-sensitive match)
+// ═══════════════════════════════════════════════════════════
+const SLUG_TO_CATEGORY:Record<string,string>={
+  'driver':'Driver',
+  'electrician':'Electrician',
+  'plumber':'Plumber',
+  'mason':'Mason',
+  'ac-technician':'AC Technician',
+  'painter':'Painter',
+  'carpenter':'Carpenter',
+  'cleaner':'Cleaner',
+  'cook':'Cook',
+  'helper':'Helper',
+  'gardener':'Gardener',
+  'welder':'Welder',
+  'security':'Security',
+  'teacher':'Teacher',
+  'nurse':'Nurse',
+  'chef':'Chef',
+};
+
+// ═══════════════════════════════════════════════════════════
 // গ্লোবাল ক্যাশে
 // ═══════════════════════════════════════════════════════════
 const dataCache=new Map<string,{data:any[];total:number;timestamp:number}>();
@@ -42,7 +64,9 @@ export default function CategoryPage(){
   const country=(params as any).country||'qa';const lang=(params as any).lang||'en';
   const slug=(params as any).slug||'driver';const filter=searchParams.get('filter')||'all';
   const tr=useMemo(()=>T[lang]||T.en,[lang]);const rest=useMemo(()=>`/${country}/${lang}`,[country,lang]);
-  const categoryName=useMemo(()=>slug,[slug]);
+  
+  // ✅ FIXED: slug → সঠিক Category Name
+  const categoryName=useMemo(()=>SLUG_TO_CATEGORY[slug]||slug,[slug]);
 
   const[profiles,setProfiles]=useState<any[]>([]);
   const[loading,setLoading]=useState(true);const[loadingMore,setLoadingMore]=useState(false);
@@ -51,11 +75,12 @@ export default function CategoryPage(){
   const loaderRef=useRef<HTMLDivElement>(null);const observerRef=useRef<IntersectionObserver|null>(null);
   const aliveRef=useRef(true);const retryRef=useRef(0);
 
-  // ✅ FIXED: Load profiles with is_public filter
+  // ✅ Load profiles with is_public + is_verified + CATEGORY MATCH
   const loadProfiles=useCallback(async(pageNum:number,append:boolean)=>{
     if(!aliveRef.current)return[];
     const cacheKey=`cat:${country}:${categoryName}:${filter}:${pageNum}`;
 
+    // ✅ SessionStorage pre-check for fast load
     if(!append){
       const cached=dataCache.get(cacheKey);
       if(cached&&Date.now()-cached.timestamp<CONFIG.CACHE_TTL){
@@ -68,14 +93,18 @@ export default function CategoryPage(){
     try{
       const from=pageNum*CONFIG.ITEMS_PER_PAGE;const to=from+CONFIG.ITEMS_PER_PAGE-1;
       
-      // ✅ FIXED: Added is_public + is_verified filters
+      // ✅ FIXED: Complete query with slug→category match
       let query=supabase
         .from('profiles')
         .select('*',{count:'exact'})
-        .eq('category',categoryName)
+        .eq('category',categoryName)        // ✅ "Driver", "AC Technician" etc.
         .eq('country',country)
-        .eq('is_public',true)         // ✅ ADDED - Only public profiles
-        .eq('is_verified',true)       // ✅ ADDED - Only verified profiles
+        .eq('is_public',true)
+        .eq('is_verified',true)
+        .not('photo_url','is',null)
+        .neq('photo_url','/default-avatar.png')
+        .neq('photo_url','/avatar.png')
+        .neq('photo_url','')
         .order('created_at',{ascending:false})
         .range(from,to);
       
@@ -101,7 +130,7 @@ export default function CategoryPage(){
     return()=>{aliveRef.current=false};
   },[loadProfiles]);
 
-  // ✅ FIXED: Realtime with is_public + is_verified check
+  // ✅ Realtime with is_public + is_verified + CATEGORY check
   useEffect(()=>{
     const channel=supabase
       .channel(`cat:${categoryName}:${Date.now()}`)
@@ -111,11 +140,11 @@ export default function CategoryPage(){
         table:'profiles',
         filter:`country=eq.${country}`
       },(payload:any)=>{
-        // ✅ FIXED: Quality check for realtime inserts
+        // ✅ Quality check with category match
         if(payload.new.role==='labor'&&
            payload.new.category===categoryName&&
-           payload.new.is_public===true&&      // ✅ ADDED
-           payload.new.is_verified===true&&     // ✅ ADDED
+           payload.new.is_public===true&&
+           payload.new.is_verified===true&&
            aliveRef.current){
           startTransition(()=>{
             setProfiles(p=>[payload.new,...p]);

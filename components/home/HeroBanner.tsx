@@ -1,6 +1,7 @@
 // components/home/HeroBanner.tsx
 // 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • ০ ল্যাগ • ০ ক্র্যাশ • WebP • Real-time
 // ✅ ALL FIXED: is_public filter, Double Cache, Real-time, WebP, Swipe, Auto-play
+// ✅ FAST INITIAL LOAD: SessionStorage before Supabase
 "use client";
 import React, { useEffect, useState, useCallback, useRef, useMemo, startTransition } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -11,19 +12,19 @@ import { getText, LangCode } from '@/lib/language';
 // 🎯 SUPER SONIC CONFIG (1 Billion Users Optimized)
 // ═══════════════════════════════════════════════════════════
 const CONFIG = {
-  BANNER_TTL: 60000,                    // Memory cache 60s
-  SESSION_TTL: 300000,                  // Session cache 5min
-  MAX_RETRY: 2,                         // Retry with exponential backoff
-  BATCH_SIZE: 20,                       // Max banners to fetch
-  REALTIME_DEBOUNCE: 2000,              // Realtime debounce 2s
-  PREFETCH_COUNT: 3,                    // Preload first 3 images
-  SWIPE_THRESHOLD: 50,                  // Swipe sensitivity (px)
-  AUTO_PLAY_INTERVAL: 5000,             // Auto-rotate every 5s
-  THROTTLE_DELAY: 150,                  // Touch throttle 150ms
-  MAX_RECONNECT_ATTEMPTS: 5,            // Realtime reconnection
-  POLLING_INTERVAL: 15000,              // Fallback polling 15s
-  MAX_IMAGE_CACHE: 100,                 // Max cached images
-  INTERSECTION_THRESHOLD: 0.3,          // Visibility threshold
+  BANNER_TTL: 60000,
+  SESSION_TTL: 300000,
+  MAX_RETRY: 2,
+  BATCH_SIZE: 20,
+  REALTIME_DEBOUNCE: 2000,
+  PREFETCH_COUNT: 3,
+  SWIPE_THRESHOLD: 50,
+  AUTO_PLAY_INTERVAL: 5000,
+  THROTTLE_DELAY: 150,
+  MAX_RECONNECT_ATTEMPTS: 5,
+  POLLING_INTERVAL: 15000,
+  MAX_IMAGE_CACHE: 100,
+  INTERSECTION_THRESHOLD: 0.3,
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -55,7 +56,6 @@ class ImagePreloader {
             const img = new Image();
             img.onload = () => {
               this.cache.set(url, img);
-              // LRU eviction
               if (this.cache.size > CONFIG.MAX_IMAGE_CACHE) {
                 const firstKey = this.cache.keys().next().value;
                 if (firstKey) this.cache.delete(firstKey);
@@ -111,14 +111,12 @@ const BannerItem = React.memo(({
   const img = useMemo(() => optimizeImage(banner.photo_url || '', 1200, 85), [banner.photo_url]);
   const mob = useMemo(() => optimizeImage(banner.photo_url || '', 640, 75), [banner.photo_url]);
 
-  // Preload images
   useEffect(() => { 
     if (img) ImagePreloader.preload([img, mob]); 
   }, [img, mob]);
 
   return (
     <div className="absolute inset-0 w-full h-full will-change-transform">
-      {/* Background with WebP picture element */}
       <div className="absolute inset-0 bg-gray-900">
         {!err ? (
           <picture>
@@ -144,10 +142,8 @@ const BannerItem = React.memo(({
         )}
       </div>
       
-      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" style={{ transform: 'translateZ(0)' }} />
       
-      {/* Navigation arrows */}
       {total > 1 && (
         <>
           <button onClick={onPrev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/40 active:scale-95 z-10" aria-label="Previous">
@@ -159,7 +155,6 @@ const BannerItem = React.memo(({
         </>
       )}
       
-      {/* Profile Link */}
       <a href={`/${country}/${lang}/profile/${banner.id}`} className="absolute bottom-4 left-4 right-4 text-white no-underline block z-10">
         <div className="flex items-center gap-2 mb-1">
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${emp ? 'bg-blue-500' : 'bg-orange-500'}`}>
@@ -173,7 +168,6 @@ const BannerItem = React.memo(({
         </p>
       </a>
       
-      {/* Dots indicator */}
       {total > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 lg:gap-1.5 z-10">
           {Array.from({ length: Math.min(total, 20) }).map((_, i) => (
@@ -182,7 +176,6 @@ const BannerItem = React.memo(({
         </div>
       )}
       
-      {/* Counter badge */}
       <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full z-10">
         {current + 1}/{total}
       </div>
@@ -221,7 +214,6 @@ ErrorState.displayName = 'ErrorState';
 export default function HeroBanner({ country, lang }: { country: string; lang: string }) {
   const t = useCallback((k: string) => getText(lang as LangCode, k), [lang]);
   
-  // 📊 State
   const [banners, setBanners] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -229,7 +221,6 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(true);
   
-  // 🔧 Refs
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const tx = useRef(0);
   const ty = useRef(0);
@@ -268,14 +259,13 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
 
     startTransition(() => { setLoading(true); setError(false); });
 
-    // ✅ Retry with exponential backoff
     for (let r = 0; r <= CONFIG.MAX_RETRY; r++) {
       try {
         const { data, error: e } = await supabase
           .from('profiles')
           .select('id,name,role,category,expected_salary,photo_url,is_online,country,created_at,is_verified')
           .eq('country', country)
-          .eq('is_public', true)                              // ✅ ONLY PUBLIC
+          .eq('is_public', true)
           .not('photo_url', 'is', null)
           .neq('photo_url', '/default-avatar.png')
           .neq('photo_url', '/avatar.png')
@@ -285,11 +275,9 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
 
         if (e) throw e;
         if (data && alive.current) {
-          // ✅ Update double cache
           memoryCache.set(key, { data, timestamp: Date.now() });
           try { sessionStorage.setItem(key, JSON.stringify({ d: data, t: Date.now() })); } catch {}
           
-          // ✅ Preload images
           const urls = data.slice(0, CONFIG.PREFETCH_COUNT + 1)
             .map((b: any) => optimizeImage(b.photo_url, 1200, 85))
             .filter(Boolean);
@@ -346,15 +334,13 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
       loadRef.current?.(true);
     };
 
-    // ✅ FIXED: Real-time handler with is_public check
     const handleRealtimeUpdate = (payload: any) => {
       if (payload.eventType === 'INSERT') {
         const newProfile = payload.new;
-        // ✅ Quality check with is_public
         if (newProfile?.photo_url && 
             newProfile.photo_url !== '/default-avatar.png' && 
             newProfile.photo_url !== '/avatar.png' &&
-            newProfile.is_public === true &&                         // ✅ ADDED
+            newProfile.is_public === true &&
             (newProfile.role === 'employer' || newProfile.is_verified) &&
             alive.current) {
           startTransition(() => {
@@ -423,11 +409,28 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
   }, [country, lang]);
 
   // ═══════════════════════════════════════════════════════════
-  // 🚀 INITIAL LOAD
+  // ✅ FIXED: FAST INITIAL LOAD (SessionStorage before Supabase)
   // ═══════════════════════════════════════════════════════════
   useEffect(() => {
     alive.current = true;
+    
+    // 🚀 Step 1: SessionStorage থেকে তৎক্ষণাৎ লোড (0ms)
+    const key = `b:${country}:${lang}`;
+    try {
+      const sc = sessionStorage.getItem(key);
+      if (sc) {
+        const p = JSON.parse(sc);
+        if (Date.now() - p.t < CONFIG.SESSION_TTL) {
+          memoryCache.set(key, { data: p.d, timestamp: p.t });
+          startTransition(() => { setBanners(p.d); setLoading(false); });
+          // ✅ Already showing cached data, fetch fresh in background
+        }
+      }
+    } catch {}
+    
+    // 🚀 Step 2: Supabase থেকে ফ্রেশ ডাটা (no delay, call immediately)
     load(true);
+    
     return () => { alive.current = false; };
   }, []);
 
@@ -445,7 +448,6 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [banners.length, paused, visible]);
 
-  // Cleanup
   useEffect(() => {
     return () => { 
       if (timer.current) clearInterval(timer.current); 
@@ -453,15 +455,11 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     };
   }, []);
 
-  // ═══════════════════════════════════════════════════════════
-  // 🎮 USER INTERACTIONS
-  // ═══════════════════════════════════════════════════════════
   const prev = useCallback(() => setCurrent(p => (p - 1 + banners.length) % banners.length), [banners.length]);
   const next = useCallback(() => setCurrent(p => (p + 1) % banners.length), [banners.length]);
   const dot = useCallback((i: number) => setCurrent(i), []);
   const retry = useCallback(() => loadRef.current?.(true), []);
   
-  // Touch swipe
   const ts = useCallback((e: React.TouchEvent) => { 
     tx.current = e.touches[0].clientX; 
     tt.current = Date.now(); 
@@ -479,7 +477,6 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     }
   }, [next, prev]);
 
-  // Empty state
   const empty = useMemo(() => (
     <div className="relative w-full h-48 lg:h-64 xl:h-80 rounded-xl overflow-hidden bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
       <div className="text-center text-white px-4">
@@ -492,9 +489,6 @@ export default function HeroBanner({ country, lang }: { country: string; lang: s
     </div>
   ), [country, lang, t]);
 
-  // ═══════════════════════════════════════════════════════════
-  // 🎨 RENDER
-  // ═══════════════════════════════════════════════════════════
   if (loading) return <Skeleton />;
   if (error) return <ErrorState retry={retry} />;
   if (banners.length === 0) return empty;
