@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
 
+# Sitemaps
 Sitemap: https://noffor.com/sitemap.xml

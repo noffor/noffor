@@ -1,10 +1,13 @@
 {
-  "name": "Noffor",
+  "name": "Noffor - Find Workers & Jobs",
   "short_name": "Noffor",
+  "description": "Find skilled workers and job opportunities in Gulf countries",
   "start_url": "/qa/en",
   "display": "standalone",
-  "background_color": "#f97316",
+  "background_color": "#ffffff",
   "theme_color": "#f97316",
+  "lang": "en",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192.png",
