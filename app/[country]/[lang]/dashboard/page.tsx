@@ -535,8 +535,8 @@ export default function DashboardPage() {
   const lang = (params as any)?.lang || 'en';
   const router = useRouter();
   
-  // ✅ Auth guard
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  // ✅ Auth guard - NOW USING signOut FROM AuthContext
+  const { isAuthenticated, loading: authLoading, signOut } = useAuth();
   
   const t = useCallback((key: string) => LANG[lang]?.[key] || LANG.en[key] || key, [lang]);
   
@@ -915,14 +915,6 @@ export default function DashboardPage() {
     catch (err) { showToast(t('deleteFailed'), 'error'); }
   }, [profile, country, lang, router, showToast, t]);
   
-  // ✅ FIXED: logout function
-  const logout = useCallback(() => {
-    localStorage.removeItem('noffor_user'); 
-    localStorage.removeItem('noffor_worker');
-    localStorage.removeItem('noffor_worker_online'); 
-    router.push(`/${country}/${lang}/login`);
-  }, [country, lang, router]);
-  
   const markNotifRead = useCallback(async (id: string) => {
     try { await supabase.from('notifications').update({ is_read: true }).eq('id', id); setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n)); }
     catch {}
@@ -958,7 +950,7 @@ export default function DashboardPage() {
     { icon: Clock, color: 'text-orange-500', value: `${(profile || {}).experience || 0} yrs`, label: t('exp') },
   ], [earnings, trips, profile, lang]);
   
-  // ✅ FIXED: SETTINGS_BTNS - all buttons have proper onClick handlers
+  // ✅ FIXED: SETTINGS_BTNS - using AuthContext signOut for logout
   const SETTINGS_BTNS = useMemo(() => [
     { icon: User, color: 'bg-lime-50 text-lime-600', label: t('editProfile'), action: () => setActiveTab('edit') },
     { icon: Globe, color: 'bg-blue-50 text-blue-600', label: lang.toUpperCase(), action: () => {
@@ -971,9 +963,9 @@ export default function DashboardPage() {
     }},
     { icon: Share2, color: 'bg-purple-50 text-purple-600', label: t('share'), action: () => shareProfile() },
     { icon: Download, color: 'bg-indigo-50 text-indigo-600', label: t('export'), action: () => downloadStats() },
-    { icon: LogOut, color: 'bg-gray-200 text-gray-700', label: t('logout'), action: () => logout() },
+    { icon: LogOut, color: 'bg-gray-200 text-gray-700', label: t('logout'), action: () => signOut() },  // ✅ AuthContext-এর signOut
     { icon: Trash2, color: 'bg-red-50 text-red-600', label: t('delete'), action: () => deleteProfile() },
-  ], [lang, country, router, shareProfile, downloadStats, logout, deleteProfile, activeTab, t]);
+  ], [lang, country, router, shareProfile, downloadStats, signOut, deleteProfile, activeTab, t]);
   
   // ✅ FIXED: Loading state properly handles auth + data
   if (authLoading || loading) {
