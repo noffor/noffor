@@ -1,5 +1,5 @@
 // app/[country]/[lang]/dashboard/page.tsx
-// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST CRUD • ALL FIXED
+// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST CRUD • PROFILE EDIT • ALL FIXED
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
@@ -22,7 +22,6 @@ const LiveLocationTracker = lazy(() => import('@/components/worker/LiveLocationT
 
 // 🔥 Types
 type TabKey = 'overview' | 'trips' | 'posts' | 'edit' | 'stats' | 'saved' | 'alerts' | 'settings' | 'analytics';
-type LangKey = 'en' | 'bn' | 'ar' | 'hi';
 
 interface Post {
   id: string;
@@ -82,6 +81,7 @@ const LANG: Record<string, Record<string, string>> = {
     cancel: 'Cancel', confirm: 'Confirm',
     noImage: 'No image', redirecting: 'Redirecting to login...',
     switchLanguage: 'Switch Language',
+    createNewPost: 'Create New Post',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড', loading: 'লোড হচ্ছে...',
@@ -128,6 +128,7 @@ const LANG: Record<string, Record<string, string>> = {
     cancel: 'বাতিল', confirm: 'নিশ্চিত',
     noImage: 'কোনো ছবি নেই', redirecting: 'লগইনে রিডিরেক্ট...',
     switchLanguage: 'ভাষা পরিবর্তন',
+    createNewPost: 'নতুন পোস্ট তৈরি',
   },
   ar: {
     dashboard: 'لوحة التحكم', loading: 'جاري التحميل...',
@@ -172,6 +173,7 @@ const LANG: Record<string, Record<string, string>> = {
     cancel: 'إلغاء', confirm: 'تأكيد',
     noImage: 'لا صورة', redirecting: 'جاري التحويل...',
     switchLanguage: 'تغيير اللغة',
+    createNewPost: 'إنشاء منشور جديد',
   },
   hi: {
     dashboard: 'डैशबोर्ड', loading: 'लोड हो रहा...',
@@ -216,6 +218,7 @@ const LANG: Record<string, Record<string, string>> = {
     cancel: 'रद्द', confirm: 'पुष्टि',
     noImage: 'कोई इमेज नहीं', redirecting: 'लॉगिन पर रीडायरेक्ट...',
     switchLanguage: 'भाषा बदलें',
+    createNewPost: 'नया पोस्ट बनाएं',
   }
 };
 
@@ -274,81 +277,48 @@ const Toast = memo(({ toast, onClose }: { toast: any; onClose: () => void }) => 
 });
 Toast.displayName = 'Toast';
 
-// 🔥 Profile Header - ✅ FIXED: ইমেজ এরর হ্যান্ডলিং
+// 🔥 Profile Header
 const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photoUploading, online, lang, coverInputRef, photoInputRef, uploadCover, uploadPhoto, toggleOnline, shareProfile }: any) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
   const [coverError, setCoverError] = useState(false);
   const [photoError, setPhotoError] = useState(false);
 
-  // ✅ কভার ইমেজ রিসেট যখন নতুন কভার আসে
-  useEffect(() => {
-    setCoverError(false);
-  }, [coverSrc]);
-
-  // ✅ প্রোফাইল ফটো রিসেট যখন নতুন ফটো আসে
-  useEffect(() => {
-    setPhotoError(false);
-  }, [photoSrc]);
+  useEffect(() => { setCoverError(false); }, [coverSrc]);
+  useEffect(() => { setPhotoError(false); }, [photoSrc]);
 
   return (
-    <div className="bg-white rounded-xl border overflow-hidden mb-3 shadow-sm" style={{ willChange: 'transform' }}>
-      {/* ✅ কভার সেকশন - ইমেজ থাকলে দেখাবে, না থাকলে গ্রেডিয়েন্ট */}
+    <div className="bg-white rounded-xl border overflow-hidden mb-3 shadow-sm">
       <div className="relative h-32 lg:h-40 bg-gradient-to-r from-green-600 to-emerald-700">
         {coverSrc && !coverError ? (
-          <img 
-            src={coverSrc} 
-            className="w-full h-full object-cover" 
-            alt="Cover"
-            loading="lazy"
-            onError={() => setCoverError(true)}
-          />
+          <img src={coverSrc} className="w-full h-full object-cover" alt="Cover" loading="lazy" onError={() => setCoverError(true)} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Camera size={32} className="text-white/50" />
           </div>
         )}
-        <button 
-          type="button" 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); coverInputRef.current?.click(); }} 
-          disabled={coverUploading}
-          className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all active:scale-90 z-10" 
-          style={{ touchAction: 'manipulation' }}
-        >
+        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); coverInputRef.current?.click(); }} disabled={coverUploading}
+          className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all active:scale-90 z-10">
           {coverUploading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera size={16} />}
         </button>
         <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadCover(e); }} />
       </div>
 
-      {/* ✅ প্রোফাইল ফটো সেকশন - ইমেজ থাকলে দেখাবে, না থাকলে ইউজার আইকন */}
       <div className="relative px-4 pb-4">
         <div className="relative -mt-10 lg:-mt-12 w-20 h-20 lg:w-24 lg:h-24 mx-auto">
           {photoSrc && !photoError ? (
-            <img 
-              src={photoSrc} 
-              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-4 border-white object-cover bg-gray-200 shadow-md" 
-              alt="Profile"
-              loading="lazy"
-              onError={() => setPhotoError(true)}
-              style={{ willChange: 'transform' }}
-            />
+            <img src={photoSrc} className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-4 border-white object-cover bg-gray-200 shadow-md" alt="Profile" loading="lazy" onError={() => setPhotoError(true)} />
           ) : (
             <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full border-4 border-white bg-gradient-to-br from-green-400 to-emerald-600 shadow-md flex items-center justify-center">
               <User size={32} className="text-white" />
             </div>
           )}
-          <button 
-            type="button" 
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); photoInputRef.current?.click(); }} 
-            disabled={photoUploading}
-            className="absolute bottom-0 right-0 bg-green-600 hover:bg-green-700 text-white p-1.5 rounded-full transition-all active:scale-90 shadow-md z-10" 
-            style={{ touchAction: 'manipulation' }}
-          >
+          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); photoInputRef.current?.click(); }} disabled={photoUploading}
+            className="absolute bottom-0 right-0 bg-green-600 hover:bg-green-700 text-white p-1.5 rounded-full transition-all active:scale-90 shadow-md z-10">
             {photoUploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera size={14} />}
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadPhoto(e); }} />
         </div>
         
-        {/* প্রোফাইল ইনফো */}
         <div className="text-center mt-2">
           <div className="flex items-center justify-center gap-2">
             <h2 className="font-bold text-lg">{profile?.name || 'Worker'}</h2>
@@ -361,19 +331,13 @@ const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photo
             <span className="text-xs text-gray-400">({profile?.total_reviews || 0})</span>
           </div>
           
-          {/* অনলাইন/অফলাইন টগল */}
           <div className="mt-3 flex justify-center">
-            <button 
-              type="button" 
-              onClick={toggleOnline}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 flex items-center gap-2 ${online ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-200 text-gray-600'}`}
-              style={{ touchAction: 'manipulation', willChange: 'transform' }}
-            >
+            <button type="button" onClick={toggleOnline}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 flex items-center gap-2 ${online ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-200 text-gray-600'}`}>
               {online ? <><div className="w-2 h-2 bg-white rounded-full animate-pulse" />{t('online')}</> : <><WifiOff size={14} />{t('offline')}</>}
             </button>
           </div>
           
-          {/* শেয়ার প্রোফাইল */}
           <button onClick={shareProfile} className="mt-2 text-xs text-gray-400 hover:text-green-600 transition flex items-center justify-center gap-1 mx-auto">
             <Share2 size={12} /> {t('shareProfile')}
           </button>
@@ -392,7 +356,6 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
   
   return (
     <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-      {/* Post Header */}
       <div className="flex items-center justify-between p-3 pb-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
@@ -406,20 +369,16 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
         
         {isOwner && (
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)}
-              className="p-1 hover:bg-gray-100 rounded-full transition active:scale-90" style={{ touchAction: 'manipulation' }}>
+            <button onClick={() => setShowMenu(!showMenu)} className="p-1 hover:bg-gray-100 rounded-full transition active:scale-90">
               <MoreVertical size={14} className="text-gray-400" />
             </button>
             
             {showMenu && (
-              <div className="absolute right-0 top-8 bg-white rounded-xl shadow-xl border z-20 py-1 min-w-[120px]"
-                onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => { onEdit(post); setShowMenu(false); }}
-                  className="w-full px-3 py-2 text-xs text-left hover:bg-gray-50 flex items-center gap-2 transition">
+              <div className="absolute right-0 top-8 bg-white rounded-xl shadow-xl border z-20 py-1 min-w-[120px]" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => { onEdit(post); setShowMenu(false); }} className="w-full px-3 py-2 text-xs text-left hover:bg-gray-50 flex items-center gap-2 transition">
                   <Edit3 size={12} /> {t('editPost')}
                 </button>
-                <button onClick={() => { onDelete(post.id); setShowMenu(false); }}
-                  className="w-full px-3 py-2 text-xs text-left hover:bg-red-50 text-red-600 flex items-center gap-2 transition">
+                <button onClick={() => { onDelete(post.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs text-left hover:bg-red-50 text-red-600 flex items-center gap-2 transition">
                   <Trash2 size={12} /> {t('deletePost')}
                 </button>
               </div>
@@ -428,17 +387,13 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
         )}
       </div>
       
-      {/* Post Content */}
       <div className="p-3">
         <p className="text-sm text-gray-700 whitespace-pre-wrap">{post.content}</p>
         {post.image_url && (
-          <img src={post.image_url} alt="Post" loading="lazy"
-            className="mt-2 rounded-lg w-full max-h-64 object-cover cursor-pointer hover:opacity-90 transition"
-            onClick={() => window.open(post.image_url, '_blank')} />
+          <img src={post.image_url} alt="Post" loading="lazy" className="mt-2 rounded-lg w-full max-h-64 object-cover cursor-pointer hover:opacity-90 transition" onClick={() => window.open(post.image_url, '_blank')} />
         )}
       </div>
       
-      {/* Post Actions */}
       <div className="flex items-center gap-4 px-3 pb-3 border-t pt-2">
         <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition">
           <Heart size={14} /> {post.likes_count || 0} {t('likes')}
@@ -487,12 +442,8 @@ const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: 
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}>
-      <div className="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <FileText size={20} className="text-green-600" />
@@ -503,37 +454,27 @@ const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: 
           </button>
         </div>
         
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t('postPlaceholder')}
-          rows={4}
-          className="w-full px-3 py-2 border rounded-xl text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition resize-none"
-          autoFocus
-        />
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={t('postPlaceholder')} rows={4}
+          className="w-full px-3 py-2 border rounded-xl text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition resize-none" autoFocus />
         
-        {/* Image Preview */}
         {preview && (
           <div className="relative mt-2">
             <img src={preview} alt="Preview" className="rounded-lg w-full max-h-48 object-cover" />
-            <button onClick={() => { setPreview(''); setImage(null); }}
-              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow">
+            <button onClick={() => { setPreview(''); setImage(null); }} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow">
               <X size={14} />
             </button>
           </div>
         )}
         
         <div className="flex items-center gap-2 mt-3">
-          <button onClick={() => imageRef.current?.click()}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition">
+          <button onClick={() => imageRef.current?.click()} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition">
             <ImageIcon size={14} /> {t('addImage')}
           </button>
           <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
         </div>
         
         <div className="flex gap-2 mt-4">
-          <button onClick={onClose}
-            className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
             {t('cancel')}
           </button>
           <button onClick={handleSubmit} disabled={loading || !content.trim()}
@@ -577,15 +518,13 @@ ConfirmModal.displayName = 'ConfirmModal';
 // 🔥 Tab Button
 const TabButton = memo(({ tab, isActive, onClick }: any) => (
   <button onClick={() => onClick(tab.id)}
-    className={`rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 ${isActive ? 'bg-orange-600 text-white shadow-md' : 'bg-white text-gray-600 border hover:bg-orange-50'}`}
-    style={{ touchAction: 'manipulation', willChange: 'transform', userSelect: 'none' }}>
+    className={`rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 ${isActive ? 'bg-orange-600 text-white shadow-md' : 'bg-white text-gray-600 border hover:bg-orange-50'}`}>
     <tab.icon size={18} className="mx-auto mb-0.5" />
     <p className="text-[8px] font-medium truncate">{tab.label}</p>
   </button>
 ));
 TabButton.displayName = 'TabButton';
 
-// ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
 // 🔥 MAIN DASHBOARD COMPONENT - ALL FIXED
 // ═══════════════════════════════════════════════════════
@@ -595,7 +534,6 @@ export default function DashboardPage() {
   const lang = (params as any)?.lang || 'en';
   const router = useRouter();
   
-  // ✅ Auth guard - signOut নেওয়া হলো
   const { isAuthenticated, loading: authLoading, signOut } = useAuth();
   
   const t = useCallback((key: string) => LANG[lang]?.[key] || LANG.en[key] || key, [lang]);
@@ -649,10 +587,13 @@ export default function DashboardPage() {
     { id: 'settings' as TabKey, icon: Settings, label: t('settings') },
   ], [lang, t]);
 
-  // ✅ Auth Guard - লগইন না থাকলে রিডিরেক্ট
+  // ✅ AUTH GUARD - ১ সেকেন্ড ডিলে (লগইন লুপ ফিক্স)
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace(`/${country}/${lang}/login?redirect=/${country}/${lang}/dashboard`);
+      const timer = setTimeout(() => {
+        router.replace(`/${country}/${lang}/login`);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [authLoading, isAuthenticated, country, lang, router]);
 
@@ -705,13 +646,13 @@ export default function DashboardPage() {
             name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email,
             phone: session.user.phone || '',
-            photo_url: '', // ✅ খালি স্ট্রিং - ডিফল্ট ইমেজ না
-            cover_url: '', // ✅ খালি স্ট্রিং - ডিফল্ট কভার না
+            photo_url: '',
+            cover_url: '',
             role: 'labor',
             country,
             is_online: false,
             is_verified: true,
-            is_public: true,
+            is_public: false,
             rating: 0,
             total_reviews: 0,
             views: 0,
@@ -867,7 +808,6 @@ export default function DashboardPage() {
   // 🔥 POST CRUD OPERATIONS
   // ═══════════════════════════════════════════
   
-  // পোস্ট তৈরি/আপডেট
   const handlePostSubmit = useCallback(async ({ content, image }: { content: string; image: File | null }) => {
     if (!userId || lockRef.current) return;
     lockRef.current = true; setPostLoading(true);
@@ -911,19 +851,16 @@ export default function DashboardPage() {
     }
   }, [userId, editingPost, showToast, t]);
   
-  // পোস্ট এডিট
   const handleEditPost = useCallback((post: Post) => {
     setEditingPost(post);
     setShowPostModal(true);
   }, []);
   
-  // পোস্ট ডিলিট কনফার্ম
   const handleDeleteClick = useCallback((postId: string) => {
     setDeletingPostId(postId);
     setShowDeleteConfirm(true);
   }, []);
   
-  // পোস্ট ডিলিট
   const confirmDeletePost = useCallback(async () => {
     if (!deletingPostId || lockRef.current) return;
     lockRef.current = true;
@@ -996,7 +933,6 @@ export default function DashboardPage() {
     { icon: Clock, color: 'text-orange-500', value: `${(profile || {}).experience || 0} yrs`, label: t('exp') },
   ], [earnings, trips, profile, lang, t]);
   
-  // ✅ SETTINGS_BTNS - সব বাটন ফিক্সড
   const SETTINGS_BTNS = useMemo(() => [
     { icon: User, color: 'bg-lime-50 text-lime-600', label: t('editProfile'), action: () => setActiveTab('edit') },
     { icon: Globe, color: 'bg-blue-50 text-blue-600', label: lang.toUpperCase(), action: () => {
@@ -1016,7 +952,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" style={{ willChange: 'transform' }} />
+          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-gray-500">{t('loading')}</p>
         </div>
       </div>
@@ -1028,7 +964,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" style={{ willChange: 'transform' }} />
+          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-gray-500">{t('redirecting')}</p>
         </div>
       </div>
@@ -1040,7 +976,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" style={{ willChange: 'transform' }} />
+          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-gray-500">{t('loading')}</p>
         </div>
       </div>
@@ -1048,7 +984,6 @@ export default function DashboardPage() {
   }
   
   const p = profile || {};
-  // ✅ ইমেজ সোর্স - খালি থাকলে খালিই থাকবে, ডিফল্ট ইমেজ না
   const photoSrc = p.photo_url || '';
   const coverSrc = p.cover_url || '';
   
@@ -1066,21 +1001,17 @@ export default function DashboardPage() {
       
       <Toast toast={toast} onClose={() => setToast(null)} />
       
-      {/* Post Modal */}
       <PostModal isOpen={showPostModal} onClose={() => { setShowPostModal(false); setEditingPost(null); }}
         onSubmit={handlePostSubmit} editPost={editingPost} lang={lang} loading={postLoading} />
       
-      {/* Delete Confirm Modal */}
       <ConfirmModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeletingPostId(''); }}
         onConfirm={confirmDeletePost} message={t('deletePostConfirm')} lang={lang} />
       
       <div className="max-w-4xl mx-auto px-3 py-3 lg:py-4">
-        {/* ✅ প্রোফাইল হেডার - ইমেজ এরর হ্যান্ডলিং সহ */}
         <ProfileHeader profile={p} coverSrc={coverSrc} photoSrc={photoSrc} coverUploading={coverUploading} photoUploading={photoUploading}
           online={online} lang={lang} coverInputRef={coverInputRef} photoInputRef={photoInputRef}
           uploadCover={uploadCover} uploadPhoto={uploadPhoto} toggleOnline={toggleOnline} shareProfile={shareProfile} />
         
-        {/* কুইক স্ট্যাটস */}
         <div className="grid grid-cols-4 gap-2 mb-3">
           {QUICK_STATS.map((stat, i) => (
             <div key={i} className="bg-white rounded-xl p-2 text-center border shadow-sm">
@@ -1091,16 +1022,13 @@ export default function DashboardPage() {
           ))}
         </div>
         
-        {/* ট্যাবস */}
         <div className="grid grid-cols-3 gap-1 mb-3">
           {TABS.map(tab => (
             <TabButton key={tab.id} tab={tab} isActive={activeTab === tab.id} onClick={setActiveTab} />
           ))}
         </div>
         
-        {/* ট্যাব কন্টেন্ট */}
         <div className="grid grid-cols-3 gap-2">
-          {/* Overview */}
           {activeTab === 'overview' && (
             <>
               {[
@@ -1126,7 +1054,6 @@ export default function DashboardPage() {
             </>
           )}
           
-          {/* Trips */}
           {activeTab === 'trips' && (
             trips.length === 0 ? (
               <div className="col-span-3 text-center py-8 text-gray-400">
@@ -1151,9 +1078,13 @@ export default function DashboardPage() {
             )
           )}
           
-          {/* 🔥 POSTS TAB */}
           {activeTab === 'posts' && (
             <div className="col-span-3 space-y-3">
+              <button onClick={() => { setEditingPost(null); setShowPostModal(true); }}
+                className="w-full bg-green-600 text-white rounded-xl py-3 font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2">
+                <Plus size={16} /> {t('createNewPost')}
+              </button>
+              
               {posts.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <FileText size={40} className="mx-auto mb-2 opacity-30" />
@@ -1168,24 +1099,6 @@ export default function DashboardPage() {
             </div>
           )}
           
-          {/* 🔥 SETTINGS TAB - সব বাটন ফিক্সড */}
-          {activeTab === 'settings' && (
-            <div className="col-span-3 space-y-2">
-              {SETTINGS_BTNS.map((btn, i) => (
-                <button key={i} onClick={btn.action}
-                  className="w-full bg-white rounded-xl p-3 text-left flex items-center gap-3 border hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
-                  style={{ touchAction: 'manipulation' }}>
-                  <div className={`w-9 h-9 ${btn.color} rounded-full flex items-center justify-center`}>
-                    <btn.icon size={18} />
-                  </div>
-                  <span className="text-sm font-medium flex-1">{btn.label}</span>
-                  <ChevronRight size={16} className="text-gray-400" />
-                </button>
-              ))}
-            </div>
-          )}
-          
-          {/* Edit Tab */}
           {activeTab === 'edit' && (
             <div className="col-span-3 space-y-2">
               {EDIT_FIELDS.map((field, i) => (
@@ -1215,7 +1128,6 @@ export default function DashboardPage() {
             </div>
           )}
           
-          {/* Stats Tab */}
           {activeTab === 'stats' && (
             <div className="col-span-3 space-y-2">
               {[
@@ -1234,7 +1146,6 @@ export default function DashboardPage() {
             </div>
           )}
           
-          {/* Saved Tab */}
           {activeTab === 'saved' && (
             savedWorkers.length === 0 ? (
               <div className="col-span-3 text-center py-8 text-gray-400">
@@ -1260,7 +1171,6 @@ export default function DashboardPage() {
             )
           )}
           
-          {/* Alerts Tab */}
           {activeTab === 'alerts' && (
             notifications.length === 0 ? (
               <div className="col-span-3 text-center py-8 text-gray-400">
@@ -1279,7 +1189,6 @@ export default function DashboardPage() {
             )
           )}
           
-          {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="col-span-3 space-y-2">
               {[
@@ -1295,6 +1204,21 @@ export default function DashboardPage() {
                   </div>
                   <span className="text-lg font-bold">{item.value}</span>
                 </div>
+              ))}
+            </div>
+          )}
+          
+          {activeTab === 'settings' && (
+            <div className="col-span-3 space-y-2">
+              {SETTINGS_BTNS.map((btn, i) => (
+                <button key={i} onClick={btn.action}
+                  className="w-full bg-white rounded-xl p-3 text-left flex items-center gap-3 border hover:shadow-md transition-all active:scale-[0.99] cursor-pointer">
+                  <div className={`w-9 h-9 ${btn.color} rounded-full flex items-center justify-center`}>
+                    <btn.icon size={18} />
+                  </div>
+                  <span className="text-sm font-medium flex-1">{btn.label}</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </button>
               ))}
             </div>
           )}

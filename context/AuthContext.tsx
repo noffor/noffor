@@ -118,7 +118,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               isAuthenticated: true,
             }));
           } else {
-            setState(prev => ({ ...prev, loading: false }));
+            // ✅ ফিক্স: session না থাকলে স্পষ্টভাবে false
+            setState(prev => ({ 
+              ...prev, 
+              loading: false,
+              isAuthenticated: false
+            }));
           }
         }
       } catch (error) {
