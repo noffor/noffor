@@ -1,8 +1,8 @@
-// app/[country]/[lang]/login/page.tsx - FINAL FIXED • PKCE FLOW ENABLED
+// app/[country]/[lang]/login/page.tsx - FINAL FIXED
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase'; // ✅ Singleton import
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
@@ -23,6 +23,7 @@ const T: Record<string, Record<string, string>> = {
     loginSuccess: 'Login successful!',
     redirectMessage: 'You will be redirected after login',
     error: 'Login failed. Please try again.',
+    processing: 'Processing...',
   },
   bn: {
     login: 'স্বাগতম',
@@ -38,6 +39,7 @@ const T: Record<string, Record<string, string>> = {
     loginSuccess: 'লগইন সফল!',
     redirectMessage: 'লগইনের পর আপনাকে রিডাইরেক্ট করা হবে',
     error: 'লগইন ব্যর্থ। আবার চেষ্টা করুন।',
+    processing: 'প্রক্রিয়াকরণ...',
   },
   ar: {
     login: 'مرحباً',
@@ -53,6 +55,7 @@ const T: Record<string, Record<string, string>> = {
     loginSuccess: 'تم تسجيل الدخول بنجاح!',
     redirectMessage: 'سيتم تحويلك بعد تسجيل الدخول',
     error: 'فشل تسجيل الدخول. حاول مرة أخرى.',
+    processing: 'معالجة...',
   },
   hi: {
     login: 'स्वागत',
@@ -68,42 +71,9 @@ const T: Record<string, Record<string, string>> = {
     loginSuccess: 'लॉगिन सफल!',
     redirectMessage: 'लॉगिन के बाद आपको रीडायरेक्ट किया जाएगा',
     error: 'लॉगिन विफल। पुनः प्रयास करें।',
+    processing: 'प्रसंस्करण...',
   },
 };
-
-const RoleSelector = React.memo(({ role, setRole, tr }: {
-  role: string;
-  setRole: (r: string) => void;
-  tr: Record<string, string>
-}) => (
-  <div className="grid grid-cols-2 gap-3">
-    <button
-      onClick={() => setRole('labor')}
-      className={`p-4 rounded-xl border-2 text-center transition-all active:scale-95 ${
-        role === 'labor'
-          ? 'border-green-500 bg-green-50 text-green-700 shadow-lg shadow-green-100'
-          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-      }`}
-    >
-      <User size={28} className="mx-auto mb-2" />
-      <p className="text-sm font-bold">{tr.worker}</p>
-      <p className="text-[10px] opacity-70 mt-1">{tr.findWork}</p>
-    </button>
-    <button
-      onClick={() => setRole('employer')}
-      className={`p-4 rounded-xl border-2 text-center transition-all active:scale-95 ${
-        role === 'employer'
-          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100'
-          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-      }`}
-    >
-      <Building size={28} className="mx-auto mb-2" />
-      <p className="text-sm font-bold">{tr.employer}</p>
-      <p className="text-[10px] opacity-70 mt-1">{tr.hire}</p>
-    </button>
-  </div>
-));
-RoleSelector.displayName = 'RoleSelector';
 
 export default function LoginPage() {
   const params = useParams();
@@ -123,17 +93,19 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
   const hasRedirected = useRef(false);
 
-  // Auto redirect if already logged in
+  // ✅ Auto redirect if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
       setSuccess(true);
-      const timer = setTimeout(() => router.replace(redirectTo), 1200);
+      const timer = setTimeout(() => {
+        window.location.href = redirectTo; // ✅ Hard redirect for fresh state
+      }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [authLoading, isAuthenticated, redirectTo, router]);
+  }, [authLoading, isAuthenticated, redirectTo]);
 
-  // Google Login - ✅ PKCE Flow Enabled
+  // ✅ Google Login
   const handleGoogleLogin = useCallback(async () => {
     if (loading || hasRedirected.current) return;
     
@@ -141,10 +113,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // ✅ callbackUrl ডিক্লেয়ার
-      const callbackUrl = `${window.location.origin}/auth/callback?country=${encodeURIComponent(country)}&lang=${encodeURIComponent(lang)}&role=${encodeURIComponent(role)}&next=${encodeURIComponent(redirectTo)}`;
+      // ✅ Save role to localStorage for callback
+      localStorage.setItem('noffor_pending_role', role);
       
-      console.log('🔑 PKCE Login - Redirect to:', callbackUrl);
+      const callbackUrl = `${window.location.origin}/auth/callback?country=${country}&lang=${lang}&role=${role}&next=${encodeURIComponent(redirectTo)}`;
+      
+      console.log('🔑 Login redirect to:', callbackUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -154,15 +128,12 @@ export default function LoginPage() {
             access_type: 'offline',
             prompt: 'consent',
           },
-          // ✅ skipBrowserRedirect রিমুভ - PKCE flow নিজেই handle করবে
         },
       });
 
       if (error) throw error;
       
-      // ✅ PKCE flow - Supabase redirect handle করবে
       if (data?.url) {
-        console.log('🔀 Redirecting to Google OAuth...');
         window.location.href = data.url;
       }
     } catch (err: any) {
@@ -211,7 +182,32 @@ export default function LoginPage() {
 
         <div className="mb-8">
           <p className="text-sm font-semibold text-gray-600 mb-3 text-center">{tr.selectRole}</p>
-          <RoleSelector role={role} setRole={setRole} tr={tr} />
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setRole('labor')}
+              className={`p-4 rounded-xl border-2 text-center transition-all active:scale-95 ${
+                role === 'labor'
+                  ? 'border-green-500 bg-green-50 text-green-700 shadow-lg shadow-green-100'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <User size={28} className="mx-auto mb-2" />
+              <p className="text-sm font-bold">{tr.worker}</p>
+              <p className="text-[10px] opacity-70 mt-1">{tr.findWork}</p>
+            </button>
+            <button
+              onClick={() => setRole('employer')}
+              className={`p-4 rounded-xl border-2 text-center transition-all active:scale-95 ${
+                role === 'employer'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <Building size={28} className="mx-auto mb-2" />
+              <p className="text-sm font-bold">{tr.employer}</p>
+              <p className="text-[10px] opacity-70 mt-1">{tr.hire}</p>
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -228,7 +224,7 @@ export default function LoginPage() {
           {loading ? (
             <>
               <Loader2 size={20} className="animate-spin" />
-              Redirecting to Google...
+              {tr.processing}
             </>
           ) : (
             <>
