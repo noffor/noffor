@@ -1,5 +1,5 @@
 // app/[country]/[lang]/dashboard/page.tsx
-// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST CRUD • PROFILE EDIT • ALL FIXED
+// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST CRUD (CREATE REMOVED) • PROFILE EDIT • ALL FIXED
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
@@ -21,7 +21,7 @@ const MobileNav = lazy(() => import('@/components/layout/MobileNav'));
 const LiveLocationTracker = lazy(() => import('@/components/worker/LiveLocationTracker'));
 
 // 🔥 Types
-type TabKey = 'overview' | 'trips' | 'posts' | 'edit' | 'stats' | 'saved' | 'alerts' | 'settings' | 'analytics';
+type TabKey = 'overview' | 'trips' | 'posts' | 'edit' | 'stats' | 'saved' | 'alerts' | 'analytics' | 'settings';
 
 interface Post {
   id: string;
@@ -38,7 +38,7 @@ interface Post {
 const LANG: Record<string, Record<string, string>> = {
   en: {
     dashboard: 'Dashboard', loading: 'Loading...',
-    home: 'Home', trips: 'Trips', posts: 'Posts', edit: 'Edit',
+    home: 'Home', trips: 'Trips', posts: 'My Posts', edit: 'Edit',
     stats: 'Stats', saved: 'Saved', alerts: 'Alerts',
     analytics: 'Analytics', settings: 'Settings',
     earned: 'Earned', rating: 'Rating', jobs: 'Jobs', exp: 'Exp',
@@ -46,13 +46,9 @@ const LANG: Record<string, Record<string, string>> = {
     jobOffers: 'Job Offers', profileCompletion: 'Profile Completion',
     noTrips: 'No trips yet', noSaved: 'No saved workers yet',
     noAlerts: 'No notifications', noPosts: 'No posts yet',
-    createPost: 'Create Post', writePost: "What's on your mind?",
-    postPlaceholder: 'Share your skills, experience...',
-    publish: 'Publish', publishing: 'Publishing...',
-    editPost: 'Edit Post', updatePost: 'Update',
+    editPost: 'Edit Post', updatePost: 'Update', updating: 'Updating...',
     deletePost: 'Delete Post', deletePostConfirm: 'Delete this post?',
-    postDeleted: 'Post deleted!', postCreated: 'Post created!',
-    postUpdated: 'Post updated!',
+    postDeleted: 'Post deleted!', postUpdated: 'Post updated!',
     editProfile: 'Edit Profile', fullName: 'Full Name',
     category: 'Category', expectedSalary: 'Expected Salary (QAR)',
     experience: 'Experience (years)', city: 'City', area: 'Area',
@@ -77,15 +73,15 @@ const LANG: Record<string, Record<string, string>> = {
     copiedFailed: 'Failed to copy',
     likes: 'likes', comments: 'comments',
     justNow: 'just now', minutesAgo: 'm ago', hoursAgo: 'h ago',
-    daysAgo: 'd ago', addImage: 'Add Image',
+    daysAgo: 'd ago', addImage: 'Add Image', changeImage: 'Change Image',
     cancel: 'Cancel', confirm: 'Confirm',
     noImage: 'No image', redirecting: 'Redirecting to login...',
     switchLanguage: 'Switch Language',
-    createNewPost: 'Create New Post',
+    viewProfile: 'View Profile',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড', loading: 'লোড হচ্ছে...',
-    home: 'হোম', trips: 'ট্রিপস', posts: 'পোস্ট', edit: 'এডিট',
+    home: 'হোম', trips: 'ট্রিপস', posts: 'আমার পোস্ট', edit: 'এডিট',
     stats: 'পরিসংখ্যান', saved: 'সংরক্ষিত', alerts: 'নোটিফিকেশন',
     analytics: 'বিশ্লেষণ', settings: 'সেটিংস',
     earned: 'আয়', rating: 'রেটিং', jobs: 'কাজ', exp: 'অভিজ্ঞতা',
@@ -93,13 +89,9 @@ const LANG: Record<string, Record<string, string>> = {
     jobOffers: 'জব অফার', profileCompletion: 'প্রোফাইল সম্পূর্ণতা',
     noTrips: 'কোনো ট্রিপ নেই', noSaved: 'কোনো সংরক্ষিত শ্রমিক নেই',
     noAlerts: 'কোনো নোটিফিকেশন নেই', noPosts: 'কোনো পোস্ট নেই',
-    createPost: 'পোস্ট তৈরি', writePost: 'আপনার মনের কথা?',
-    postPlaceholder: 'আপনার দক্ষতা, অভিজ্ঞতা শেয়ার করুন...',
-    publish: 'প্রকাশ', publishing: 'প্রকাশ হচ্ছে...',
-    editPost: 'পোস্ট এডিট', updatePost: 'আপডেট',
+    editPost: 'পোস্ট এডিট', updatePost: 'আপডেট', updating: 'আপডেট হচ্ছে...',
     deletePost: 'পোস্ট মুছুন', deletePostConfirm: 'পোস্টটি মুছবেন?',
-    postDeleted: 'পোস্ট মুছে ফেলা হয়েছে!', postCreated: 'পোস্ট তৈরি হয়েছে!',
-    postUpdated: 'পোস্ট আপডেট হয়েছে!',
+    postDeleted: 'পোস্ট মুছে ফেলা হয়েছে!', postUpdated: 'পোস্ট আপডেট হয়েছে!',
     editProfile: 'প্রোফাইল সম্পাদনা', fullName: 'পুরো নাম',
     category: 'ক্যাটাগরি', expectedSalary: 'প্রত্যাশিত বেতন (QAR)',
     experience: 'অভিজ্ঞতা (বছর)', city: 'শহর', area: 'এলাকা',
@@ -124,15 +116,15 @@ const LANG: Record<string, Record<string, string>> = {
     copiedFailed: 'কপি ব্যর্থ',
     likes: 'লাইক', comments: 'কমেন্ট',
     justNow: 'এই মাত্র', minutesAgo: 'মি আগে', hoursAgo: 'ঘ আগে',
-    daysAgo: 'দি আগে', addImage: 'ছবি যোগ',
+    daysAgo: 'দি আগে', addImage: 'ছবি যোগ', changeImage: 'ছবি পরিবর্তন',
     cancel: 'বাতিল', confirm: 'নিশ্চিত',
     noImage: 'কোনো ছবি নেই', redirecting: 'লগইনে রিডিরেক্ট...',
     switchLanguage: 'ভাষা পরিবর্তন',
-    createNewPost: 'নতুন পোস্ট তৈরি',
+    viewProfile: 'প্রোফাইল দেখুন',
   },
   ar: {
     dashboard: 'لوحة التحكم', loading: 'جاري التحميل...',
-    home: 'الرئيسية', trips: 'الرحلات', posts: 'منشورات', edit: 'تعديل',
+    home: 'الرئيسية', trips: 'الرحلات', posts: 'منشوراتي', edit: 'تعديل',
     stats: 'إحصائيات', saved: 'محفوظ', alerts: 'تنبيهات',
     analytics: 'تحليلات', settings: 'إعدادات',
     earned: 'المكسب', rating: 'تقييم', jobs: 'وظائف', exp: 'خبرة',
@@ -140,13 +132,9 @@ const LANG: Record<string, Record<string, string>> = {
     jobOffers: 'عروض عمل', profileCompletion: 'اكتمال الملف',
     noTrips: 'لا رحلات', noSaved: 'لا عمال محفوظين',
     noAlerts: 'لا تنبيهات', noPosts: 'لا منشورات',
-    createPost: 'إنشاء منشور', writePost: 'ما الذي يدور في ذهنك؟',
-    postPlaceholder: 'شارك مهاراتك، خبراتك...',
-    publish: 'نشر', publishing: 'نشر...',
-    editPost: 'تعديل', updatePost: 'تحديث',
+    editPost: 'تعديل', updatePost: 'تحديث', updating: 'جاري التحديث...',
     deletePost: 'حذف', deletePostConfirm: 'حذف المنشور؟',
-    postDeleted: 'تم الحذف!', postCreated: 'تم النشر!',
-    postUpdated: 'تم التحديث!',
+    postDeleted: 'تم الحذف!', postUpdated: 'تم التحديث!',
     editProfile: 'تعديل الملف', fullName: 'الاسم',
     category: 'فئة', expectedSalary: 'الراتب (QAR)',
     experience: 'خبرة (سنوات)', city: 'مدينة', area: 'منطقة',
@@ -169,15 +157,15 @@ const LANG: Record<string, Record<string, string>> = {
     deleteConfirm: 'هل أنت متأكد؟', copiedFailed: 'فشل النسخ',
     likes: 'إعجاب', comments: 'تعليقات',
     justNow: 'الآن', minutesAgo: 'د', hoursAgo: 'س',
-    daysAgo: 'ي', addImage: 'إضافة صورة',
+    daysAgo: 'ي', addImage: 'إضافة صورة', changeImage: 'تغيير الصورة',
     cancel: 'إلغاء', confirm: 'تأكيد',
     noImage: 'لا صورة', redirecting: 'جاري التحويل...',
     switchLanguage: 'تغيير اللغة',
-    createNewPost: 'إنشاء منشور جديد',
+    viewProfile: 'عرض الملف',
   },
   hi: {
     dashboard: 'डैशबोर्ड', loading: 'लोड हो रहा...',
-    home: 'होम', trips: 'ट्रिप्स', posts: 'पोस्ट', edit: 'एडिट',
+    home: 'होम', trips: 'ट्रिप्स', posts: 'मेरे पोस्ट', edit: 'एडिट',
     stats: 'आंकड़े', saved: 'सेव्ड', alerts: 'अलर्ट',
     analytics: 'एनालिटिक्स', settings: 'सेटिंग्स',
     earned: 'कमाई', rating: 'रेटिंग', jobs: 'काम', exp: 'अनुभव',
@@ -185,13 +173,9 @@ const LANG: Record<string, Record<string, string>> = {
     jobOffers: 'जॉब ऑफर', profileCompletion: 'प्रोफाइल पूर्णता',
     noTrips: 'कोई ट्रिप नहीं', noSaved: 'कोई सेव्ड नहीं',
     noAlerts: 'कोई नोटिफिकेशन नहीं', noPosts: 'कोई पोस्ट नहीं',
-    createPost: 'पोस्ट बनाएं', writePost: 'आपके मन में क्या है?',
-    postPlaceholder: 'अपनी स्किल शेयर करें...',
-    publish: 'प्रकाशित', publishing: 'प्रकाशित...',
-    editPost: 'पोस्ट एडिट', updatePost: 'अपडेट',
+    editPost: 'पोस्ट एडिट', updatePost: 'अपडेट', updating: 'अपडेट हो रहा...',
     deletePost: 'पोस्ट डिलीट', deletePostConfirm: 'पोस्ट डिलीट करें?',
-    postDeleted: 'पोस्ट डिलीट!', postCreated: 'पोस्ट बना!',
-    postUpdated: 'पोस्ट अपडेट!',
+    postDeleted: 'पोस्ट डिलीट!', postUpdated: 'पोस्ट अपडेट!',
     editProfile: 'प्रोफाइल एडिट', fullName: 'पूरा नाम',
     category: 'श्रेणी', expectedSalary: 'वेतन (QAR)',
     experience: 'अनुभव (साल)', city: 'शहर', area: 'क्षेत्र',
@@ -214,11 +198,11 @@ const LANG: Record<string, Record<string, string>> = {
     deleteConfirm: 'क्या आप सुनिश्चित हैं?', copiedFailed: 'कॉपी फेल',
     likes: 'लाइक', comments: 'कमेंट',
     justNow: 'अभी', minutesAgo: 'मि', hoursAgo: 'घं',
-    daysAgo: 'दि', addImage: 'इमेज',
+    daysAgo: 'दि', addImage: 'इमेज', changeImage: 'इमेज बदलें',
     cancel: 'रद्द', confirm: 'पुष्टि',
-    noImage: 'कोई इमेज नहीं', redirecting: 'लॉगिन पर रीडायरेक्ट...',
+    noImage: 'कोई इमेज नहीं', redirecting: 'लॉगइन पर रीडायरेक्ट...',
     switchLanguage: 'भाषा बदलें',
-    createNewPost: 'नया पोस्ट बनाएं',
+    viewProfile: 'प्रोफाइल देखें',
   }
 };
 
@@ -407,38 +391,49 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
 });
 PostCard.displayName = 'PostCard';
 
-// 🔥 Create/Edit Post Modal
-const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: any) => {
+// 🔥 Edit Post Modal (CREATE REMOVED — শুধু এডিট)
+const EditPostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: any) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
-  const [content, setContent] = useState(editPost?.content || '');
+  const [content, setContent] = useState('');
   const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>(editPost?.image_url || '');
+  const [preview, setPreview] = useState<string>('');
+  const [keepExistingImage, setKeepExistingImage] = useState(true);
   const imageRef = useRef<HTMLInputElement>(null!);
   
   useEffect(() => {
-    if (editPost) {
+    if (editPost && isOpen) {
       setContent(editPost.content || '');
       setPreview(editPost.image_url || '');
-    } else {
-      setContent('');
-      setPreview('');
+      setKeepExistingImage(true);
+      setImage(null);
     }
-    setImage(null);
   }, [editPost, isOpen]);
   
-  if (!isOpen) return null;
+  if (!isOpen || !editPost) return null;
   
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImage(file);
       setPreview(URL.createObjectURL(file));
+      setKeepExistingImage(false);
     }
+  };
+  
+  const handleRemoveImage = () => {
+    setImage(null);
+    setPreview('');
+    setKeepExistingImage(false);
   };
   
   const handleSubmit = () => {
     if (!content.trim()) return;
-    onSubmit({ content: content.trim(), image });
+    onSubmit({ 
+      postId: editPost.id,
+      content: content.trim(), 
+      image: keepExistingImage ? null : image,
+      removeImage: !keepExistingImage && !image
+    });
   };
   
   return (
@@ -447,20 +442,20 @@ const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: 
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <FileText size={20} className="text-green-600" />
-            {editPost ? t('editPost') : t('createPost')}
+            {t('editPost')}
           </h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition">
             <X size={20} className="text-gray-400" />
           </button>
         </div>
         
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={t('postPlaceholder')} rows={4}
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={editPost.content || ''} rows={4}
           className="w-full px-3 py-2 border rounded-xl text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition resize-none" autoFocus />
         
         {preview && (
           <div className="relative mt-2">
             <img src={preview} alt="Preview" className="rounded-lg w-full max-h-48 object-cover" />
-            <button onClick={() => { setPreview(''); setImage(null); }} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow">
+            <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition">
               <X size={14} />
             </button>
           </div>
@@ -468,9 +463,12 @@ const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: 
         
         <div className="flex items-center gap-2 mt-3">
           <button onClick={() => imageRef.current?.click()} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition">
-            <ImageIcon size={14} /> {t('addImage')}
+            <ImageIcon size={14} /> {preview ? t('changeImage') : t('addImage')}
           </button>
           <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+          {preview && keepExistingImage && (
+            <span className="text-[10px] text-gray-400">{t('noImage')}</span>
+          )}
         </div>
         
         <div className="flex gap-2 mt-4">
@@ -480,14 +478,14 @@ const PostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: 
           <button onClick={handleSubmit} disabled={loading || !content.trim()}
             className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
             {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={14} />}
-            {editPost ? (loading ? t('publishing') : t('updatePost')) : (loading ? t('publishing') : t('publish'))}
+            {loading ? t('updating') : t('updatePost')}
           </button>
         </div>
       </div>
     </div>
   );
 });
-PostModal.displayName = 'PostModal';
+EditPostModal.displayName = 'EditPostModal';
 
 // 🔥 Confirm Delete Modal
 const ConfirmModal = memo(({ isOpen, onClose, onConfirm, message, lang }: any) => {
@@ -526,7 +524,7 @@ const TabButton = memo(({ tab, isActive, onClick }: any) => (
 TabButton.displayName = 'TabButton';
 
 // ═══════════════════════════════════════════════════════
-// 🔥 MAIN DASHBOARD COMPONENT - ALL FIXED
+// 🔥 MAIN DASHBOARD COMPONENT - CREATE POST REMOVED
 // ═══════════════════════════════════════════════════════
 export default function DashboardPage() {
   const params = useParams();
@@ -556,8 +554,8 @@ export default function DashboardPage() {
   const [earnings, setEarnings] = useState({ total: 0, monthly: 0, weekly: 0 });
   const [analytics, setAnalytics] = useState({ views: 0, profileVisits: 0, calls: 0, messages: 0 });
   
-  // 🔥 Post states
-  const [showPostModal, setShowPostModal] = useState(false);
+  // 🔥 Post states — CREATE REMOVED, শুধু EDIT/DELETE
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [postLoading, setPostLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -587,7 +585,7 @@ export default function DashboardPage() {
     { id: 'settings' as TabKey, icon: Settings, label: t('settings') },
   ], [lang, t]);
 
-  // ✅ AUTH GUARD - ১ সেকেন্ড ডিলে (লগইন লুপ ফিক্স)
+  // ✅ AUTH GUARD
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       const timer = setTimeout(() => {
@@ -597,7 +595,7 @@ export default function DashboardPage() {
     }
   }, [authLoading, isAuthenticated, country, lang, router]);
 
-  // ✅ লোকাল স্টোরেজ থেকে দ্রুত লোড
+  // ✅ Local storage fast load
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
     
@@ -618,7 +616,7 @@ export default function DashboardPage() {
     return () => { mountedRef.current = false; };
   }, [authLoading, isAuthenticated]);
 
-  // ✅ Supabase থেকে ফ্রেশ ডাটা
+  // ✅ Supabase fresh data
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
     
@@ -688,7 +686,7 @@ export default function DashboardPage() {
     initLoad();
   }, [authLoading, isAuthenticated, country, lang, router]);
   
-  // 🔥 সকল ডাটা লোড
+  // 🔥 Load all data
   const loadAllData = useCallback(async (uid: string) => {
     if (!uid || !mountedRef.current) return;
     
@@ -736,7 +734,7 @@ export default function DashboardPage() {
     }
   }, [userId, loadAllData]);
   
-  // 🔥 অনলাইন/অফলাইন টগল
+  // 🔥 Online/Offline toggle
   const toggleOnline = useCallback(async () => {
     if (lockRef.current || !profile?.id) return;
     lockRef.current = true; const next = !online; setOnline(next);
@@ -752,7 +750,7 @@ export default function DashboardPage() {
     finally { setTimeout(() => { lockRef.current = false; }, 500); }
   }, [online, profile, showToast, t]);
   
-  // 🔥 কভার আপলোড
+  // 🔥 Cover upload
   const uploadCover = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile?.id || lockRef.current) return;
@@ -770,7 +768,7 @@ export default function DashboardPage() {
     finally { if (mountedRef.current) setCoverUploading(false); setTimeout(() => { lockRef.current = false; }, 500); if (coverInputRef.current) coverInputRef.current.value = ''; }
   }, [profile, showToast, t]);
   
-  // 🔥 ফটো আপলোড
+  // 🔥 Photo upload
   const uploadPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile?.id || lockRef.current) return;
@@ -788,7 +786,7 @@ export default function DashboardPage() {
     finally { if (mountedRef.current) setPhotoUploading(false); setTimeout(() => { lockRef.current = false; }, 500); if (photoInputRef.current) photoInputRef.current.value = ''; }
   }, [profile, showToast, t]);
   
-  // 🔥 প্রোফাইল সেভ
+  // 🔥 Profile save
   const saveProfile = useCallback(async () => {
     if (!profile?.id || lockRef.current) return;
     lockRef.current = true; setSaving(true);
@@ -805,17 +803,20 @@ export default function DashboardPage() {
   }, [profile, editForm, showToast, t]);
   
   // ═══════════════════════════════════════════
-  // 🔥 POST CRUD OPERATIONS
+  // 🔥 POST EDIT & DELETE OPERATIONS (CREATE REMOVED)
   // ═══════════════════════════════════════════
   
-  const handlePostSubmit = useCallback(async ({ content, image }: { content: string; image: File | null }) => {
+  // ✅ Edit Post Submit
+  const handleEditSubmit = useCallback(async ({ postId, content, image, removeImage }: { postId: string; content: string; image: File | null; removeImage: boolean }) => {
     if (!userId || lockRef.current) return;
     lockRef.current = true; setPostLoading(true);
     
     try {
       let image_url = editingPost?.image_url || '';
       
-      if (image) {
+      if (removeImage) {
+        image_url = '';
+      } else if (image) {
         const compressed = await compressImage(image);
         const path = `posts/${userId}/${Date.now()}.webp`;
         const { error: uploadError } = await supabase.storage.from('posts').upload(path, compressed, { upsert: true, contentType: 'image/webp', cacheControl: '3600' });
@@ -824,24 +825,17 @@ export default function DashboardPage() {
         image_url = publicUrl;
       }
       
-      if (editingPost) {
-        const { error } = await supabase.from('posts').update({
-          content, image_url, updated_at: new Date().toISOString()
-        }).eq('id', editingPost.id);
-        if (error) throw error;
+      const { error } = await supabase.from('posts').update({
+        content, image_url, updated_at: new Date().toISOString()
+      }).eq('id', postId);
+      if (error) throw error;
+      
+      if (mountedRef.current) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, content, image_url, updated_at: new Date().toISOString() } : p));
         showToast(t('postUpdated'), 'success');
-      } else {
-        const { error } = await supabase.from('posts').insert({
-          user_id: userId, content, image_url, created_at: new Date().toISOString()
-        });
-        if (error) throw error;
-        showToast(t('postCreated'), 'success');
       }
       
-      const { data } = await supabase.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-      if (mountedRef.current && data) setPosts(data);
-      
-      setShowPostModal(false);
+      setShowEditModal(false);
       setEditingPost(null);
     } catch (err: any) {
       showToast(t('uploadFailed') + ': ' + err.message, 'error');
@@ -851,16 +845,19 @@ export default function DashboardPage() {
     }
   }, [userId, editingPost, showToast, t]);
   
+  // ✅ Open Edit Modal
   const handleEditPost = useCallback((post: Post) => {
     setEditingPost(post);
-    setShowPostModal(true);
+    setShowEditModal(true);
   }, []);
   
+  // ✅ Open Delete Confirm
   const handleDeleteClick = useCallback((postId: string) => {
     setDeletingPostId(postId);
     setShowDeleteConfirm(true);
   }, []);
   
+  // ✅ Confirm Delete
   const confirmDeletePost = useCallback(async () => {
     if (!deletingPostId || lockRef.current) return;
     lockRef.current = true;
@@ -872,6 +869,11 @@ export default function DashboardPage() {
       if (mountedRef.current) {
         setPosts(prev => prev.filter(p => p.id !== deletingPostId));
         showToast(t('postDeleted'), 'success');
+        
+        try {
+          sessionStorage.clear();
+          window.dispatchEvent(new CustomEvent('cache-clear'));
+        } catch {}
       }
     } catch (err: any) {
       showToast(t('deleteFailed') + ': ' + err.message, 'error');
@@ -882,7 +884,7 @@ export default function DashboardPage() {
     }
   }, [deletingPostId, showToast, t]);
   
-  // ✅ প্রোফাইল ডিলিট
+  // ✅ Delete profile
   const deleteProfile = useCallback(async () => {
     if (!confirm(t('deleteConfirm'))) return;
     try { 
@@ -892,24 +894,21 @@ export default function DashboardPage() {
     catch (err) { showToast(t('deleteFailed'), 'error'); }
   }, [profile, signOut, showToast, t]);
   
-  // ✅ লগআউট
+  // ✅ Logout
   const logout = useCallback(async () => {
     await signOut();
   }, [signOut]);
   
-  // নোটিফিকেশন রিড
   const markNotifRead = useCallback(async (id: string) => {
     try { await supabase.from('notifications').update({ is_read: true }).eq('id', id); setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n)); }
     catch {}
   }, []);
   
-  // শেয়ার প্রোফাইল
   const shareProfile = useCallback(() => {
     const url = `${window.location.origin}/${country}/${lang}/profile/${profile?.id}`;
     navigator.clipboard.writeText(url).then(() => showToast(t('profileLinkCopied'), 'success')).catch(() => showToast(t('copiedFailed'), 'error'));
   }, [country, lang, profile, showToast, t]);
   
-  // স্ট্যাটস ডাউনলোড
   const downloadStats = useCallback(() => {
     const stats = { name: profile?.name, views: analytics.views, profileVisits: analytics.profileVisits, calls: analytics.calls, messages: analytics.messages, earnings: earnings.total, rating: profile?.rating, date: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
@@ -947,7 +946,7 @@ export default function DashboardPage() {
     { icon: Trash2, color: 'bg-red-50 text-red-600', label: t('delete'), action: () => deleteProfile() },
   ], [lang, country, router, shareProfile, downloadStats, logout, deleteProfile, t]);
   
-  // ✅ Auth লোডিং স্টেট
+  // ✅ Auth loading
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -959,7 +958,6 @@ export default function DashboardPage() {
     );
   }
   
-  // ✅ নট অথেন্টিকেটেড স্টেট
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -971,7 +969,6 @@ export default function DashboardPage() {
     );
   }
   
-  // ✅ ডাটা লোডিং
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1001,8 +998,9 @@ export default function DashboardPage() {
       
       <Toast toast={toast} onClose={() => setToast(null)} />
       
-      <PostModal isOpen={showPostModal} onClose={() => { setShowPostModal(false); setEditingPost(null); }}
-        onSubmit={handlePostSubmit} editPost={editingPost} lang={lang} loading={postLoading} />
+      {/* ✅ শুধু Edit Modal — Create বাদ */}
+      <EditPostModal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingPost(null); }}
+        onSubmit={handleEditSubmit} editPost={editingPost} lang={lang} loading={postLoading} />
       
       <ConfirmModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeletingPostId(''); }}
         onConfirm={confirmDeletePost} message={t('deletePostConfirm')} lang={lang} />
@@ -1078,13 +1076,9 @@ export default function DashboardPage() {
             )
           )}
           
+          {/* ✅ Posts Tab — CREATE REMOVED, শুধু EDIT/DELETE */}
           {activeTab === 'posts' && (
             <div className="col-span-3 space-y-3">
-              <button onClick={() => { setEditingPost(null); setShowPostModal(true); }}
-                className="w-full bg-green-600 text-white rounded-xl py-3 font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2">
-                <Plus size={16} /> {t('createNewPost')}
-              </button>
-              
               {posts.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <FileText size={40} className="mx-auto mb-2 opacity-30" />

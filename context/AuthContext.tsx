@@ -1,4 +1,4 @@
-// context/AuthContext.tsx
+// context/AuthContext.tsx - ✅ PROFILE AUTO-CREATE FIXED + LOGOUT FIXED
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -37,30 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const cached = localStorage.getItem('noffor_user');
       return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }, []);
 
   const setCachedProfile = useCallback((profile: any) => {
     if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem('noffor_user', JSON.stringify(profile));
-    } catch {}
+    try { localStorage.setItem('noffor_user', JSON.stringify(profile)); } catch {}
   }, []);
 
   const loadProfile = useCallback(async (userId: string) => {
     try {
-      const cached = getCachedProfile();
-      if (cached?.id === userId) {
-        setState(prev => ({
-          ...prev,
-          profile: cached,
-          loading: false,
-          isAuthenticated: true,
-        }));
-      }
-
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -70,28 +56,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setCachedProfile(profile);
         setState(prev => ({
-          ...prev,
-          profile,
-          loading: false,
-          isAuthenticated: true,
+          ...prev, profile, loading: false, isAuthenticated: true,
         }));
+        return;
+      }
+
+      console.log('⚠️ No profile found, creating new...');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const newProfile = {
+          id: userId,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email || '',
+          phone: user.phone || '',
+          photo_url: user.user_metadata?.avatar_url || '',
+          role: 'labor',
+          country: 'qa',
+          profile_language: 'en',
+          is_online: false,
+          is_verified: true,
+          is_public: true,
+          rating: 0,
+          total_reviews: 0,
+          created_at: new Date().toISOString(),
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile);
+
+        if (insertError) {
+          console.error('❌ Profile insert error:', insertError.message);
+          setCachedProfile(newProfile);
+          setState(prev => ({
+            ...prev, profile: newProfile, loading: false, isAuthenticated: true,
+          }));
+        } else {
+          console.log('✅ New profile created');
+          setCachedProfile(newProfile);
+          setState(prev => ({
+            ...prev, profile: newProfile, loading: false, isAuthenticated: true,
+          }));
+        }
       } else {
-        const cached = getCachedProfile();
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          isAuthenticated: true,
-          profile: cached || null,
-        }));
+        setState(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       console.error('Load profile error:', error);
       const cached = getCachedProfile();
       setState(prev => ({
-        ...prev,
-        profile: cached || null,
-        loading: false,
-        isAuthenticated: !!cached,
+        ...prev, profile: cached || null, loading: false, isAuthenticated: !!cached,
       }));
     }
   }, [getCachedProfile, setCachedProfile]);
@@ -102,7 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (!mounted) return;
 
         if (session?.user) {
@@ -110,31 +124,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadProfile(session.user.id);
         } else {
           const cached = getCachedProfile();
-          if (cached) {
-            setState(prev => ({
-              ...prev,
-              profile: cached,
-              loading: false,
-              isAuthenticated: true,
-            }));
-          } else {
-            // ✅ ফিক্স: session না থাকলে স্পষ্টভাবে false
-            setState(prev => ({ 
-              ...prev, 
-              loading: false,
-              isAuthenticated: false
-            }));
-          }
+          setState(prev => ({
+            ...prev,
+            profile: cached || null,
+            loading: false,
+            isAuthenticated: !!cached,
+          }));
         }
       } catch (error) {
         console.error('Init auth error:', error);
         if (mounted) {
           const cached = getCachedProfile();
           setState(prev => ({
-            ...prev,
-            profile: cached || null,
-            loading: false,
-            isAuthenticated: !!cached,
+            ...prev, profile: cached || null, loading: false, isAuthenticated: !!cached,
           }));
         }
       }
@@ -157,51 +159,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('noffor_user');
           localStorage.removeItem('noffor_worker');
           localStorage.removeItem('noffor_worker_online');
-          
+          try { sessionStorage.clear(); } catch {}
           setState({
-            session: null,
-            user: null,
-            profile: null,
-            loading: false,
-            isAuthenticated: false,
+            session: null, user: null, profile: null,
+            loading: false, isAuthenticated: false,
           });
         }
       }
     );
 
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
+    return () => { mounted = false; subscription?.unsubscribe(); };
   }, [loadProfile, getCachedProfile]);
 
   const signOut = useCallback(async () => {
     try {
+      const country = state.profile?.country || 'qa';
+      const lang = state.profile?.profile_language || 'en';
+      
       localStorage.removeItem('noffor_user');
       localStorage.removeItem('noffor_worker');
       localStorage.removeItem('noffor_worker_online');
+      try { sessionStorage.clear(); } catch {}
 
       await supabase.auth.signOut();
-
+      
       setState({
-        session: null,
-        user: null,
-        profile: null,
-        loading: false,
-        isAuthenticated: false,
+        session: null, user: null, profile: null,
+        loading: false, isAuthenticated: false,
       });
-
-      router.push('/qa/en/login');
-    } catch (error) {
-      console.error('SignOut error:', error);
-      router.push('/qa/en/login');
+      
+      window.location.href = `/${country}/${lang}/login`;
+    } catch {
+      window.location.href = '/qa/en/login';
     }
-  }, [router]);
+  }, [state.profile]);
 
   const refreshProfile = useCallback(async () => {
-    if (state.user?.id) {
-      await loadProfile(state.user.id);
-    }
+    if (state.user?.id) await loadProfile(state.user.id);
   }, [state.user?.id, loadProfile]);
 
   const isAdmin = useMemo(() => state.profile?.role === 'admin', [state.profile]);
@@ -212,9 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile: state.profile,
     loading: state.loading,
     isAuthenticated: state.isAuthenticated,
-    signOut,
-    refreshProfile,
-    isAdmin,
+    signOut, refreshProfile, isAdmin,
   }), [state, signOut, refreshProfile, isAdmin]);
 
   return (
@@ -226,8 +218,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
