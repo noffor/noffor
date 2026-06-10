@@ -1,4 +1,5 @@
 // context/AuthContext.tsx - Login Loop Fixed • Vercel Ready
+// ✅ ALL FIXES APPLIED: loading + signOut dynamic redirect
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_language: user.user_metadata?.language || 'en',
           is_online: false,
           is_verified: true,
+          is_public: true,
           rating: 0,
           total_reviews: 0,
           created_at: new Date().toISOString(),
@@ -205,8 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🔄 Initializing auth... (attempt', retryCount + 1, ')');
         
-        // Vercel-এ cookie replication-এর জন্য wait
-        // Cold start-এ 2.5s, normal-এ 1.5s
         const waitTime = retryCount === 0 ? 2500 : 1500;
         await new Promise(resolve => setTimeout(resolve, waitTime));
         
@@ -223,7 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return initAuth();
           }
           
-          // FALLBACK: Cache check
           const cached = getCachedProfile();
           if (cached) {
             console.log('⚡ Using cached profile (session error)');
@@ -247,7 +246,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.log('ℹ️ No session found');
           
-          // localStorage fallback
           const cached = getCachedProfile();
           if (cached) {
             console.log('⚡ Using cached profile (no session)');
@@ -300,7 +298,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log(`🔐 Auth Event: ${event}`, session?.user?.id?.slice(0, 8) || 'no user');
         
-        // SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
             setState(prev => ({ 
@@ -313,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // ✅ FIXED: SIGNED_OUT with sessionStorage.clear()
+        // ✅ SIGNED_OUT with sessionStorage.clear()
         if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out');
           setState({ 
@@ -327,11 +324,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('noffor_user');
             localStorage.removeItem('noffor_worker');
             localStorage.removeItem('noffor_worker_online');
-            try { sessionStorage.clear(); } catch {}  // ✅ Added
+            try { sessionStorage.clear(); } catch {}
           }
         }
         
-        // USER_UPDATED
         if (event === 'USER_UPDATED') {
           if (session?.user) {
             setState(prev => ({ ...prev, session, user: session.user }));
@@ -345,14 +341,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false; 
       subscription?.unsubscribe(); 
     };
-  }, [loadProfile, getCachedProfile]); // ✅ Empty deps - runs once on mount
+  }, [loadProfile, getCachedProfile]);
 
   // ═══════════════════════════════════════════════════
-  // ✅ FIXED: Sign Out with hard redirect
+  // ✅ FIXED: Sign Out with dynamic country/lang redirect
   // ═══════════════════════════════════════════════════
   const signOut = useCallback(async () => {
     try {
       console.log('👋 Signing out...');
+      
+      // ✅ Get country/lang before clearing
+      const country = state.profile?.country || 'qa';
+      const lang = state.profile?.profile_language || 'en';
       
       // Clear local data first
       if (typeof window !== 'undefined') {
@@ -374,13 +374,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: false 
       });
       
-      // Hard redirect to login
-      window.location.href = '/qa/en/login';
+      // ✅ Dynamic redirect to login
+      window.location.href = `/${country}/${lang}/login`;
     } catch (err) {
       console.error('Sign out error:', err);
       window.location.href = '/qa/en/login';
     }
-  }, []);
+  }, [state.profile]);
 
   // ═══════════════════════════════════════════════════
   // Refresh Profile
@@ -397,12 +397,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ═══════════════════════════════════════════════════
   const isAdmin = useMemo(() => state.profile?.role === 'admin', [state.profile]);
 
-  // ✅ FIXED: loading state - removed initialCheckDone dependency
+  // ✅ FIXED: loading - just state.loading
   const value = useMemo((): AuthContextType => ({
     session: state.session,
     user: state.user,
     profile: state.profile,
-    loading: state.loading,  // ✅ Fixed: just state.loading
+    loading: state.loading,  // ✅ FIXED: No initialCheckDone dependency
     isAuthenticated: state.isAuthenticated,
     signOut,
     refreshProfile,
