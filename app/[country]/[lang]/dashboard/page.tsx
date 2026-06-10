@@ -639,6 +639,7 @@ export default function DashboardPage() {
           .single();
         
         if (!freshProfile) {
+          // ✅ FIX: is_public: true (আগে false ছিল)
           const { data: newProfile } = await supabase.from('profiles').insert({
             id: session.user.id,
             name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
@@ -650,7 +651,7 @@ export default function DashboardPage() {
             country,
             is_online: false,
             is_verified: true,
-            is_public: false,
+            is_public: true,  // ✅ false → true (ফিক্সড)
             rating: 0,
             total_reviews: 0,
             views: 0,
@@ -857,7 +858,7 @@ export default function DashboardPage() {
     setShowDeleteConfirm(true);
   }, []);
   
-  // ✅ Confirm Delete
+  // ✅ FIXED: Confirm Delete (ডুপ্লিকেট রিমুভ করে সঠিক ভার্সন)
   const confirmDeletePost = useCallback(async () => {
     if (!deletingPostId || lockRef.current) return;
     lockRef.current = true;
@@ -870,6 +871,7 @@ export default function DashboardPage() {
         setPosts(prev => prev.filter(p => p.id !== deletingPostId));
         showToast(t('postDeleted'), 'success');
         
+        // ✅ সেশন স্টোরেজ ক্লিয়ার এবং ক্যাশে-ক্লিয়ার ইভেন্ট
         try {
           sessionStorage.clear();
           window.dispatchEvent(new CustomEvent('cache-clear'));
