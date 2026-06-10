@@ -79,7 +79,7 @@ export default function LoginPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, loading: authLoading, signOut } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const country = (params as any).country || 'qa';
   const lang = (params as any).lang || 'en';
@@ -93,30 +93,19 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
   const hasRedirected = useRef(false);
 
-  // ✅ Error check from URL
-  useEffect(() => {
-    const err = searchParams.get('error');
-    const errDesc = searchParams.get('error_description');
-    if (err) {
-      console.log('❌ Auth error:', err, errDesc);
-      // Clean URL
-      window.history.replaceState({}, '', `/${country}/${lang}/login`);
-    }
-  }, [searchParams, country, lang]);
-
   // ✅ Auto redirect if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
       setSuccess(true);
-      setTimeout(() => {
-        window.location.href = redirectTo;
+      const timer = setTimeout(() => {
+        window.location.href = redirectTo; // ✅ Hard redirect for fresh state
       }, 1500);
-      return () => {};
+      return () => clearTimeout(timer);
     }
   }, [authLoading, isAuthenticated, redirectTo]);
 
-  // ✅ Google Login - ফিক্সড
+  // ✅ Google Login
   const handleGoogleLogin = useCallback(async () => {
     if (loading || hasRedirected.current) return;
     
@@ -124,33 +113,28 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // ✅ Role + Country save
+      // ✅ Save role to localStorage for callback
       localStorage.setItem('noffor_pending_role', role);
-      localStorage.setItem('noffor_pending_country', country);
-      localStorage.setItem('noffor_pending_lang', lang);
-      localStorage.setItem('noffor_pending_redirect', redirectTo);
       
-      // ✅ Simple Supabase OAuth — Supabase handle করবে callback
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
+      const callbackUrl = `${window.location.origin}/auth/callback?country=${country}&lang=${lang}&role=${role}&next=${encodeURIComponent(redirectTo)}`;
+      
+      console.log('🔑 Login redirect to:', callbackUrl);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/${country}/${lang}/dashboard`,
+          redirectTo: callbackUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
-      if (authError) {
-        console.error('❌ Auth error:', authError);
-        setError(authError.message || tr.error);
-        setLoading(false);
-        return;
-      }
+      if (error) throw error;
       
       if (data?.url) {
-        // ✅ Redirect to Google
         window.location.href = data.url;
-      } else {
-        setError('No redirect URL returned');
-        setLoading(false);
       }
     } catch (err: any) {
       console.error('❌ Login error:', err);
