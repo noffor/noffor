@@ -15,7 +15,6 @@ export type LangCode = keyof typeof languages;
 // ═══════════════════════════════════════════════════════════
 export const texts: Record<LangCode, Record<string, string>> = {
   en: {
-    // Map translations
     map_loading: 'Loading Map...',
     map_no_workers: 'No workers found',
     map_workers: 'workers',
@@ -48,7 +47,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     map_showing_nearby: 'showing nearby',
     map_now_showing: 'Now showing',
     map_new: 'New',
-    // Common translations
     searchPlaceholder: 'Search by name or number...',
     navSearch: 'Search',
     home: 'Home',
@@ -175,7 +173,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'Please login to continue',
   },
   bn: {
-    // Map translations
     map_loading: 'ম্যাপ লোড হচ্ছে...',
     map_no_workers: 'কোনো কর্মী পাওয়া যায়নি',
     map_workers: 'কর্মী',
@@ -208,7 +205,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     map_showing_nearby: 'কাছের দেখানো হচ্ছে',
     map_now_showing: 'এখন দেখানো হচ্ছে',
     map_new: 'নতুন',
-    // Common translations
     searchPlaceholder: 'নাম বা নাম্বার দিয়ে খুঁজুন...',
     navSearch: 'সার্চ',
     home: 'হোম',
@@ -335,7 +331,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'চালিয়ে যেতে লগইন করুন',
   },
   ar: {
-    // Map translations
     map_loading: 'جاري تحميل الخريطة...',
     map_no_workers: 'لم يتم العثور على عمال',
     map_workers: 'عمال',
@@ -368,7 +363,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     map_showing_nearby: 'عرض القريب',
     map_now_showing: 'يظهر الآن',
     map_new: 'جديد',
-    // Common translations
     searchPlaceholder: 'ابحث بالاسم أو الرقم...',
     navSearch: 'بحث',
     home: 'الرئيسية',
@@ -495,7 +489,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     login_required: 'يرجى تسجيل الدخول للمتابعة',
   },
   hi: {
-    // Map translations
     map_loading: 'मैप लोड हो रहा है...',
     map_no_workers: 'कोई कर्मचारी नहीं मिला',
     map_workers: 'कर्मचारी',
@@ -528,7 +521,6 @@ export const texts: Record<LangCode, Record<string, string>> = {
     map_showing_nearby: 'पास के दिखा रहे',
     map_now_showing: 'अब दिखाया जा रहा है',
     map_new: 'नया',
-    // Common translations
     searchPlaceholder: 'नाम या नंबर से खोजें...',
     navSearch: 'खोज',
     home: 'होम',
@@ -709,8 +701,28 @@ export function getText(lang: LangCode, key: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🚀 AUTO NAME TRANSLITERATOR (SuperSonic • 1B Ready)
+// 🚀 NAME TRANSLATOR (DB-Based Multi-Language Name)
+// ✅ Uses profile.name_bn, name_ar, name_hi from database
+// ✅ Falls back to auto-transliteration if DB name is null
 // ═══════════════════════════════════════════════════════════
+
+// Manual name overrides (priority over auto-transliteration)
+const NAME_OVERRIDES: Record<string, Record<string, string>> = {
+  Mohammed: { bn: 'মোহাম্মদ', ar: 'محمد', hi: 'मोहम्मद' },
+  Ahmed: { bn: 'আহমেদ', ar: 'أحمد', hi: 'अहमद' },
+  Ali: { bn: 'আলী', ar: 'علي', hi: 'अली' },
+  Hassan: { bn: 'হাসান', ar: 'حسن', hi: 'हसन' },
+  Hussain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
+  Omar: { bn: 'ওমর', ar: 'عمر', hi: 'उमर' },
+  Abdullah: { bn: 'আব্দুল্লাহ', ar: 'عبد الله', hi: 'अब्दुल्लाह' },
+  Fatima: { bn: 'ফাতিমা', ar: 'فاطمة', hi: 'फातिमा' },
+  Aisha: { bn: 'আয়েশা', ar: 'عائشة', hi: 'आयशा' },
+  Mariam: { bn: 'মরিয়ম', ar: 'مريم', hi: 'मरियम' },
+  Ibrahim: { bn: 'ইব্রাহিম', ar: 'إبراهيم', hi: 'इब्राहिम' },
+  Yusuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
+  Rojjob: { bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
+};
+
 const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
   bn: {
     'a': 'আ', 'b': 'ব', 'c': 'ক', 'd': 'ড', 'e': 'ই', 'f': 'ফ', 'g': 'গ', 'h': 'হ',
@@ -744,27 +756,40 @@ const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
   },
 };
 
-// Manual name overrides (priority over auto-transliteration)
-const NAME_OVERRIDES: Record<string, Record<string, string>> = {
-  Mohammed: { bn: 'মোহাম্মদ', ar: 'محمد', hi: 'मोहम्मद' },
-  Ahmed: { bn: 'আহমেদ', ar: 'أحمد', hi: 'अहमद' },
-  Ali: { bn: 'আলী', ar: 'علي', hi: 'अली' },
-  Hassan: { bn: 'হাসান', ar: 'حسن', hi: 'हसन' },
-  Hussain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
-  Omar: { bn: 'ওমর', ar: 'عمر', hi: 'उमर' },
-  Abdullah: { bn: 'আব্দুল্লাহ', ar: 'عبد الله', hi: 'अब्दुल्लाह' },
-  Fatima: { bn: 'ফাতিমা', ar: 'فاطمة', hi: 'फातिमा' },
-  Aisha: { bn: 'আয়েশা', ar: 'عائشة', hi: 'आयशा' },
-  Mariam: { bn: 'মরিয়ম', ar: 'مريم', hi: 'मरियम' },
-  Ibrahim: { bn: 'ইব্রাহিম', ar: 'إبراهيم', hi: 'इब्राहिम' },
-  Yusuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
-  Rojjob: { bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
-};
+function autoTransliterate(name: string, lang: string): string {
+  const map = NAME_SCRIPT_MAP[lang];
+  if (!map) return name;
+  let result = '';
+  for (let i = 0; i < name.length; i++) {
+    const char = name[i];
+    result += map[char] || char;
+  }
+  return result;
+}
 
-export function translateName(name: string, lang: string): string {
+/**
+ * ✅ translateName - Main function
+ * Priority:
+ * 1. Database multi-lang name (name_bn, name_ar, name_hi)
+ * 2. Manual overrides (common names)
+ * 3. Auto transliteration (character mapping)
+ */
+export function translateName(name: string, lang: string, profile?: any): string {
   if (!name || lang === 'en') return name || '';
   
-  // Check manual override first
+  // ═══ PRIORITY 1: Database multi-lang name ═══
+  if (profile) {
+    const dbFieldMap: Record<string, string> = {
+      bn: profile?.name_bn,
+      ar: profile?.name_ar,
+      hi: profile?.name_hi,
+    };
+    if (dbFieldMap[lang]) {
+      return dbFieldMap[lang];
+    }
+  }
+  
+  // ═══ PRIORITY 2: Manual overrides ═══
   if (NAME_OVERRIDES[name]) {
     return NAME_OVERRIDES[name][lang] || name;
   }
@@ -776,16 +801,8 @@ export function translateName(name: string, lang: string): string {
     return NAME_OVERRIDES[capitalName][lang] || name;
   }
   
-  // Auto transliterate
-  const map = NAME_SCRIPT_MAP[lang];
-  if (!map) return name;
-  
-  let result = '';
-  for (let i = 0; i < name.length; i++) {
-    const char = name[i];
-    result += map[char] || char;
-  }
-  return result;
+  // ═══ PRIORITY 3: Auto transliteration ═══
+  return autoTransliterate(name, lang);
 }
 
 // ═══════════════════════════════════════════════════════════

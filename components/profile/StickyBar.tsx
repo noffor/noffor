@@ -14,6 +14,38 @@ const T:Record<string,Record<string,string>>={
 };
 
 // ═══════════════════════════════════════════════════════════
+// 🌍 দেশের কোড ম্যাপ
+// ═══════════════════════════════════════════════════════════
+const countryCodes: Record<string, string> = {
+  qa: '974', bd: '880', sa: '966', ae: '971',
+  kw: '965', om: '968', bh: '973', in: '91',
+  np: '977', pk: '92', lk: '94', eg: '20',
+  jo: '962', lb: '961', sy: '963', iq: '964',
+  ye: '967', ps: '970', my: '60', id: '62',
+  us: '1', gb: '44', tr: '90', ph: '63',
+  th: '66', vn: '84', cn: '86', jp: '81', kr: '82',
+};
+
+// ═══════════════════════════════════════════════════════════
+// 📱 ফোন নাম্বার ক্লিনার (অটোমেটিক দেশের কোড)
+// ═══════════════════════════════════════════════════════════
+const cleanPhoneNumber = (phone: string, country: string): string => {
+  if (!phone || phone === 'undefined' || phone === 'null') return '';
+  let c = phone.replace(/[^0-9+]/g, '');
+  
+  // যদি + দিয়ে শুরু হয়, সরাসরি ব্যবহার
+  if (c.startsWith('+')) {
+    if (c.startsWith('+0')) return '+' + c.substring(2);
+    return c;
+  }
+  
+  // লোকাল নাম্বার - অটোমেটিক দেশের কোড যোগ
+  const code = countryCodes[country] || '974';
+  if (c.startsWith('0')) c = c.substring(1);
+  return code + c;
+};
+
+// ═══════════════════════════════════════════════════════════
 // Button Component (Memoized)
 // ═══════════════════════════════════════════════════════════
 const ActionButton=React.memo(({href,onClick,color,icon:Icon,label,target}:{
@@ -43,44 +75,46 @@ ActionButton.displayName='ActionButton';
 interface Props{
   phone:string;
   lang?:string;
+  country?:string;
   onJobOffer?:()=>void;
 }
 
 // ═══════════════════════════════════════════════════════════
 // StickyBar (Memoized • 1B Ready)
 // ═══════════════════════════════════════════════════════════
-const StickyBar=React.memo(({phone,lang='en',onJobOffer}:Props)=>{
+const StickyBar=React.memo(({phone,lang='en',country='qa',onJobOffer}:Props)=>{
   const tr=useMemo(()=>T[lang]||T.en,[lang]);
 
   // Phone check
   if(!phone||phone==='undefined'||phone==='null')return null;
 
-  // Clean phone number
-  const cleanPhone=phone.replace(/[^0-9+]/g,'');
+  const finalPhone = cleanPhoneNumber(phone, country);
 
   return(
     <div className="fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur-lg border-t border-gray-100 shadow-2xl z-50"
       style={{paddingBottom:'env(safe-area-inset-bottom,0px)',transform:'translateZ(0)'}}>
       <div className="flex gap-2 p-2 max-w-lg mx-auto">
         <ActionButton
-          href={`https://wa.me/${cleanPhone}`}
+          href={`https://wa.me/${finalPhone}`}
           target="_blank"
           color="bg-green-600 hover:bg-green-700"
           icon={MessageCircle}
           label={tr.whatsapp}
         />
         <ActionButton
-          href={`tel:${cleanPhone}`}
+          href={`tel:${finalPhone}`}
           color="bg-blue-600 hover:bg-blue-700"
           icon={Phone}
           label={tr.call}
         />
-        <ActionButton
-          onClick={onJobOffer}
-          color="bg-orange-600 hover:bg-orange-700"
-          icon={Briefcase}
-          label={tr.jobOffer}
-        />
+        {onJobOffer && (
+          <ActionButton
+            onClick={onJobOffer}
+            color="bg-orange-600 hover:bg-orange-700"
+            icon={Briefcase}
+            label={tr.jobOffer}
+          />
+        )}
       </div>
     </div>
   );

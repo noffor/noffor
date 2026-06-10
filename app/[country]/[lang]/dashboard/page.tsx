@@ -1,5 +1,5 @@
 // app/[country]/[lang]/dashboard/page.tsx
-// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST CRUD (CREATE REMOVED) • PROFILE EDIT • ALL FIXED
+// 🚀 1M+ DAILY USERS • SUPERSONIC DASHBOARD • 4 LANGUAGES • POST EDIT/DELETE ONLY • PROFILE EDIT • ALL FIXED
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
@@ -11,7 +11,7 @@ import {
   Phone, Briefcase, Globe, Shield, Mail, MapPin, History, User, 
   Trash2, LogOut, Clock, DollarSign, Camera, Save, AlertCircle, 
   Upload, Wifi, WifiOff, Home, Calendar, Share2, Download, TrendingUp,
-  Check, X, Info, Plus, Image as ImageIcon, Send, MoreVertical, Edit3, MessageSquare,
+  Check, X, Info, Image as ImageIcon, Send, MoreVertical, Edit3, MessageSquare,
   FileText, BookOpen, ChevronRight
 } from 'lucide-react';
 
@@ -47,8 +47,8 @@ const LANG: Record<string, Record<string, string>> = {
     noTrips: 'No trips yet', noSaved: 'No saved workers yet',
     noAlerts: 'No notifications', noPosts: 'No posts yet',
     editPost: 'Edit Post', updatePost: 'Update', updating: 'Updating...',
-    deletePost: 'Delete Post', deletePostConfirm: 'Delete this post?',
-    postDeleted: 'Post deleted!', postUpdated: 'Post updated!',
+    deletePost: 'Delete Post', deletePostConfirm: 'Are you sure you want to delete this post?',
+    postDeleted: 'Post deleted successfully!', postUpdated: 'Post updated successfully!',
     editProfile: 'Edit Profile', fullName: 'Full Name',
     category: 'Category', expectedSalary: 'Expected Salary (QAR)',
     experience: 'Experience (years)', city: 'City', area: 'Area',
@@ -59,10 +59,10 @@ const LANG: Record<string, Record<string, string>> = {
     view: 'View', share: 'Share', export: 'Export', logout: 'Logout',
     online: 'Online', offline: 'Offline', shareProfile: 'Share Profile',
     profileLinkCopied: 'Profile link copied!',
-    profileSaved: 'Profile saved!', coverUpdated: 'Cover photo updated!',
+    profileSaved: 'Profile saved successfully!', coverUpdated: 'Cover photo updated!',
     photoUpdated: 'Profile photo updated!',
     uploadFailed: 'Upload failed', saveFailed: 'Failed to save',
-    deleteFailed: 'Delete failed', statusFailed: 'Failed to update status',
+    deleteFailed: 'Failed to delete', statusFailed: 'Failed to update status',
     youAreOnline: 'You are now online', youAreOffline: 'You are now offline',
     statsDownloaded: 'Stats downloaded!',
     performance: 'Performance', responseRate: 'Response Rate',
@@ -78,6 +78,20 @@ const LANG: Record<string, Record<string, string>> = {
     noImage: 'No image', redirecting: 'Redirecting to login...',
     switchLanguage: 'Switch Language',
     viewProfile: 'View Profile',
+    error: 'Error',
+    retry: 'Retry',
+    lastUpdated: 'Last updated',
+    profileLink: 'Profile Link',
+    shareYourProfile: 'Share your profile link',
+    copyLink: 'Copy Link',
+    linkCopied: 'Link copied!',
+    viewFullProfile: 'View Full Profile',
+    editCover: 'Edit Cover Photo',
+    editProfilePicture: 'Edit Profile Picture',
+    deleteAccount: 'Delete Account',
+    deleteAccountConfirm: 'Are you sure you want to delete your account? This action cannot be undone.',
+    more: 'More',
+    confirmAction: 'Confirm Action',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড', loading: 'লোড হচ্ছে...',
@@ -90,8 +104,8 @@ const LANG: Record<string, Record<string, string>> = {
     noTrips: 'কোনো ট্রিপ নেই', noSaved: 'কোনো সংরক্ষিত শ্রমিক নেই',
     noAlerts: 'কোনো নোটিফিকেশন নেই', noPosts: 'কোনো পোস্ট নেই',
     editPost: 'পোস্ট এডিট', updatePost: 'আপডেট', updating: 'আপডেট হচ্ছে...',
-    deletePost: 'পোস্ট মুছুন', deletePostConfirm: 'পোস্টটি মুছবেন?',
-    postDeleted: 'পোস্ট মুছে ফেলা হয়েছে!', postUpdated: 'পোস্ট আপডেট হয়েছে!',
+    deletePost: 'পোস্ট মুছুন', deletePostConfirm: 'আপনি কি নিশ্চিত যে এই পোস্টটি মুছে ফেলতে চান?',
+    postDeleted: 'পোস্ট সফলভাবে মুছে ফেলা হয়েছে!', postUpdated: 'পোস্ট সফলভাবে আপডেট হয়েছে!',
     editProfile: 'প্রোফাইল সম্পাদনা', fullName: 'পুরো নাম',
     category: 'ক্যাটাগরি', expectedSalary: 'প্রত্যাশিত বেতন (QAR)',
     experience: 'অভিজ্ঞতা (বছর)', city: 'শহর', area: 'এলাকা',
@@ -102,7 +116,7 @@ const LANG: Record<string, Record<string, string>> = {
     view: 'দেখুন', share: 'শেয়ার', export: 'এক্সপোর্ট', logout: 'লগআউট',
     online: 'অনলাইন', offline: 'অফলাইন', shareProfile: 'প্রোফাইল শেয়ার',
     profileLinkCopied: 'প্রোফাইল লিংক কপি হয়েছে!',
-    profileSaved: 'প্রোফাইল সংরক্ষিত!', coverUpdated: 'কভার আপডেট!',
+    profileSaved: 'প্রোফাইল সফলভাবে সংরক্ষিত!', coverUpdated: 'কভার আপডেট!',
     photoUpdated: 'প্রোফাইল ছবি আপডেট!',
     uploadFailed: 'আপলোড ব্যর্থ', saveFailed: 'সংরক্ষণ ব্যর্থ',
     deleteFailed: 'মুছতে ব্যর্থ', statusFailed: 'স্ট্যাটাস আপডেট ব্যর্থ',
@@ -118,9 +132,23 @@ const LANG: Record<string, Record<string, string>> = {
     justNow: 'এই মাত্র', minutesAgo: 'মি আগে', hoursAgo: 'ঘ আগে',
     daysAgo: 'দি আগে', addImage: 'ছবি যোগ', changeImage: 'ছবি পরিবর্তন',
     cancel: 'বাতিল', confirm: 'নিশ্চিত',
-    noImage: 'কোনো ছবি নেই', redirecting: 'লগইনে রিডিরেক্ট...',
+    noImage: 'কোনো ছবি নেই', redirecting: 'লগইনে রিডাইরেক্ট...',
     switchLanguage: 'ভাষা পরিবর্তন',
     viewProfile: 'প্রোফাইল দেখুন',
+    error: 'ত্রুটি',
+    retry: 'পুনরায় চেষ্টা',
+    lastUpdated: 'সর্বশেষ আপডেট',
+    profileLink: 'প্রোফাইল লিংক',
+    shareYourProfile: 'আপনার প্রোফাইল লিংক শেয়ার করুন',
+    copyLink: 'লিংক কপি',
+    linkCopied: 'লিংক কপি হয়েছে!',
+    viewFullProfile: 'সম্পূর্ণ প্রোফাইল দেখুন',
+    editCover: 'কভার ফটো সম্পাদনা',
+    editProfilePicture: 'প্রোফাইল ছবি সম্পাদনা',
+    deleteAccount: 'অ্যাকাউন্ট মুছুন',
+    deleteAccountConfirm: 'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট মুছে ফেলতে চান? এই কাজটি ফেরত আনা যাবে না।',
+    more: 'আরও',
+    confirmAction: 'কর্ম নিশ্চিত করুন',
   },
   ar: {
     dashboard: 'لوحة التحكم', loading: 'جاري التحميل...',
@@ -133,8 +161,8 @@ const LANG: Record<string, Record<string, string>> = {
     noTrips: 'لا رحلات', noSaved: 'لا عمال محفوظين',
     noAlerts: 'لا تنبيهات', noPosts: 'لا منشورات',
     editPost: 'تعديل', updatePost: 'تحديث', updating: 'جاري التحديث...',
-    deletePost: 'حذف', deletePostConfirm: 'حذف المنشور؟',
-    postDeleted: 'تم الحذف!', postUpdated: 'تم التحديث!',
+    deletePost: 'حذف', deletePostConfirm: 'هل أنت متأكد من حذف هذا المنشور؟',
+    postDeleted: 'تم حذف المنشور بنجاح!', postUpdated: 'تم تحديث المنشور بنجاح!',
     editProfile: 'تعديل الملف', fullName: 'الاسم',
     category: 'فئة', expectedSalary: 'الراتب (QAR)',
     experience: 'خبرة (سنوات)', city: 'مدينة', area: 'منطقة',
@@ -162,6 +190,20 @@ const LANG: Record<string, Record<string, string>> = {
     noImage: 'لا صورة', redirecting: 'جاري التحويل...',
     switchLanguage: 'تغيير اللغة',
     viewProfile: 'عرض الملف',
+    error: 'خطأ',
+    retry: 'إعادة المحاولة',
+    lastUpdated: 'آخر تحديث',
+    profileLink: 'رابط الملف',
+    shareYourProfile: 'شارك رابط ملفك',
+    copyLink: 'نسخ الرابط',
+    linkCopied: 'تم نسخ الرابط!',
+    viewFullProfile: 'عرض الملف الكامل',
+    editCover: 'تعديل صورة الغلاف',
+    editProfilePicture: 'تعديل صورة الملف',
+    deleteAccount: 'حذف الحساب',
+    deleteAccountConfirm: 'هل أنت متأكد من حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.',
+    more: 'المزيد',
+    confirmAction: 'تأكيد الإجراء',
   },
   hi: {
     dashboard: 'डैशबोर्ड', loading: 'लोड हो रहा...',
@@ -174,8 +216,8 @@ const LANG: Record<string, Record<string, string>> = {
     noTrips: 'कोई ट्रिप नहीं', noSaved: 'कोई सेव्ड नहीं',
     noAlerts: 'कोई नोटिफिकेशन नहीं', noPosts: 'कोई पोस्ट नहीं',
     editPost: 'पोस्ट एडिट', updatePost: 'अपडेट', updating: 'अपडेट हो रहा...',
-    deletePost: 'पोस्ट डिलीट', deletePostConfirm: 'पोस्ट डिलीट करें?',
-    postDeleted: 'पोस्ट डिलीट!', postUpdated: 'पोस्ट अपडेट!',
+    deletePost: 'पोस्ट डिलीट', deletePostConfirm: 'क्या आप वाकई इस पोस्ट को डिलीट करना चाहते हैं?',
+    postDeleted: 'पोस्ट सफलतापूर्वक डिलीट!', postUpdated: 'पोस्ट सफलतापूर्वक अपडेट!',
     editProfile: 'प्रोफाइल एडिट', fullName: 'पूरा नाम',
     category: 'श्रेणी', expectedSalary: 'वेतन (QAR)',
     experience: 'अनुभव (साल)', city: 'शहर', area: 'क्षेत्र',
@@ -203,6 +245,20 @@ const LANG: Record<string, Record<string, string>> = {
     noImage: 'कोई इमेज नहीं', redirecting: 'लॉगइन पर रीडायरेक्ट...',
     switchLanguage: 'भाषा बदलें',
     viewProfile: 'प्रोफाइल देखें',
+    error: 'त्रुटि',
+    retry: 'पुनः प्रयास',
+    lastUpdated: 'अंतिम अपडेट',
+    profileLink: 'प्रोफाइल लिंक',
+    shareYourProfile: 'अपना प्रोफाइल लिंक शेयर करें',
+    copyLink: 'लिंक कॉपी',
+    linkCopied: 'लिंक कॉपी!',
+    viewFullProfile: 'पूरा प्रोफाइल देखें',
+    editCover: 'कवर फोटो एडिट',
+    editProfilePicture: 'प्रोफाइल फोटो एडिट',
+    deleteAccount: 'अकाउंट डिलीट',
+    deleteAccountConfirm: 'क्या आप वाकई अपना अकाउंट डिलीट करना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती।',
+    more: 'अधिक',
+    confirmAction: 'कार्रवाई की पुष्टि',
   }
 };
 
@@ -280,8 +336,13 @@ const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photo
             <Camera size={32} className="text-white/50" />
           </div>
         )}
-        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); coverInputRef.current?.click(); }} disabled={coverUploading}
-          className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all active:scale-90 z-10">
+        <button 
+          type="button" 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); coverInputRef.current?.click(); }} 
+          disabled={coverUploading}
+          className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all active:scale-90 z-10 cursor-pointer"
+          title={t('editCover')}
+        >
           {coverUploading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera size={16} />}
         </button>
         <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadCover(e); }} />
@@ -296,8 +357,13 @@ const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photo
               <User size={32} className="text-white" />
             </div>
           )}
-          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); photoInputRef.current?.click(); }} disabled={photoUploading}
-            className="absolute bottom-0 right-0 bg-green-600 hover:bg-green-700 text-white p-1.5 rounded-full transition-all active:scale-90 shadow-md z-10">
+          <button 
+            type="button" 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); photoInputRef.current?.click(); }} 
+            disabled={photoUploading}
+            className="absolute bottom-0 right-0 bg-green-600 hover:bg-green-700 text-white p-1.5 rounded-full transition-all active:scale-90 shadow-md z-10 cursor-pointer"
+            title={t('editProfilePicture')}
+          >
             {photoUploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera size={14} />}
           </button>
           <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadPhoto(e); }} />
@@ -316,13 +382,20 @@ const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photo
           </div>
           
           <div className="mt-3 flex justify-center">
-            <button type="button" onClick={toggleOnline}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 flex items-center gap-2 ${online ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-200 text-gray-600'}`}>
+            <button 
+              type="button" 
+              onClick={toggleOnline}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 flex items-center gap-2 cursor-pointer ${online ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-200 text-gray-600'}`}
+            >
               {online ? <><div className="w-2 h-2 bg-white rounded-full animate-pulse" />{t('online')}</> : <><WifiOff size={14} />{t('offline')}</>}
             </button>
           </div>
           
-          <button onClick={shareProfile} className="mt-2 text-xs text-gray-400 hover:text-green-600 transition flex items-center justify-center gap-1 mx-auto">
+          <button 
+            onClick={shareProfile} 
+            className="mt-2 text-xs text-gray-400 hover:text-green-600 transition flex items-center justify-center gap-1 mx-auto cursor-pointer"
+            title={t('shareYourProfile')}
+          >
             <Share2 size={12} /> {t('shareProfile')}
           </button>
         </div>
@@ -336,14 +409,22 @@ ProfileHeader.displayName = 'ProfileHeader';
 const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; lang: string; onEdit: (post: Post) => void; onDelete: (id: string) => void; userId: string }) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
   const [showMenu, setShowMenu] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const isOwner = post.user_id === userId;
   
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClick = () => setShowMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showMenu]);
+  
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between p-3 pb-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-            {post.user_id?.slice(0, 2) || 'W'}
+            {post.user_id?.slice(0, 2).toUpperCase() || 'W'}
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-800">Worker</p>
@@ -353,17 +434,21 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
         
         {isOwner && (
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className="p-1 hover:bg-gray-100 rounded-full transition active:scale-90">
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} 
+              className="p-1 hover:bg-gray-100 rounded-full transition active:scale-90 cursor-pointer"
+              title={t('more')}
+            >
               <MoreVertical size={14} className="text-gray-400" />
             </button>
             
             {showMenu && (
-              <div className="absolute right-0 top-8 bg-white rounded-xl shadow-xl border z-20 py-1 min-w-[120px]" onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => { onEdit(post); setShowMenu(false); }} className="w-full px-3 py-2 text-xs text-left hover:bg-gray-50 flex items-center gap-2 transition">
-                  <Edit3 size={12} /> {t('editPost')}
+              <div className="absolute right-0 top-8 bg-white rounded-xl shadow-xl border z-20 py-1 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => { onEdit(post); setShowMenu(false); }} className="w-full px-4 py-2.5 text-xs text-left hover:bg-gray-50 flex items-center gap-2 transition cursor-pointer">
+                  <Edit3 size={14} className="text-blue-500" /> {t('editPost')}
                 </button>
-                <button onClick={() => { onDelete(post.id); setShowMenu(false); }} className="w-full px-3 py-2 text-xs text-left hover:bg-red-50 text-red-600 flex items-center gap-2 transition">
-                  <Trash2 size={12} /> {t('deletePost')}
+                <button onClick={() => { onDelete(post.id); setShowMenu(false); }} className="w-full px-4 py-2.5 text-xs text-left hover:bg-red-50 text-red-600 flex items-center gap-2 transition cursor-pointer">
+                  <Trash2 size={14} /> {t('deletePost')}
                 </button>
               </div>
             )}
@@ -372,17 +457,29 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
       </div>
       
       <div className="p-3">
-        <p className="text-sm text-gray-700 whitespace-pre-wrap">{post.content}</p>
-        {post.image_url && (
-          <img src={post.image_url} alt="Post" loading="lazy" className="mt-2 rounded-lg w-full max-h-64 object-cover cursor-pointer hover:opacity-90 transition" onClick={() => window.open(post.image_url, '_blank')} />
+        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+        {post.image_url && !imgError && (
+          <div className="relative mt-2 rounded-lg overflow-hidden bg-gray-100">
+            <img 
+              src={post.image_url} 
+              alt="Post" 
+              loading="lazy" 
+              className="w-full max-h-64 object-cover cursor-pointer hover:opacity-95 transition-opacity" 
+              onClick={() => window.open(post.image_url, '_blank')}
+              onError={() => setImgError(true)}
+            />
+          </div>
+        )}
+        {post.updated_at && (
+          <p className="text-[10px] text-gray-400 mt-2 italic">{t('lastUpdated')}: {timeAgo(post.updated_at, lang)}</p>
         )}
       </div>
       
       <div className="flex items-center gap-4 px-3 pb-3 border-t pt-2">
-        <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition">
+        <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition cursor-pointer">
           <Heart size={14} /> {post.likes_count || 0} {t('likes')}
         </button>
-        <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-500 transition">
+        <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-500 transition cursor-pointer">
           <MessageSquare size={14} /> {post.comments_count || 0} {t('comments')}
         </button>
       </div>
@@ -391,7 +488,7 @@ const PostCard = memo(({ post, lang, onEdit, onDelete, userId }: { post: Post; l
 });
 PostCard.displayName = 'PostCard';
 
-// 🔥 Edit Post Modal (CREATE REMOVED — শুধু এডিট)
+// 🔥 Edit Post Modal
 const EditPostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading }: any) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
   const [content, setContent] = useState('');
@@ -424,6 +521,7 @@ const EditPostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading
     setImage(null);
     setPreview('');
     setKeepExistingImage(false);
+    if (imageRef.current) imageRef.current.value = '';
   };
   
   const handleSubmit = () => {
@@ -438,46 +536,64 @@ const EditPostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-5 max-w-lg w-full shadow-2xl" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <FileText size={20} className="text-green-600" />
             {t('editPost')}
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition cursor-pointer">
             <X size={20} className="text-gray-400" />
           </button>
         </div>
         
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={editPost.content || ''} rows={4}
-          className="w-full px-3 py-2 border rounded-xl text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition resize-none" autoFocus />
+        <textarea 
+          value={content} 
+          onChange={(e) => setContent(e.target.value)} 
+          placeholder={editPost.content || ''} 
+          rows={4}
+          className="w-full px-4 py-3 border rounded-xl text-sm focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition resize-none" 
+          autoFocus 
+        />
         
         {preview && (
-          <div className="relative mt-2">
+          <div className="relative mt-3">
             <img src={preview} alt="Preview" className="rounded-lg w-full max-h-48 object-cover" />
-            <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition">
+            <button 
+              onClick={handleRemoveImage} 
+              className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow hover:bg-red-600 transition cursor-pointer"
+            >
               <X size={14} />
             </button>
           </div>
         )}
         
-        <div className="flex items-center gap-2 mt-3">
-          <button onClick={() => imageRef.current?.click()} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition">
-            <ImageIcon size={14} /> {preview ? t('changeImage') : t('addImage')}
+        <div className="flex items-center gap-3 mt-3">
+          <button 
+            onClick={() => imageRef.current?.click()} 
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-xs font-medium hover:bg-gray-200 transition cursor-pointer"
+          >
+            <ImageIcon size={16} /> {preview ? t('changeImage') : t('addImage')}
           </button>
           <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           {preview && keepExistingImage && (
-            <span className="text-[10px] text-gray-400">{t('noImage')}</span>
+            <span className="text-[11px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full">{t('noImage')}</span>
           )}
         </div>
         
-        <div className="flex gap-2 mt-4">
-          <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
+        <div className="flex gap-3 mt-5">
+          <button 
+            onClick={onClose} 
+            className="flex-1 py-3 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition cursor-pointer"
+          >
             {t('cancel')}
           </button>
-          <button onClick={handleSubmit} disabled={loading || !content.trim()}
-            className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
-            {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={14} />}
+          <button 
+            onClick={handleSubmit} 
+            disabled={loading || !content.trim()}
+            className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}
             {loading ? t('updating') : t('updatePost')}
           </button>
         </div>
@@ -488,22 +604,31 @@ const EditPostModal = memo(({ isOpen, onClose, onSubmit, editPost, lang, loading
 EditPostModal.displayName = 'EditPostModal';
 
 // 🔥 Confirm Delete Modal
-const ConfirmModal = memo(({ isOpen, onClose, onConfirm, message, lang }: any) => {
+const ConfirmModal = memo(({ isOpen, onClose, onConfirm, message, lang, title }: any) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-5 max-w-xs w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="text-center mb-4">
-          <AlertCircle size={40} className="text-red-400 mx-auto mb-2" />
-          <p className="text-sm font-medium text-gray-800">{message || t('deletePostConfirm')}</p>
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center mb-5">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <AlertCircle size={32} className="text-red-500" />
+          </div>
+          <h3 className="font-bold text-lg text-gray-800 mb-1">{title || t('confirmAction')}</h3>
+          <p className="text-sm text-gray-500">{message || t('deletePostConfirm')}</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
+          <button 
+            onClick={onClose} 
+            className="flex-1 py-3 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition cursor-pointer"
+          >
             {t('cancel')}
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition">
+          <button 
+            onClick={onConfirm} 
+            className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition cursor-pointer"
+          >
             {t('confirm')}
           </button>
         </div>
@@ -515,8 +640,15 @@ ConfirmModal.displayName = 'ConfirmModal';
 
 // 🔥 Tab Button
 const TabButton = memo(({ tab, isActive, onClick }: any) => (
-  <button onClick={() => onClick(tab.id)}
-    className={`rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 ${isActive ? 'bg-orange-600 text-white shadow-md' : 'bg-white text-gray-600 border hover:bg-orange-50'}`}>
+  <button 
+    onClick={() => onClick(tab.id)}
+    className={`rounded-xl p-2 text-center cursor-pointer transition-all active:scale-95 ${
+      isActive 
+        ? 'bg-orange-600 text-white shadow-md shadow-orange-200' 
+        : 'bg-white text-gray-600 border hover:bg-orange-50 hover:border-orange-200'
+    }`}
+    title={tab.label}
+  >
     <tab.icon size={18} className="mx-auto mb-0.5" />
     <p className="text-[8px] font-medium truncate">{tab.label}</p>
   </button>
@@ -524,7 +656,7 @@ const TabButton = memo(({ tab, isActive, onClick }: any) => (
 TabButton.displayName = 'TabButton';
 
 // ═══════════════════════════════════════════════════════
-// 🔥 MAIN DASHBOARD COMPONENT - CREATE POST REMOVED
+// 🔥 MAIN DASHBOARD COMPONENT - EDIT/DELETE ONLY
 // ═══════════════════════════════════════════════════════
 export default function DashboardPage() {
   const params = useParams();
@@ -554,7 +686,7 @@ export default function DashboardPage() {
   const [earnings, setEarnings] = useState({ total: 0, monthly: 0, weekly: 0 });
   const [analytics, setAnalytics] = useState({ views: 0, profileVisits: 0, calls: 0, messages: 0 });
   
-  // 🔥 Post states — CREATE REMOVED, শুধু EDIT/DELETE
+  // 🔥 Post states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [postLoading, setPostLoading] = useState(false);
@@ -639,7 +771,6 @@ export default function DashboardPage() {
           .single();
         
         if (!freshProfile) {
-          // ✅ FIX: is_public: true (আগে false ছিল)
           const { data: newProfile } = await supabase.from('profiles').insert({
             id: session.user.id,
             name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
@@ -651,7 +782,7 @@ export default function DashboardPage() {
             country,
             is_online: false,
             is_verified: true,
-            is_public: true,  // ✅ false → true (ফিক্সড)
+            is_public: true,
             rating: 0,
             total_reviews: 0,
             views: 0,
@@ -738,7 +869,9 @@ export default function DashboardPage() {
   // 🔥 Online/Offline toggle
   const toggleOnline = useCallback(async () => {
     if (lockRef.current || !profile?.id) return;
-    lockRef.current = true; const next = !online; setOnline(next);
+    lockRef.current = true; 
+    const next = !online; 
+    setOnline(next);
     try {
       const { error } = await supabase.from('profiles').update({ is_online: next, last_online: new Date().toISOString() }).eq('id', profile.id);
       if (error) throw error;
@@ -804,7 +937,7 @@ export default function DashboardPage() {
   }, [profile, editForm, showToast, t]);
   
   // ═══════════════════════════════════════════
-  // 🔥 POST EDIT & DELETE OPERATIONS (CREATE REMOVED)
+  // 🔥 POST EDIT & DELETE (CREATE বাদ)
   // ═══════════════════════════════════════════
   
   // ✅ Edit Post Submit
@@ -858,7 +991,7 @@ export default function DashboardPage() {
     setShowDeleteConfirm(true);
   }, []);
   
-  // ✅ FIXED: Confirm Delete (ডুপ্লিকেট রিমুভ করে সঠিক ভার্সন)
+  // ✅ Confirm Delete
   const confirmDeletePost = useCallback(async () => {
     if (!deletingPostId || lockRef.current) return;
     lockRef.current = true;
@@ -870,12 +1003,6 @@ export default function DashboardPage() {
       if (mountedRef.current) {
         setPosts(prev => prev.filter(p => p.id !== deletingPostId));
         showToast(t('postDeleted'), 'success');
-        
-        // ✅ সেশন স্টোরেজ ক্লিয়ার এবং ক্যাশে-ক্লিয়ার ইভেন্ট
-        try {
-          sessionStorage.clear();
-          window.dispatchEvent(new CustomEvent('cache-clear'));
-        } catch {}
       }
     } catch (err: any) {
       showToast(t('deleteFailed') + ': ' + err.message, 'error');
@@ -888,17 +1015,16 @@ export default function DashboardPage() {
   
   // ✅ Delete profile
   const deleteProfile = useCallback(async () => {
-    if (!confirm(t('deleteConfirm'))) return;
+    if (!confirm(t('deleteAccountConfirm'))) return;
     try { 
       await supabase.from('profiles').delete().eq('id', profile.id);
       await signOut();
-    }
-    catch (err) { showToast(t('deleteFailed'), 'error'); }
+    } catch (err) { showToast(t('deleteFailed'), 'error'); }
   }, [profile, signOut, showToast, t]);
   
   // ✅ Logout
   const logout = useCallback(async () => {
-    await signOut();
+    try { await signOut(); } catch (err) { console.error('Logout error:', err); }
   }, [signOut]);
   
   const markNotifRead = useCallback(async (id: string) => {
@@ -919,6 +1045,17 @@ export default function DashboardPage() {
     showToast(t('statsDownloaded'), 'success');
   }, [profile, analytics, earnings, showToast, t]);
   
+  const switchLanguage = useCallback(() => {
+    const langs = ['en', 'bn', 'ar', 'hi'];
+    const currentIdx = langs.indexOf(lang);
+    const nextIdx = (currentIdx + 1) % langs.length;
+    router.push(`/${country}/${langs[nextIdx]}/dashboard`);
+  }, [lang, country, router]);
+  
+  const viewFullProfile = useCallback(() => {
+    if (profile?.id) { router.push(`/${country}/${lang}/profile/${profile.id}`); }
+  }, [country, lang, profile, router]);
+  
   // 🔥 Memoized values
   const EDIT_FIELDS = useMemo(() => [
     { key: 'name', placeholder: t('fullName') }, { key: 'category', placeholder: t('category') },
@@ -936,17 +1073,13 @@ export default function DashboardPage() {
   
   const SETTINGS_BTNS = useMemo(() => [
     { icon: User, color: 'bg-lime-50 text-lime-600', label: t('editProfile'), action: () => setActiveTab('edit') },
-    { icon: Globe, color: 'bg-blue-50 text-blue-600', label: lang.toUpperCase(), action: () => {
-      const langs = ['en', 'bn', 'ar', 'hi'];
-      const currentIdx = langs.indexOf(lang);
-      const nextIdx = (currentIdx + 1) % langs.length;
-      router.push(`/${country}/${langs[nextIdx]}/dashboard`);
-    }},
-    { icon: Share2, color: 'bg-purple-50 text-purple-600', label: t('share'), action: () => shareProfile() },
-    { icon: Download, color: 'bg-indigo-50 text-indigo-600', label: t('export'), action: () => downloadStats() },
-    { icon: LogOut, color: 'bg-gray-200 text-gray-700', label: t('logout'), action: () => logout() },
-    { icon: Trash2, color: 'bg-red-50 text-red-600', label: t('delete'), action: () => deleteProfile() },
-  ], [lang, country, router, shareProfile, downloadStats, logout, deleteProfile, t]);
+    { icon: Globe, color: 'bg-blue-50 text-blue-600', label: lang.toUpperCase(), action: switchLanguage },
+    { icon: Eye, color: 'bg-teal-50 text-teal-600', label: t('viewFullProfile'), action: viewFullProfile },
+    { icon: Share2, color: 'bg-purple-50 text-purple-600', label: t('share'), action: shareProfile },
+    { icon: Download, color: 'bg-indigo-50 text-indigo-600', label: t('export'), action: downloadStats },
+    { icon: LogOut, color: 'bg-gray-200 text-gray-700', label: t('logout'), action: logout },
+    { icon: Trash2, color: 'bg-red-50 text-red-600', label: t('deleteAccount'), action: deleteProfile },
+  ], [lang, switchLanguage, viewFullProfile, shareProfile, downloadStats, logout, deleteProfile, t]);
   
   // ✅ Auth loading
   if (authLoading) {
@@ -1000,12 +1133,25 @@ export default function DashboardPage() {
       
       <Toast toast={toast} onClose={() => setToast(null)} />
       
-      {/* ✅ শুধু Edit Modal — Create বাদ */}
-      <EditPostModal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingPost(null); }}
-        onSubmit={handleEditSubmit} editPost={editingPost} lang={lang} loading={postLoading} />
+      {/* Edit Post Modal */}
+      <EditPostModal 
+        isOpen={showEditModal} 
+        onClose={() => { setShowEditModal(false); setEditingPost(null); }}
+        onSubmit={handleEditSubmit} 
+        editPost={editingPost} 
+        lang={lang} 
+        loading={postLoading} 
+      />
       
-      <ConfirmModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeletingPostId(''); }}
-        onConfirm={confirmDeletePost} message={t('deletePostConfirm')} lang={lang} />
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={showDeleteConfirm} 
+        onClose={() => { setShowDeleteConfirm(false); setDeletingPostId(''); }}
+        onConfirm={confirmDeletePost} 
+        message={t('deletePostConfirm')} 
+        title={t('deletePost')}
+        lang={lang} 
+      />
       
       <div className="max-w-4xl mx-auto px-3 py-3 lg:py-4">
         <ProfileHeader profile={p} coverSrc={coverSrc} photoSrc={photoSrc} coverUploading={coverUploading} photoUploading={photoUploading}
@@ -1078,7 +1224,7 @@ export default function DashboardPage() {
             )
           )}
           
-          {/* ✅ Posts Tab — CREATE REMOVED, শুধু EDIT/DELETE */}
+          {/* Posts Tab - শুধু এডিট/ডিলিট */}
           {activeTab === 'posts' && (
             <div className="col-span-3 space-y-3">
               {posts.length === 0 ? (
@@ -1097,6 +1243,7 @@ export default function DashboardPage() {
           
           {activeTab === 'edit' && (
             <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('editProfile')}</h3>
               {EDIT_FIELDS.map((field, i) => (
                 <div key={i} className="relative">
                   <input
@@ -1117,7 +1264,7 @@ export default function DashboardPage() {
                 />
               </div>
               <button onClick={saveProfile} disabled={saving}
-                className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 disabled:opacity-50 transition flex items-center justify-center gap-2 cursor-pointer">
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
                 {saving ? t('saving') : t('saveChanges')}
               </button>
@@ -1126,6 +1273,7 @@ export default function DashboardPage() {
           
           {activeTab === 'stats' && (
             <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('earnings')}</h3>
               {[
                 { icon: TrendingUp, color: 'text-green-500', value: earnings.total, label: t('totalLifetime'), suffix: 'QAR' },
                 { icon: TrendingUp, color: 'text-blue-500', value: Math.round(earnings.monthly), label: t('monthlyAvg'), suffix: 'QAR' },
@@ -1143,50 +1291,58 @@ export default function DashboardPage() {
           )}
           
           {activeTab === 'saved' && (
-            savedWorkers.length === 0 ? (
-              <div className="col-span-3 text-center py-8 text-gray-400">
-                <Heart size={40} className="mx-auto mb-2 opacity-30" />
-                <p className="text-sm">{t('noSaved')}</p>
-              </div>
-            ) : (
-              savedWorkers.map((saved: any) => (
-                <div key={saved.id} className="bg-white rounded-xl p-3 border shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <img src={saved.saved?.photo_url || ''} className="w-10 h-10 rounded-full object-cover bg-gray-200" alt="" 
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold truncate">{saved.saved?.name || 'Worker'}</p>
-                      <p className="text-[10px] text-gray-400">{saved.saved?.category || 'General'}</p>
-                      {saved.saved?.rating > 0 && (
-                        <div className="flex items-center gap-0.5"><Star size={10} className="text-yellow-500" fill="#EAB308" /><span className="text-[10px]">{saved.saved.rating}</span></div>
-                      )}
+            <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('saved')}</h3>
+              {savedWorkers.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Heart size={40} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">{t('noSaved')}</p>
+                </div>
+              ) : (
+                savedWorkers.map((saved: any) => (
+                  <div key={saved.id} className="bg-white rounded-xl p-3 border shadow-sm cursor-pointer hover:shadow-md transition">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {saved.saved?.name?.charAt(0)?.toUpperCase() || 'W'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate">{saved.saved?.name || 'Worker'}</p>
+                        <p className="text-[10px] text-gray-400">{saved.saved?.category || 'General'}</p>
+                        {saved.saved?.rating > 0 && (
+                          <div className="flex items-center gap-0.5"><Star size={10} className="text-yellow-500" fill="#EAB308" /><span className="text-[10px]">{saved.saved.rating}</span></div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )
+                ))
+              )}
+            </div>
           )}
           
           {activeTab === 'alerts' && (
-            notifications.length === 0 ? (
-              <div className="col-span-3 text-center py-8 text-gray-400">
-                <Bell size={40} className="mx-auto mb-2 opacity-30" />
-                <p className="text-sm">{t('noAlerts')}</p>
-              </div>
-            ) : (
-              notifications.map((n: any) => (
-                <div key={n.id} onClick={() => !n.is_read && markNotifRead(n.id)}
-                  className={`col-span-3 bg-white rounded-xl p-3 border cursor-pointer ${!n.is_read ? 'border-l-4 border-l-green-500' : ''}`}>
-                  <p className="text-xs font-medium">{n.title || 'Notification'}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{n.message}</p>
-                  <p className="text-[8px] text-gray-300 mt-1">{timeAgo(n.created_at, lang)}</p>
+            <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('alerts')}</h3>
+              {notifications.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Bell size={40} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">{t('noAlerts')}</p>
                 </div>
-              ))
-            )
+              ) : (
+                notifications.map((n: any) => (
+                  <div key={n.id} onClick={() => !n.is_read && markNotifRead(n.id)}
+                    className={`bg-white rounded-xl p-3 border cursor-pointer hover:shadow-md transition ${!n.is_read ? 'border-l-4 border-l-green-500 bg-green-50/30' : ''}`}>
+                    <p className="text-xs font-medium">{n.title || 'Notification'}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{n.message}</p>
+                    <p className="text-[8px] text-gray-300 mt-1">{timeAgo(n.created_at, lang)}</p>
+                  </div>
+                ))
+              )}
+            </div>
           )}
           
           {activeTab === 'analytics' && (
             <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('analytics')}</h3>
               {[
                 { icon: Eye, color: 'text-orange-500', value: analytics.views, label: t('totalViews') },
                 { icon: User, color: 'text-blue-500', value: analytics.profileVisits, label: t('profileViews') },
@@ -1206,6 +1362,7 @@ export default function DashboardPage() {
           
           {activeTab === 'settings' && (
             <div className="col-span-3 space-y-2">
+              <h3 className="text-sm font-bold text-gray-700 mb-1">{t('settings')}</h3>
               {SETTINGS_BTNS.map((btn, i) => (
                 <button key={i} onClick={btn.action}
                   className="w-full bg-white rounded-xl p-3 text-left flex items-center gap-3 border hover:shadow-md transition-all active:scale-[0.99] cursor-pointer">

@@ -1,6 +1,6 @@
 // app/[country]/[lang]/create/page.tsx
 // 🚀 ১ বিলিয়ন ইউজার • সুপারসনিক • Auth Protected • WebP • Full Translation
-// ✅ is_public + is_verified FIXED
+// ✅ is_public + is_verified FIXED • ✅ Multi-language Name Support
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { siteConfig } from '@/lib/config';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
-import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { User, Building, Camera, Upload, X, Check, Briefcase, ChevronLeft, ChevronRight, Image as ImageIcon, Loader2, Globe } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════
 // CATEGORY TRANSLATION MAP
@@ -117,6 +117,13 @@ const LANGUAGE_OPTIONS = [
   { value: 'Tagalog', label: 'Tagalog', native: 'Tagalog' }
 ];
 
+// 🌍 Multi-language Name Support Config
+const MULTILANG_CONFIG = [
+  { code: 'bn', flag: '🇧🇩', label: 'বাংলা (Bengali)', placeholder: 'আপনার নাম বাংলায় লিখুন', dir: 'ltr' },
+  { code: 'ar', flag: '🇸🇦', label: 'العربية (Arabic)', placeholder: 'اكتب اسمك بالعربية', dir: 'rtl' },
+  { code: 'hi', flag: '🇮🇳', label: 'हिन्दी (Hindi)', placeholder: 'अपना नाम हिंदी में लिखें', dir: 'ltr' },
+];
+
 const getCategoryDefaultImage = (category: string): string => {
   const images: Record<string, string> = {
     'Driver': '/images/categories/driver.jpg',
@@ -179,7 +186,12 @@ const formTexts: Record<string, any> = {
     jobImage: 'Job Image',
     uploadImage: 'Upload Image',
     selectCategoryHint: 'Select category for auto image',
-    or: 'OR'
+    or: 'OR',
+    // 🌍 Multi-language step
+    multiLangTitle: '🌍 Select Your Languages',
+    multiLangDesc: 'Choose languages & add your name',
+    englishRequired: 'English (Required)',
+    nameInEnglish: 'Full Name in English *',
   },
   bn: { 
     title: 'প্রোফাইল তৈরি', phone: 'ফোন *', name: 'পুরো নাম *', category: 'ক্যাটাগরি', 
@@ -205,7 +217,12 @@ const formTexts: Record<string, any> = {
     jobImage: 'চাকরির ছবি',
     uploadImage: 'ছবি আপলোড',
     selectCategoryHint: 'অটো ছবির জন্য ক্যাটাগরি নির্বাচন করুন',
-    or: 'অথবা'
+    or: 'অথবা',
+    // 🌍 Multi-language step
+    multiLangTitle: '🌍 আপনার ভাষা নির্বাচন করুন',
+    multiLangDesc: 'ভাষা নির্বাচন করুন ও আপনার নাম যোগ করুন',
+    englishRequired: 'ইংরেজি (আবশ্যক)',
+    nameInEnglish: 'ইংরেজিতে পুরো নাম *',
   },
   ar: { 
     title: 'إنشاء ملف', phone: 'الهاتف *', name: 'الاسم الكامل *', category: 'الفئة', 
@@ -231,7 +248,12 @@ const formTexts: Record<string, any> = {
     jobImage: 'صورة الوظيفة',
     uploadImage: 'تحميل صورة',
     selectCategoryHint: 'اختر الفئة للحصول على صورة تلقائية',
-    or: 'أو'
+    or: 'أو',
+    // 🌍 Multi-language step
+    multiLangTitle: '🌍 اختر لغاتك',
+    multiLangDesc: 'اختر اللغات وأضف اسمك',
+    englishRequired: 'الإنجليزية (مطلوب)',
+    nameInEnglish: 'الاسم الكامل بالإنجليزية *',
   },
   hi: { 
     title: 'प्रोफाइल बनाएं', phone: 'फोन *', name: 'पूरा नाम *', category: 'श्रेणी', 
@@ -257,7 +279,12 @@ const formTexts: Record<string, any> = {
     jobImage: 'नौकरी की छवि',
     uploadImage: 'छवि अपलोड करें',
     selectCategoryHint: 'ऑटो छवि के लिए श्रेणी चुनें',
-    or: 'या'
+    or: 'या',
+    // 🌍 Multi-language step
+    multiLangTitle: '🌍 अपनी भाषाएं चुनें',
+    multiLangDesc: 'भाषाएं चुनें और अपना नाम जोड़ें',
+    englishRequired: 'अंग्रेज़ी (आवश्यक)',
+    nameInEnglish: 'अंग्रेज़ी में पूरा नाम *',
   }
 };
 
@@ -308,7 +335,11 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
   const [error, setError] = useState('');
   
   // Worker states
-  const [name, setName] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [nameBn, setNameBn] = useState('');
+  const [nameAr, setNameAr] = useState('');
+  const [nameHi, setNameHi] = useState('');
+  const [selectedLangs, setSelectedLangs] = useState<string[]>(['bn', 'ar', 'hi']); // Default all checked
   const [phone, setPhone] = useState('');
   const [category, setCategory] = useState('');
   const [salary, setSalary] = useState('');
@@ -344,6 +375,15 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
   const [jobImagePrev, setJobImagePrev] = useState('');
   const [jobImageUploading, setJobImageUploading] = useState(false);
   const [useDefaultImage, setUseDefaultImage] = useState(true);
+
+  // 🌍 Toggle language selection
+  const toggleLang = (langCode: string) => {
+    setSelectedLangs(prev => 
+      prev.includes(langCode) 
+        ? prev.filter(l => l !== langCode) 
+        : [...prev, langCode]
+    );
+  };
 
   const handleWorkPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -387,10 +427,10 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
     }
   };
 
-  // ✅ FIXED: handleLaborSubmit with is_verified + is_public
+  // ✅ FIXED: handleLaborSubmit with multi-language names + is_verified + is_public
   const handleLaborSubmit = async () => {
-    if (!phone || !name) {
-      setError('Phone & Name required');
+    if (!phone || !nameEn) {
+      setError(currentLang === 'bn' ? 'ফোন ও ইংরেজি নাম আবশ্যক' : 'Phone & English name required');
       return;
     }
     setLoading(true);
@@ -419,9 +459,14 @@ function CreatePageContent({ country, currentLang }: { country: string; currentL
         if (data) workUrls.push(supabase.storage.from('profiles').getPublicUrl(data.path).data.publicUrl);
       }
       
-      // ✅ FIXED: Added is_verified: true + is_public: true
+      // ✅ FIXED: Added multi-language names + is_verified + is_public
       const { error: insertError } = await supabase.from('profiles').insert({
-        phone, name, role: 'labor', category, country, city, area, experience,
+        phone, 
+        name: nameEn,                              // Primary name (English)
+        name_bn: selectedLangs.includes('bn') ? nameBn || null : null,
+        name_ar: selectedLangs.includes('ar') ? nameAr || null : null,
+        name_hi: selectedLangs.includes('hi') ? nameHi || null : null,
+        role: 'labor', category, country, city, area, experience,
         expected_salary: salary ? `${salary} QAR` : null, license, languages: languages || null,
         visa_status: visaStatus, sponsorship, accommodation, food, bio, photo_url: photoUrl, 
         photos: workUrls, rating: 0, total_reviews: 0, is_online: true, 
@@ -499,6 +544,9 @@ ${jobDesc || 'No description provided'}`;
     }
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // SUCCESS SCREEN
+  // ═══════════════════════════════════════════════════════════
   if (success) return (
     <div className="min-h-screen bg-gray-50">
       <Header country={country} lang={currentLang} />
@@ -514,6 +562,9 @@ ${jobDesc || 'No description provided'}`;
     </div>
   );
 
+  // ═══════════════════════════════════════════════════════════
+  // MODE SELECTION SCREEN
+  // ═══════════════════════════════════════════════════════════
   if (!mode) return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
@@ -542,6 +593,9 @@ ${jobDesc || 'No description provided'}`;
     </div>
   );
 
+  // ═══════════════════════════════════════════════════════════
+  // LABOR PROFILE FORM (6 STEPS with Multi-language)
+  // ═══════════════════════════════════════════════════════════
   if (mode === 'labor') return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
@@ -552,17 +606,20 @@ ${jobDesc || 'No description provided'}`;
         
         {error && <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
         
+        {/* Progress Bar */}
         <div className="mb-4">
           <div className="h-2 bg-gray-200 rounded-full">
-            <div className="h-2 bg-orange-600 rounded-full transition-all" style={{ width: `${(step/5)*100}%` }} />
+            <div className="h-2 bg-orange-600 rounded-full transition-all" style={{ width: `${(step/6)*100}%` }} />
           </div>
+          <p className="text-xs text-gray-400 text-right mt-1">Step {step}/6</p>
         </div>
         
         <div className="bg-white rounded-2xl p-5 shadow-sm border space-y-4">
+          
+          {/* ═══════ STEP 1: Phone + Category ═══════ */}
           {step === 1 && (
             <>
               <input value={phone} onChange={e => setPhone(e.target.value)} placeholder={ft.phone} className="w-full p-3 border rounded-xl text-lg" type="tel" />
-              <input value={name} onChange={e => setName(e.target.value)} placeholder={ft.name} className="w-full p-3 border rounded-xl text-lg" />
               <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border rounded-xl text-lg">
                 <option value="">{ft.category}</option>
                 {siteConfig.categories.map(c => (
@@ -572,7 +629,99 @@ ${jobDesc || 'No description provided'}`;
             </>
           )}
           
+          {/* ═══════ STEP 2: 🌍 Multi-language Names ═══════ */}
           {step === 2 && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg text-center">{ft.multiLangTitle || '🌍 Select Your Languages'}</h3>
+              <p className="text-xs text-gray-500 text-center">{ft.multiLangDesc || 'Choose languages & add your name'}</p>
+              
+              {/* English - Always Required */}
+              <div className="bg-gray-50 border-2 border-green-300 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 bg-green-500 rounded flex items-center justify-center">
+                    <Check size={14} className="text-white" />
+                  </div>
+                  <span className="font-medium text-green-700">🇬🇧 {ft.englishRequired || 'English (Required)'}</span>
+                </div>
+                <input 
+                  value={nameEn} 
+                  onChange={e => setNameEn(e.target.value)} 
+                  placeholder={ft.nameInEnglish || 'Full Name in English *'} 
+                  className="w-full p-3 border rounded-xl bg-white" 
+                />
+              </div>
+              
+              {/* Bengali */}
+              <div className={`border-2 rounded-xl p-4 transition ${selectedLangs.includes('bn') ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white'}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLangs.includes('bn')} 
+                    onChange={() => toggleLang('bn')} 
+                    className="w-5 h-5 accent-orange-600 rounded" 
+                    id="lang-bn"
+                  />
+                  <label htmlFor="lang-bn" className="font-medium cursor-pointer">🇧🇩 বাংলা (Bengali)</label>
+                </div>
+                {selectedLangs.includes('bn') && (
+                  <input 
+                    value={nameBn} 
+                    onChange={e => setNameBn(e.target.value)} 
+                    placeholder="আপনার নাম বাংলায় লিখুন" 
+                    className="w-full p-3 border rounded-xl bg-white" 
+                  />
+                )}
+              </div>
+              
+              {/* Arabic */}
+              <div className={`border-2 rounded-xl p-4 transition ${selectedLangs.includes('ar') ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white'}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLangs.includes('ar')} 
+                    onChange={() => toggleLang('ar')} 
+                    className="w-5 h-5 accent-orange-600 rounded" 
+                    id="lang-ar"
+                  />
+                  <label htmlFor="lang-ar" className="font-medium cursor-pointer">🇸🇦 العربية (Arabic)</label>
+                </div>
+                {selectedLangs.includes('ar') && (
+                  <input 
+                    value={nameAr} 
+                    onChange={e => setNameAr(e.target.value)} 
+                    placeholder="اكتب اسمك بالعربية" 
+                    className="w-full p-3 border rounded-xl bg-white text-right" 
+                    dir="rtl" 
+                  />
+                )}
+              </div>
+              
+              {/* Hindi */}
+              <div className={`border-2 rounded-xl p-4 transition ${selectedLangs.includes('hi') ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white'}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLangs.includes('hi')} 
+                    onChange={() => toggleLang('hi')} 
+                    className="w-5 h-5 accent-orange-600 rounded" 
+                    id="lang-hi"
+                  />
+                  <label htmlFor="lang-hi" className="font-medium cursor-pointer">🇮🇳 हिन्दी (Hindi)</label>
+                </div>
+                {selectedLangs.includes('hi') && (
+                  <input 
+                    value={nameHi} 
+                    onChange={e => setNameHi(e.target.value)} 
+                    placeholder="अपना नाम हिंदी में लिखें" 
+                    className="w-full p-3 border rounded-xl bg-white" 
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* ═══════ STEP 3: Photo + Experience + Visa ═══════ */}
+          {step === 3 && (
             <>
               <div className="flex justify-center mb-2">
                 {photoPrev ? (
@@ -605,7 +754,8 @@ ${jobDesc || 'No description provided'}`;
             </>
           )}
           
-          {step === 3 && (
+          {/* ═══════ STEP 4: Salary + Location + Accommodation + Food ═══════ */}
+          {step === 4 && (
             <>
               <input value={salary} onChange={e => setSalary(e.target.value)} placeholder={ft.salary} className="w-full p-3 border rounded-xl" type="number" />
               <select value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border rounded-xl">
@@ -627,7 +777,8 @@ ${jobDesc || 'No description provided'}`;
             </>
           )}
           
-          {step === 4 && (
+          {/* ═══════ STEP 5: License + Languages + Bio ═══════ */}
+          {step === 5 && (
             <>
               <input value={license} onChange={e => setLicense(e.target.value)} placeholder={ft.license} className="w-full p-3 border rounded-xl" />
               <select value={languages} onChange={e => setLanguages(e.target.value)} className="w-full p-3 border rounded-xl">
@@ -640,7 +791,8 @@ ${jobDesc || 'No description provided'}`;
             </>
           )}
           
-          {step === 5 && (
+          {/* ═══════ STEP 6: Work Photos ═══════ */}
+          {step === 6 && (
             <div>
               <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-orange-400">
                 <Upload size={32} className="mx-auto text-gray-400"/>
@@ -661,18 +813,38 @@ ${jobDesc || 'No description provided'}`;
           )}
         </div>
         
+        {/* Navigation Buttons */}
         <div className="flex gap-3 mt-5">
-          {step > 1 && <button onClick={() => setStep(step-1)} className="flex-1 py-3 bg-gray-100 rounded-xl font-semibold">{ft.back}</button>}
-          {step < 5 ? 
-            <button onClick={() => setStep(step+1)} className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-semibold">{ft.next} →</button> : 
-            <button onClick={handleLaborSubmit} disabled={loading} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold">{loading ? '...' : ft.submit}</button>
-          }
+          {step > 1 && (
+            <button onClick={() => setStep(step-1)} className="flex-1 py-3 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 transition">
+              {ft.back}
+            </button>
+          )}
+          {step < 6 ? (
+            <button 
+              onClick={() => setStep(step+1)} 
+              className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 transition"
+            >
+              {ft.next} →
+            </button>
+          ) : (
+            <button 
+              onClick={handleLaborSubmit} 
+              disabled={loading} 
+              className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50"
+            >
+              {loading ? 'Submitting...' : ft.submit}
+            </button>
+          )}
         </div>
       </div>
       <MobileNav country={country} lang={currentLang} />
     </div>
   );
 
+  // ═══════════════════════════════════════════════════════════
+  // EMPLOYER JOB POST FORM
+  // ═══════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header country={country} lang={currentLang} />
@@ -688,6 +860,7 @@ ${jobDesc || 'No description provided'}`;
             <Briefcase size={24}/> {ft.employerTitle}
           </h2>
           
+          {/* Job Image Upload */}
           <div className="mb-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {ft.jobImage || 'Job Image'}

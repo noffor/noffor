@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_language: 'en',
           is_online: false,
           is_verified: true,
-          is_public: true,
+          is_public:  false,
           rating: 0,
           total_reviews: 0,
           created_at: new Date().toISOString(),

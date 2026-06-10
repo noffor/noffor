@@ -18,9 +18,6 @@ const T: Record<string, Record<string, string>> = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Category Translation Map (Module-level • 0ms lookup)
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
 // Category Translation Map (Module-level • 0ms lookup • 12 Categories)
 // ═══════════════════════════════════════════════════════════
 const CATEGORY_MAP: Record<string, Record<string, string>> = {
@@ -264,6 +261,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
     const bookingData = {
       worker_id: worker.id,
       employer_name: name.trim(),
+      worker_name: worker.name,
       job_title: worker.category,
       job_description: description.trim(),
       category: worker.category,
@@ -284,7 +282,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
       special_instructions: '',
       contact_phone: phone.trim(),
       status: 'pending',
-      employer_id: phone.trim(),
+      employer_id: null,
     };
 
     for (let r = 0; r <= CONFIG.MAX_RETRY; r++) {
