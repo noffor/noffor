@@ -5,15 +5,16 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';  // ✅ ADDED
+import { useAuth } from '@/context/AuthContext';
 import {
   BarChart3, Edit, Eye, CreditCard, Heart, Bell, Settings, Star, 
   Phone, Briefcase, Globe, Shield, Mail, MapPin, History, User, 
   Trash2, LogOut, Clock, DollarSign, Camera, Save, AlertCircle, 
   Upload, Wifi, WifiOff, Home, Calendar, Share2, Download, TrendingUp,
   Check, X, Info, Plus, Image as ImageIcon, Send, MoreVertical, Edit3, MessageSquare,
-  FileText, BookOpen, ChevronRight  // ✅ ChevronRight ADDED
+  FileText, BookOpen, ChevronRight
 } from 'lucide-react';
+
 // 🔥 Lazy loaded components
 const Header = lazy(() => import('@/components/layout/Header'));
 const MobileNav = lazy(() => import('@/components/layout/MobileNav'));
@@ -269,7 +270,7 @@ const Toast = memo(({ toast, onClose }: { toast: any; onClose: () => void }) => 
 });
 Toast.displayName = 'Toast';
 
-// 🔥 Profile Header (unchanged - same as before)
+// 🔥 Profile Header
 const ProfileHeader = memo(({ profile, coverSrc, photoSrc, coverUploading, photoUploading, online, lang, coverInputRef, photoInputRef, uploadCover, uploadPhoto, toggleOnline, shareProfile }: any) => {
   const t = (key: string) => LANG[lang]?.[key] || LANG.en[key] || key;
   return (
@@ -526,8 +527,7 @@ const TabButton = memo(({ tab, isActive, onClick }: any) => (
 TabButton.displayName = 'TabButton';
 
 // ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
-// 🔥 MAIN DASHBOARD COMPONENT (FIXED - No White Screen)
+// 🔥 MAIN DASHBOARD COMPONENT (ALL FIXES APPLIED)
 // ═══════════════════════════════════════════════════════
 export default function DashboardPage() {
   const params = useParams();
@@ -541,7 +541,18 @@ export default function DashboardPage() {
   const t = useCallback((key: string) => LANG[lang]?.[key] || LANG.en[key] || key, [lang]);
   
   // 🔥 State
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('activeTab');
+        if (saved) {
+          sessionStorage.removeItem('activeTab');
+          return saved as TabKey;
+        }
+      } catch {}
+    }
+    return 'overview';
+  });
   const [online, setOnline] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
@@ -865,7 +876,7 @@ export default function DashboardPage() {
     setShowDeleteConfirm(true);
   }, []);
   
-  // Delete Post Execute
+  // ✅ FIXED: confirmDeletePost with sessionStorage clearing and event dispatch
   const confirmDeletePost = useCallback(async () => {
     if (!deletingPostId || lockRef.current) return;
     lockRef.current = true;
@@ -877,6 +888,12 @@ export default function DashboardPage() {
       if (mountedRef.current) {
         setPosts(prev => prev.filter(p => p.id !== deletingPostId));
         showToast(t('postDeleted'), 'success');
+        
+        // ✅ সব ক্যাশে ক্লিয়ার — ব্যানার/হোমপেজ/ক্যাটাগরি রিফ্রেশ হবে
+        try {
+          sessionStorage.clear();
+          window.dispatchEvent(new CustomEvent('cache-clear'));
+        } catch {}
       }
     } catch (err: any) {
       showToast(t('deleteFailed') + ': ' + err.message, 'error');
@@ -941,23 +958,25 @@ export default function DashboardPage() {
     { icon: Clock, color: 'text-orange-500', value: `${(profile || {}).experience || 0} yrs`, label: t('exp') },
   ], [earnings, trips, profile, lang]);
   
-  // ✅ FIXED: SETTINGS_BTNS - all buttons now have proper onClick handlers
+  // ✅ FIXED: SETTINGS_BTNS - all buttons have proper onClick handlers
   const SETTINGS_BTNS = useMemo(() => [
     { icon: User, color: 'bg-lime-50 text-lime-600', label: t('editProfile'), action: () => setActiveTab('edit') },
     { icon: Globe, color: 'bg-blue-50 text-blue-600', label: lang.toUpperCase(), action: () => {
-      // Language switcher - show alert for now (can be expanded)
       const langs = ['en', 'bn', 'ar', 'hi'];
-      const currentIdx = langs.indexOf(lang);
+      const currentIdx = langs.indexOf(lang as string);
       const nextIdx = (currentIdx + 1) % langs.length;
-      router.push(`/${country}/${langs[nextIdx]}/dashboard`);
+      const nextLang = langs[nextIdx];
+      try { sessionStorage.setItem('activeTab', activeTab); } catch {}
+      router.push(`/${country}/${nextLang}/dashboard`);
     }},
     { icon: Share2, color: 'bg-purple-50 text-purple-600', label: t('share'), action: () => shareProfile() },
     { icon: Download, color: 'bg-indigo-50 text-indigo-600', label: t('export'), action: () => downloadStats() },
     { icon: LogOut, color: 'bg-gray-200 text-gray-700', label: t('logout'), action: () => logout() },
     { icon: Trash2, color: 'bg-red-50 text-red-600', label: t('delete'), action: () => deleteProfile() },
-  ], [lang, country, router, shareProfile, downloadStats, logout, deleteProfile]);
+  ], [lang, country, router, shareProfile, downloadStats, logout, deleteProfile, activeTab, t]);
   
-  if (loading) {
+  // ✅ FIXED: Loading state properly handles auth + data
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -966,6 +985,11 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+  
+  // 🛡️ Guard: Not authenticated - redirect handled by useEffect
+  if (!isAuthenticated || !profile) {
+    return null;
   }
   
   const p = profile || {};
@@ -1068,7 +1092,7 @@ export default function DashboardPage() {
             )
           )}
           
-          {/* 🔥 POSTS TAB - Create Post Button REMOVED */}
+          {/* 🔥 POSTS TAB */}
           {activeTab === 'posts' && (
             <div className="col-span-3 space-y-3">
               {posts.length === 0 ? (
@@ -1216,6 +1240,21 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      
+      {/* 🔥 FAB Create Post Button - Visible on Posts tab */}
+      {activeTab === 'posts' && (
+        <button
+          onClick={() => {
+            setEditingPost(null);
+            setShowPostModal(true);
+          }}
+          className="fixed bottom-20 right-4 lg:bottom-8 lg:right-8 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-2xl z-40 transition-all active:scale-90"
+          style={{ touchAction: 'manipulation', willChange: 'transform' }}
+          aria-label={t('createPost')}
+        >
+          <Plus size={24} />
+        </button>
+      )}
       
       <Suspense fallback={<div className="h-16" />}>
         <MobileNav country={country} lang={lang} />

@@ -313,7 +313,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // SIGNED_OUT
+        // ✅ FIXED: SIGNED_OUT with sessionStorage.clear()
         if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out');
           setState({ 
@@ -327,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('noffor_user');
             localStorage.removeItem('noffor_worker');
             localStorage.removeItem('noffor_worker_online');
-            sessionStorage.clear();
+            try { sessionStorage.clear(); } catch {}  // ✅ Added
           }
         }
         
@@ -348,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile, getCachedProfile]); // ✅ Empty deps - runs once on mount
 
   // ═══════════════════════════════════════════════════
-  // Sign Out
+  // ✅ FIXED: Sign Out with hard redirect
   // ═══════════════════════════════════════════════════
   const signOut = useCallback(async () => {
     try {
@@ -359,11 +359,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('noffor_user');
         localStorage.removeItem('noffor_worker');
         localStorage.removeItem('noffor_worker_online');
-        sessionStorage.clear();
+        try { sessionStorage.clear(); } catch {}
       }
       
+      // Supabase signOut
       await supabase.auth.signOut();
       
+      // State reset
       setState({ 
         session: null, 
         user: null, 
@@ -372,12 +374,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: false 
       });
       
-      router.push('/qa/en');
-      router.refresh();
+      // Hard redirect to login
+      window.location.href = '/qa/en/login';
     } catch (err) {
       console.error('Sign out error:', err);
+      window.location.href = '/qa/en/login';
     }
-  }, [router]);
+  }, []);
 
   // ═══════════════════════════════════════════════════
   // Refresh Profile
@@ -394,16 +397,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ═══════════════════════════════════════════════════
   const isAdmin = useMemo(() => state.profile?.role === 'admin', [state.profile]);
 
+  // ✅ FIXED: loading state - removed initialCheckDone dependency
   const value = useMemo((): AuthContextType => ({
     session: state.session,
     user: state.user,
     profile: state.profile,
-    loading: state.loading && !initialCheckDone,
+    loading: state.loading,  // ✅ Fixed: just state.loading
     isAuthenticated: state.isAuthenticated,
     signOut,
     refreshProfile,
     isAdmin,
-  }), [state, signOut, refreshProfile, isAdmin, initialCheckDone]);
+  }), [state, signOut, refreshProfile, isAdmin]);
 
   // Debug
   useEffect(() => {
