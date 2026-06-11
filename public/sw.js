@@ -1,10 +1,16 @@
-const CACHE_NAME = 'noffor-v1';
+// public/sw.js - v7
+const CACHE_NAME = 'noffor-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(cacheNames.map(name => caches.delete(name)));
+    })
+  );
   event.waitUntil(self.clients.claim());
 });
 
