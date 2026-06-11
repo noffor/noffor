@@ -628,6 +628,28 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
+  // ✅ FIXED: onQuickHire handler — ম্যাপ থেকে লেবার সিলেক্ট করলে booking তৈরি হবে
+  const handleWorkerQuickHire = useCallback((worker: any) => {
+    if (!userLocation) {
+      toast(tr.locationDenied, 'error');
+      return;
+    }
+    
+    matchWorker(
+      userLocation.lat,
+      userLocation.lng,
+      country,
+      profile?.phone || '',
+      profile?.name || 'Employer',
+      worker.profile?.category || 'all',
+      worker.price_estimate || 100
+    );
+    
+    setBookingState('searching');
+    setShowMap(false);
+    toast(tr.findingWorker, 'info');
+  }, [userLocation, country, profile, matchWorker, tr]);
+
   // 🔥 Quick hire handler
   const handleQuickHire = useCallback(async () => {
     if (authLoading || lockRef.current) return;
@@ -723,7 +745,7 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* Map */}
+      {/* ✅ FIXED: Map with onQuickHire prop */}
       {showMap && userLocation && bookingState !== 'tracking' && (
         <div 
           className="relative rounded-xl overflow-hidden border shadow-sm"
@@ -747,12 +769,14 @@ export default function HomeTabs({ country, lang }: Props) {
               <Loader2 size={24} className="animate-spin text-gray-400" />
             </div>
           }>
+            {/* ✅ onQuickHire prop যোগ করা হয়েছে */}
             <LiveWorkerMap
               country={country}
               lang={lang}
               userLat={userLocation.lat}
               userLng={userLocation.lng}
               onClose={handleCloseMap}
+              onQuickHire={handleWorkerQuickHire}
             />
           </Suspense>
         </div>
