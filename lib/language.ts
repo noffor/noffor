@@ -171,6 +171,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     be_first: 'Be the first to bid!',
     no_bids_yet: 'No bids yet',
     login_required: 'Please login to continue',
+    linkCopied: 'Link copied!',
+    loading: 'Loading profile...',
+    profileNotFound: 'Profile Not Found',
+    profileNotFoundDesc: 'This profile has been removed or does not exist',
+    invalidProfile: 'Invalid Profile',
+    goHome: 'Go Home',
+    whatsappNotAvailable: 'WhatsApp not available',
+    phoneNotAvailable: 'Phone not available',
   },
   bn: {
     map_loading: 'ম্যাপ লোড হচ্ছে...',
@@ -329,6 +337,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     be_first: 'প্রথম বিড করুন!',
     no_bids_yet: 'কোনো বিড নেই',
     login_required: 'চালিয়ে যেতে লগইন করুন',
+    linkCopied: 'লিংক কপি হয়েছে!',
+    loading: 'প্রোফাইল লোড হচ্ছে...',
+    profileNotFound: 'প্রোফাইল পাওয়া যায়নি',
+    profileNotFoundDesc: 'এই প্রোফাইলটি মুছে ফেলা হয়েছে বা বিদ্যমান নেই',
+    invalidProfile: 'অবৈধ প্রোফাইল',
+    goHome: 'হোমে যান',
+    whatsappNotAvailable: 'হোয়াটসঅ্যাপ উপলব্ধ নয়',
+    phoneNotAvailable: 'ফোন উপলব্ধ নয়',
   },
   ar: {
     map_loading: 'جاري تحميل الخريطة...',
@@ -487,6 +503,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     be_first: 'كن الأول!',
     no_bids_yet: 'لا توجد عروض بعد',
     login_required: 'يرجى تسجيل الدخول للمتابعة',
+    linkCopied: 'تم نسخ الرابط!',
+    loading: 'جاري تحميل الملف...',
+    profileNotFound: 'الملف غير موجود',
+    profileNotFoundDesc: 'تمت إزالة هذا الملف أو أنه غير موجود',
+    invalidProfile: 'ملف غير صالح',
+    goHome: 'الذهاب للرئيسية',
+    whatsappNotAvailable: 'واتساب غير متوفر',
+    phoneNotAvailable: 'الهاتف غير متوفر',
   },
   hi: {
     map_loading: 'मैप लोड हो रहा है...',
@@ -645,6 +669,14 @@ export const texts: Record<LangCode, Record<string, string>> = {
     be_first: 'पहली बिड करें!',
     no_bids_yet: 'अभी तक कोई बिड नहीं',
     login_required: 'जारी रखने के लिए लॉगिन करें',
+    linkCopied: 'लिंक कॉपी किया गया!',
+    loading: 'प्रोफाइल लोड हो रहा है...',
+    profileNotFound: 'प्रोफाइल नहीं मिला',
+    profileNotFoundDesc: 'यह प्रोफाइल हटा दिया गया है या मौजूद नहीं है',
+    invalidProfile: 'अमान्य प्रोफाइल',
+    goHome: 'होम पर जाएं',
+    whatsappNotAvailable: 'व्हाट्सएप उपलब्ध नहीं',
+    phoneNotAvailable: 'फोन उपलब्ध नहीं',
   },
 };
 
@@ -668,9 +700,6 @@ export function translateNumber(num: string | number, lang: string): string {
   return result;
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🚀 PHONE NUMBER TRANSLATOR (Auto Digit Translate)
-// ═══════════════════════════════════════════════════════════
 export function translatePhone(phone: string, lang: string): string {
   if (!phone || lang === 'en') return phone || '';
   return phone.replace(/[0-9]/g, (digit) => {
@@ -704,6 +733,7 @@ export function getText(lang: LangCode, key: string): string {
 // 🚀 NAME TRANSLATOR (DB-Based Multi-Language Name)
 // ✅ Uses profile.name_bn, name_ar, name_hi from database
 // ✅ Falls back to auto-transliteration if DB name is null
+// ✅ Works even without profile (auto-transliterate)
 // ═══════════════════════════════════════════════════════════
 
 // Manual name overrides (priority over auto-transliteration)
@@ -721,6 +751,18 @@ const NAME_OVERRIDES: Record<string, Record<string, string>> = {
   Ibrahim: { bn: 'ইব্রাহিম', ar: 'إبراهيم', hi: 'इब्राहिम' },
   Yusuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
   Rojjob: { bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
+  Karim: { bn: 'করিম', ar: 'كريم', hi: 'करीम' },
+  Rahim: { bn: 'রহিম', ar: 'رحيم', hi: 'रहीम' },
+  Salam: { bn: 'সালাম', ar: 'سلام', hi: 'सलाम' },
+  Khan: { bn: 'খান', ar: 'خان', hi: 'खान' },
+  Mia: { bn: 'মিয়া', ar: 'ميا', hi: 'मिया' },
+  Uddin: { bn: 'উদ্দিন', ar: 'الدين', hi: 'उद्दीन' },
+  Hossain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
+  Rahman: { bn: 'রহমান', ar: 'رحمن', hi: 'रहমান' },
+  Islam: { bn: 'ইসলাম', ar: 'إسلام', hi: 'इस्लाम' },
+  Akter: { bn: 'আক্তার', ar: 'أختر', hi: 'अख्तर' },
+  Begum: { bn: 'বেগম', ar: 'بيغوم', hi: 'बेगम' },
+  Khatun: { bn: 'খাতুন', ar: 'خاتون', hi: 'खातून' },
 };
 
 const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
@@ -733,6 +775,8 @@ const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
     'I': 'আই', 'J': 'জ', 'K': 'ক', 'L': 'ল', 'M': 'ম', 'N': 'ন', 'O': 'ও', 'P': 'প',
     'Q': 'ক', 'R': 'র', 'S': 'স', 'T': 'ট', 'U': 'উ', 'V': 'ভ', 'W': 'ও', 'X': 'ক্স',
     'Y': 'য', 'Z': 'জ',
+    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯',
+    '.': '.', ',': ',', '-': '-', ' ': ' ',
   },
   ar: {
     'a': 'ا', 'b': 'ب', 'c': 'ك', 'd': 'د', 'e': 'ي', 'f': 'ف', 'g': 'ج', 'h': 'ه',
@@ -743,6 +787,8 @@ const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
     'I': 'اي', 'J': 'ج', 'K': 'ك', 'L': 'ل', 'M': 'م', 'N': 'ن', 'O': 'و', 'P': 'ب',
     'Q': 'ق', 'R': 'ر', 'S': 'س', 'T': 'ت', 'U': 'و', 'V': 'ف', 'W': 'و', 'X': 'كس',
     'Y': 'ي', 'Z': 'ز',
+    '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩',
+    '.': '.', ',': ',', '-': '-', ' ': ' ',
   },
   hi: {
     'a': 'अ', 'b': 'ब', 'c': 'क', 'd': 'ड', 'e': 'इ', 'f': 'फ', 'g': 'ग', 'h': 'ह',
@@ -753,6 +799,8 @@ const NAME_SCRIPT_MAP: Record<string, Record<string, string>> = {
     'I': 'आइ', 'J': 'ज', 'K': 'क', 'L': 'ल', 'M': 'म', 'N': 'न', 'O': 'ओ', 'P': 'प',
     'Q': 'क', 'R': 'र', 'S': 'स', 'T': 'ट', 'U': 'उ', 'V': 'व', 'W': 'व', 'X': 'क्स',
     'Y': 'य', 'Z': 'ज',
+    '0': '०', '1': '१', '2': '२', '3': '३', '4': '४', '5': '५', '6': '६', '7': '७', '8': '८', '9': '९',
+    '.': '.', ',': ',', '-': '-', ' ': ' ',
   },
 };
 
@@ -768,40 +816,44 @@ function autoTransliterate(name: string, lang: string): string {
 }
 
 /**
- * ✅ translateName - Main function
+ * ✅ translateName - Main function (শুধু একটি!)
  * Priority:
  * 1. Database multi-lang name (name_bn, name_ar, name_hi)
  * 2. Manual overrides (common names)
  * 3. Auto transliteration (character mapping)
+ * 
+ * profile ছাড়াও কাজ করে (auto-transliterate fallback)
  */
 export function translateName(name: string, lang: string, profile?: any): string {
+  // নাম না থাকলে বা English হলে সরাসরি রিটার্ন
   if (!name || lang === 'en') return name || '';
   
-  // ═══ PRIORITY 1: Database multi-lang name ═══
+  // ═══ PRIORITY 1: Database multi-lang name (profile থাকলে) ═══
   if (profile) {
     const dbFieldMap: Record<string, string> = {
       bn: profile?.name_bn,
       ar: profile?.name_ar,
       hi: profile?.name_hi,
     };
-    if (dbFieldMap[lang]) {
+    // নাম ফাঁকা না হলে ডাটাবেজের নাম রিটার্ন
+    if (dbFieldMap[lang] && dbFieldMap[lang].trim() !== '') {
       return dbFieldMap[lang];
     }
   }
   
-  // ═══ PRIORITY 2: Manual overrides ═══
+  // ═══ PRIORITY 2: Manual overrides (পুরো নাম চেক) ═══
   if (NAME_OVERRIDES[name]) {
     return NAME_OVERRIDES[name][lang] || name;
   }
   
-  // Check case-insensitive
+  // Case-insensitive check
   const lowerName = name.toLowerCase();
   const capitalName = lowerName.charAt(0).toUpperCase() + lowerName.slice(1);
   if (NAME_OVERRIDES[capitalName]) {
     return NAME_OVERRIDES[capitalName][lang] || name;
   }
   
-  // ═══ PRIORITY 3: Auto transliteration ═══
+  // ═══ PRIORITY 3: Auto transliteration (profile ছাড়াও কাজ করে!) ═══
   return autoTransliterate(name, lang);
 }
 
@@ -821,6 +873,10 @@ const CATEGORY_NAMES: Record<string, Record<string, string>> = {
   Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
   Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
   Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+  Security: { en: 'Security', bn: 'নিরাপত্তারক্ষী', ar: 'حارس أمن', hi: 'सुरक्षा गार्ड' },
+  Teacher: { en: 'Teacher', bn: 'শিক্ষক', ar: 'معلم', hi: 'शिक्षक' },
+  Nurse: { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
+  Chef: { en: 'Chef', bn: 'শেফ', ar: 'طاهي', hi: 'शेफ' },
 };
 
 export function translateCategory(category: string, lang: string): string {
