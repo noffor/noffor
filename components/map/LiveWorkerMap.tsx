@@ -448,31 +448,31 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         )}
       </div>
 
-      {/* HIRE BAR */}
-{selectedWorker && (
-  <div className="bg-white border-t-2 border-green-500 px-4 py-3 flex items-center gap-3 shadow-lg">
-    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shrink-0">
-      {selectedWorker.profile?.photo_url ? (
-        <img src={selectedWorker.profile.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-      ) : (
-        <UserPlus size={18} />
-      )}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-bold text-sm truncate">{selectedWorker.profile?.name || 'Worker'}</p>
-      <p className="text-[10px] text-gray-500 flex items-center gap-2">
-        <span>📍 {selectedWorker.distance}{tr.km}</span>
-        <span>⏱ {selectedWorker.eta}{tr.min}</span>
-        <span className="text-purple-600 font-bold">💰 {selectedWorker.price_estimate} QAR</span>
-      </p>
-    </div>
-    {/* ✅ শুধু এই ১টা লাইন চেঞ্জ: handleHire → onQuickHire */}
-    <button onClick={() => onQuickHire?.(selectedWorker)}
-      className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full text-sm font-bold active:scale-95 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
-      <UserPlus size={15} /> {tr.hireNow}
-    </button>
-  </div>
-)}
+      <button onClick={() => {
+  const worker = selectedWorker;
+  if (!worker) return;
+  
+  // সরাসরি Supabase-এ booking create
+  supabase.from('bookings').insert({
+    worker_id: worker.worker_id,
+    employer_name: 'Quick Hire',
+    contact_phone: prompt('Your phone?') || '000',
+    job_title: worker.profile?.category || 'General',
+    offered_amount: worker.price_estimate || 100,
+    total_amount: worker.price_estimate || 100,
+    distance_km: worker.distance,
+    eta_minutes: worker.eta,
+    location_text: `${worker.latitude},${worker.longitude}`,
+    status: 'pending',
+    start_date: new Date().toISOString().split('T')[0],
+  }).then(({ error }) => {
+    if (error) alert('❌ ' + error.message);
+    else alert('✅ Booking created!');
+  });
+}}
+  className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full text-sm font-bold active:scale-95 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+  <UserPlus size={15} /> {tr.hireNow}
+</button>
     </div>
   );
 }
