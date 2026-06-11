@@ -782,7 +782,7 @@ export default function DashboardPage() {
             country,
             is_online: false,
             is_verified: true,
-            is_public: true,
+            is_public: false,
             rating: 0,
             total_reviews: 0,
             views: 0,
@@ -1154,10 +1154,22 @@ export default function DashboardPage() {
       />
       
       <div className="max-w-4xl mx-auto px-3 py-3 lg:py-4">
-        <ProfileHeader profile={p} coverSrc={coverSrc} photoSrc={photoSrc} coverUploading={coverUploading} photoUploading={photoUploading}
-          online={online} lang={lang} coverInputRef={coverInputRef} photoInputRef={photoInputRef}
-          uploadCover={uploadCover} uploadPhoto={uploadPhoto} toggleOnline={toggleOnline} shareProfile={shareProfile} />
-        
+  <ProfileHeader 
+    key={`${profile?.id}-${profile?.photo_url}-${profile?.cover_url}`}
+    profile={p} 
+    coverSrc={coverSrc} 
+    photoSrc={photoSrc} 
+    coverUploading={coverUploading} 
+    photoUploading={photoUploading}
+    online={online} 
+    lang={lang} 
+    coverInputRef={coverInputRef} 
+    photoInputRef={photoInputRef}
+    uploadCover={uploadCover} 
+    uploadPhoto={uploadPhoto} 
+    toggleOnline={toggleOnline} 
+    shareProfile={shareProfile} 
+  />
         <div className="grid grid-cols-4 gap-2 mb-3">
           {QUICK_STATS.map((stat, i) => (
             <div key={i} className="bg-white rounded-xl p-2 text-center border shadow-sm">

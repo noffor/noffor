@@ -1,5 +1,5 @@
 // components/home/HomeTabs.tsx
-// 🚀 1M+ DAILY USERS • Enterprise Grade • Production Ready
+// 🚀 1M+ DAILY USERS • Enterprise Grade • 4 Languages • Production Ready
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback, memo } from 'react';
@@ -26,48 +26,213 @@ const DEFAULT_LOC = Object.freeze({
   om: Object.freeze({ lat: 23.5880, lng: 58.3829 }),
 });
 
-// 🔥 Optimized translations with shorter strings
+// ═══════════════════════════════════════════════════════════
+// 🌍 4 LANGUAGE TRANSLATIONS (EN, BN, AR, HI)
+// ═══════════════════════════════════════════════════════════
 const T: Record<string, Record<string, string>> = {
   en: { 
-    quickHire: '⚡ Quick Hire', quickHireDesc: 'Find workers', 
-    online: 'Go Online', offline: 'Go Offline', on: 'ON', off: 'OFF', 
-    locating: 'Locating...', loginToGoOnline: 'Login', 
-    closeMap: 'Close', error: 'Error', retry: 'Retry', 
-    workersNearby: 'nearby', loginRequired: 'Login', 
-    tapToHire: '👆 Hire', loginToHire: 'Login',
-    tracking: 'Tracking', workerArriving: 'Coming',
-    arrived: 'Arrived', inProgress: 'Working', completed: 'Done',
-    cancel: 'Cancel', complete: 'Complete', contact: 'Call',
-    distance: 'Dist', eta: 'ETA', min: 'm', km: 'km',
-    cancelBooking: 'Cancel?', confirmCancel: 'Sure?',
-    bookingCreated: 'Booked!', findingWorker: 'Finding...',
-    workerFound: 'Found!', bookingFailed: 'Failed',
-    noWorkersAvailable: 'No workers',
-    hiredWorker: '{name}',
-    callWorker: 'Call',
+    quickHire: '⚡ Quick Hire',
+    quickHireDesc: 'Find workers',
+    online: 'Go Online',
+    offline: 'Go Offline',
+    on: 'ON',
+    off: 'OFF',
+    locating: 'Locating...',
+    loginToGoOnline: 'Login to go online',
+    closeMap: 'Close Map',
+    error: 'Error occurred',
+    retry: 'Retry',
+    workersNearby: 'workers nearby',
+    loginRequired: 'Login required',
+    tapToHire: '👆 Tap to Hire',
+    loginToHire: 'Login to hire',
+    tracking: 'Tracking',
+    workerArriving: 'Worker arriving',
+    arrived: 'Arrived',
+    inProgress: 'Work in progress',
+    completed: 'Completed',
+    cancel: 'Cancel',
+    complete: 'Complete',
+    contact: 'Call',
+    distance: 'Distance',
+    eta: 'ETA',
+    min: 'min',
+    km: 'km',
+    cancelBooking: 'Cancel Booking?',
+    confirmCancel: 'Are you sure?',
+    bookingCreated: 'Booking Created!',
+    findingWorker: 'Finding worker...',
+    workerFound: 'Worker Found!',
+    bookingFailed: 'Booking Failed',
+    noWorkersAvailable: 'No workers available',
+    hiredWorker: '{name} hired',
+    callWorker: 'Call Worker',
+    logoutWarning: 'Logged out successfully',
+    onlineUpdated: 'Status updated',
+    locationDenied: 'Location access denied',
+    goOnlineFirst: 'Please go online first',
+    searchingNearby: 'Searching nearby workers...',
+    workerOnTheWay: 'Worker is on the way',
+    workStarted: 'Work has started',
+    workCompleted: 'Work completed!',
+    rateWorker: 'Please rate the worker',
+    yes: 'Yes',
+    no: 'No',
+    ok: 'OK',
   },
   bn: { 
-    quickHire: '⚡ কুইক হায়ার', quickHireDesc: 'শ্রমিক খুঁজুন', 
-    online: 'অনলাইন', offline: 'অফলাইন', on: 'চালু', off: 'বন্ধ', 
-    locating: 'লোকেশন...', loginToGoOnline: 'লগইন', 
-    closeMap: 'বন্ধ', error: 'ত্রুটি', retry: 'আবার', 
-    workersNearby: 'কাছাকাছি', loginRequired: 'লগইন', 
-    tapToHire: '👆 হায়ার', loginToHire: 'লগইন',
-    tracking: 'ট্র্যাকিং', workerArriving: 'আসছে',
-    arrived: 'এসেছে', inProgress: 'কাজ চলছে', completed: 'সম্পন্ন',
-    cancel: 'বাতিল', complete: 'সম্পন্ন', contact: 'কল',
-    distance: 'দূরত্ব', eta: 'সময়', min: 'মি', km: 'কিমি',
-    cancelBooking: 'বাতিল?', confirmCancel: 'নিশ্চিত?',
-    bookingCreated: 'বুকিং!', findingWorker: 'খুঁজছে...',
-    workerFound: 'পাওয়া গেছে!', bookingFailed: 'ব্যর্থ',
-    noWorkersAvailable: 'নেই',
-    hiredWorker: '{name}',
-    callWorker: 'কল',
+    quickHire: '⚡ কুইক হায়ার',
+    quickHireDesc: 'শ্রমিক খুঁজুন',
+    online: 'অনলাইন হোন',
+    offline: 'অফলাইন হোন',
+    on: 'চালু',
+    off: 'বন্ধ',
+    locating: 'লোকেশন খুঁজছে...',
+    loginToGoOnline: 'অনলাইন হতে লগইন করুন',
+    closeMap: 'ম্যাপ বন্ধ',
+    error: 'ত্রুটি হয়েছে',
+    retry: 'আবার চেষ্টা',
+    workersNearby: 'জন শ্রমিক কাছাকাছি',
+    loginRequired: 'লগইন প্রয়োজন',
+    tapToHire: '👆 হায়ার করতে ট্যাপ',
+    loginToHire: 'হায়ার করতে লগইন',
+    tracking: 'ট্র্যাকিং',
+    workerArriving: 'শ্রমিক আসছে',
+    arrived: 'পৌঁছেছেন',
+    inProgress: 'কাজ চলছে',
+    completed: 'সম্পন্ন',
+    cancel: 'বাতিল',
+    complete: 'সম্পন্ন',
+    contact: 'কল',
+    distance: 'দূরত্ব',
+    eta: 'সময়',
+    min: 'মিনিট',
+    km: 'কিমি',
+    cancelBooking: 'বুকিং বাতিল?',
+    confirmCancel: 'আপনি কি নিশ্চিত?',
+    bookingCreated: 'বুকিং তৈরি হয়েছে!',
+    findingWorker: 'শ্রমিক খুঁজছে...',
+    workerFound: 'শ্রমিক পাওয়া গেছে!',
+    bookingFailed: 'বুকিং ব্যর্থ',
+    noWorkersAvailable: 'কোনো শ্রমিক নেই',
+    hiredWorker: '{name} নিয়োগ করা হয়েছে',
+    callWorker: 'শ্রমিককে কল',
+    logoutWarning: 'সফলভাবে লগআউট',
+    onlineUpdated: 'স্ট্যাটাস আপডেট',
+    locationDenied: 'লোকেশন অনুমতি প্রত্যাখ্যান',
+    goOnlineFirst: 'প্রথমে অনলাইন হোন',
+    searchingNearby: 'কাছাকাছি শ্রমিক খুঁজছে...',
+    workerOnTheWay: 'শ্রমিক আসছে',
+    workStarted: 'কাজ শুরু হয়েছে',
+    workCompleted: 'কাজ সম্পন্ন!',
+    rateWorker: 'শ্রমিককে রেটিং দিন',
+    yes: 'হ্যাঁ',
+    no: 'না',
+    ok: 'ঠিক আছে',
+  },
+  ar: { 
+    quickHire: '⚡ توظيف سريع',
+    quickHireDesc: 'البحث عن عمال',
+    online: 'متصل',
+    offline: 'غير متصل',
+    on: 'تشغيل',
+    off: 'إيقاف',
+    locating: 'تحديد الموقع...',
+    loginToGoOnline: 'تسجيل الدخول للاتصال',
+    closeMap: 'إغلاق الخريطة',
+    error: 'حدث خطأ',
+    retry: 'إعادة',
+    workersNearby: 'عمال قريبون',
+    loginRequired: 'تسجيل الدخول مطلوب',
+    tapToHire: '👆 اضغط للتوظيف',
+    loginToHire: 'سجل الدخول للتوظيف',
+    tracking: 'تتبع',
+    workerArriving: 'العامل قادم',
+    arrived: 'وصل',
+    inProgress: 'العمل جار',
+    completed: 'مكتمل',
+    cancel: 'إلغاء',
+    complete: 'إكمال',
+    contact: 'اتصال',
+    distance: 'المسافة',
+    eta: 'الوقت',
+    min: 'دقيقة',
+    km: 'كم',
+    cancelBooking: 'إلغاء الحجز؟',
+    confirmCancel: 'هل أنت متأكد؟',
+    bookingCreated: 'تم الحجز!',
+    findingWorker: 'البحث عن عامل...',
+    workerFound: 'تم العثور!',
+    bookingFailed: 'فشل الحجز',
+    noWorkersAvailable: 'لا يوجد عمال',
+    hiredWorker: 'تم توظيف {name}',
+    callWorker: 'اتصل بالعامل',
+    logoutWarning: 'تم تسجيل الخروج',
+    onlineUpdated: 'تم تحديث الحالة',
+    locationDenied: 'تم رفض الوصول للموقع',
+    goOnlineFirst: 'يرجى الاتصال أولاً',
+    searchingNearby: 'البحث عن عمال قريبين...',
+    workerOnTheWay: 'العامل في الطريق',
+    workStarted: 'بدأ العمل',
+    workCompleted: 'اكتمل العمل!',
+    rateWorker: 'يرجى تقييم العامل',
+    yes: 'نعم',
+    no: 'لا',
+    ok: 'موافق',
+  },
+  hi: { 
+    quickHire: '⚡ क्विक हायर',
+    quickHireDesc: 'श्रमिक खोजें',
+    online: 'ऑनलाइन हों',
+    offline: 'ऑफलाइन हों',
+    on: 'चालू',
+    off: 'बंद',
+    locating: 'लोकेशन ढूंढ रहा...',
+    loginToGoOnline: 'ऑनलाइन होने के लिए लॉगिन',
+    closeMap: 'मैप बंद करें',
+    error: 'त्रुटि हुई',
+    retry: 'पुनः प्रयास',
+    workersNearby: 'श्रमिक पास में',
+    loginRequired: 'लॉगिन आवश्यक',
+    tapToHire: '👆 हायर करने के लिए टैप',
+    loginToHire: 'हायर करने के लिए लॉगिन',
+    tracking: 'ट्रैकिंग',
+    workerArriving: 'श्रमिक आ रहा है',
+    arrived: 'पहुंच गया',
+    inProgress: 'काम चल रहा है',
+    completed: 'पूर्ण',
+    cancel: 'रद्द करें',
+    complete: 'पूर्ण करें',
+    contact: 'कॉल',
+    distance: 'दूरी',
+    eta: 'समय',
+    min: 'मिनट',
+    km: 'किमी',
+    cancelBooking: 'बुकिंग रद्द करें?',
+    confirmCancel: 'क्या आप निश्चित हैं?',
+    bookingCreated: 'बुकिंग बन गई!',
+    findingWorker: 'श्रमिक ढूंढ रहा...',
+    workerFound: 'श्रमिक मिल गया!',
+    bookingFailed: 'बुकिंग विफल',
+    noWorkersAvailable: 'कोई श्रमिक उपलब्ध नहीं',
+    hiredWorker: '{name} को नियुक्त किया',
+    callWorker: 'श्रमिक को कॉल',
+    logoutWarning: 'सफलतापूर्वक लॉगआउट',
+    onlineUpdated: 'स्टेटस अपडेट',
+    locationDenied: 'लोकेशन अनुमति अस्वीकृत',
+    goOnlineFirst: 'कृपया पहले ऑनलाइन हों',
+    searchingNearby: 'पास के श्रमिक ढूंढ रहा...',
+    workerOnTheWay: 'श्रमिक आ रहा है',
+    workStarted: 'काम शुरू हो गया',
+    workCompleted: 'काम पूरा!',
+    rateWorker: 'कृपया श्रमिक को रेट करें',
+    yes: 'हाँ',
+    no: 'नहीं',
+    ok: 'ठीक है',
   },
 };
 
-// 🔥 Ultra-fast toast without DOM manipulation (virtual DOM)
-const toastQueue: Array<{msg: string; type: string; id: number}> = [];
+// 🔥 Ultra-fast toast without DOM manipulation
 let toastId = 0;
 
 const toast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success'): void => {
@@ -78,7 +243,6 @@ const toast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'su
     success: '#22c55e', error: '#ef4444', warning: '#eab308', info: '#3b82f6' 
   };
   
-  // 🔥 Use transform for GPU acceleration
   el.style.cssText = `
     position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateZ(0);
     z-index:99999;padding:12px 24px;border-radius:999px;font-size:14px;
@@ -89,7 +253,6 @@ const toast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'su
   el.textContent = msg;
   document.body.appendChild(el);
   
-  // 🔥 Use requestAnimationFrame for smooth animation
   requestAnimationFrame(() => {
     el.style.opacity = '1';
     setTimeout(() => {
@@ -100,13 +263,12 @@ const toast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'su
   });
 };
 
-// 🔥 Ultra-fast distance calculation with early returns
+// 🔥 Ultra-fast distance calculation
 const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-  // Quick check for same point
   if (lat1 === lat2 && lng1 === lng2) return 0;
   
   const R = 6371;
-  const dLat = (lat2 - lat1) * 0.0174533; // Pre-calculated PI/180
+  const dLat = (lat2 - lat1) * 0.0174533;
   const dLng = (lng2 - lng1) * 0.0174533;
   const a = Math.sin(dLat * 0.5) ** 2 + 
             Math.cos(lat1 * 0.0174533) * Math.cos(lat2 * 0.0174533) * 
@@ -114,10 +276,7 @@ const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number): n
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
-// 🔥 Pre-calculated ETA
-const calcETA = (dist: number): number => Math.ceil(dist * 2); // 30km/h = 2min/km
-
-// 🔥 LRU Cache with size limit for 1M users
+// 🔥 LRU Cache
 class LRUCache<K, V> {
   private cache = new Map<K, { data: V; ts: number }>();
   private maxSize: number;
@@ -135,7 +294,6 @@ class LRUCache<K, V> {
       this.cache.delete(key);
       return null;
     }
-    // Move to end (most recently used)
     this.cache.delete(key);
     this.cache.set(key, item);
     return item.data;
@@ -143,21 +301,21 @@ class LRUCache<K, V> {
 
   set(key: K, value: V): void {
     if (this.cache.size >= this.maxSize) {
-      // Delete oldest entry
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) this.cache.delete(firstKey);
     }
     this.cache.set(key, { data: value, ts: Date.now() });
   }
 
-  clear(): void {
-    this.cache.clear();
-  }
+  clear(): void { this.cache.clear(); }
 }
 
 const locationCache = new LRUCache<string, LocationData>(5000, 300000);
 
-// 🔥 Memoized component for Online button to prevent re-renders
+// ═══════════════════════════════════════════════════════════
+// MEMOIZED COMPONENTS
+// ═══════════════════════════════════════════════════════════
+
 const OnlineButton = memo(({ 
   online, loading, isAuthenticated, authLoading, onClick, tr 
 }: any) => (
@@ -213,7 +371,6 @@ const OnlineButton = memo(({
 
 OnlineButton.displayName = 'OnlineButton';
 
-// 🔥 Memoized QuickHire button
 const QuickHireButton = memo(({ 
   isHiring, bookingLoading, showMap, nearbyCount, onClick, tr 
 }: any) => (
@@ -253,24 +410,27 @@ const QuickHireButton = memo(({
 
 QuickHireButton.displayName = 'QuickHireButton';
 
+// ═══════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════
+
 export default function HomeTabs({ country, lang }: Props) {
   const router = useRouter();
   const { isAuthenticated, profile, loading: authLoading } = useAuth();
   const { matchWorker, loading: bookingLoading, reset: resetBooking } = useQuickHire();
   
-  // 🔥 Memoized translations with shallow comparison
+  // 🌍 Get translations for current language (fallback to English)
   const tr = useMemo(() => T[lang] || T.en, [lang]);
 
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   
-  // 🔥 FIX: Initialize from localStorage for instant state
+  // ✅ Initialize from localStorage for instant state
   const [online, setOnline] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        return JSON.parse(localStorage.getItem('noffor_online') || 'false');
-      } catch {
-        return false;
-      }
+        const stored = localStorage.getItem('noffor_online');
+        if (stored !== null) return JSON.parse(stored);
+      } catch {}
     }
     return false;
   });
@@ -283,7 +443,6 @@ export default function HomeTabs({ country, lang }: Props) {
   const [nearbyCount, setNearbyCount] = useState(0);
   const [bookingState, setBookingState] = useState<'idle' | 'searching' | 'found' | 'tracking' | 'completed'>('idle');
   const [bookingData, setBookingData] = useState<any>(null);
-  const [bookingStatus, setBookingStatus] = useState<string>('accepted');
   const [showConfirm, setShowConfirm] = useState(false);
 
   // 🔥 Refs for performance
@@ -292,7 +451,6 @@ export default function HomeTabs({ country, lang }: Props) {
   const trackingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(false);
-  const onlineSyncedRef = useRef(false);
 
   // 🔥 Cleanup on unmount
   useEffect(() => {
@@ -304,24 +462,38 @@ export default function HomeTabs({ country, lang }: Props) {
     };
   }, []);
 
-  // 🔥 Sync online state from profile only once
+  // ✅ Sync online state from profile (ALWAYS sync)
   useEffect(() => {
-    if (!authLoading && profile && !onlineSyncedRef.current) {
-      onlineSyncedRef.current = true;
+    if (!authLoading && profile) {
       const profileOnline = !!profile.is_online;
       setOnline(profileOnline);
       localStorage.setItem('noffor_online', JSON.stringify(profileOnline));
     }
   }, [authLoading, profile]);
 
-  // 🔥 Reset sync flag on logout
+  // ✅ Reset online state on logout
   useEffect(() => {
-    if (!isAuthenticated) {
-      onlineSyncedRef.current = false;
+    if (!isAuthenticated && !authLoading) {
+      setOnline(false);
+      localStorage.setItem('noffor_online', JSON.stringify(false));
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
 
-  // 🔥 Optimized nearby count with debounce
+  // ✅ Cross-tab sync via localStorage
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'noffor_online') {
+        try {
+          const newValue = JSON.parse(e.newValue || 'false');
+          setOnline(newValue);
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // 🔥 Optimized nearby count
   const fetchNearbyCount = useCallback(async (lat: number, lng: number) => {
     if (!aliveRef.current) return;
     try {
@@ -342,7 +514,7 @@ export default function HomeTabs({ country, lang }: Props) {
     } catch {}
   }, []);
 
-  // 🔥 Ultra-fast location with multi-layer cache
+  // 🔥 Multi-layer location cache
   const getLocation = useCallback(async (): Promise<LocationData | null> => {
     const key = `loc:${country}`;
     
@@ -354,7 +526,7 @@ export default function HomeTabs({ country, lang }: Props) {
       return memCached;
     }
     
-    // Layer 2: Session storage (faster than geo API)
+    // Layer 2: Session storage
     try {
       const stored = sessionStorage.getItem(key);
       if (stored) {
@@ -370,7 +542,7 @@ export default function HomeTabs({ country, lang }: Props) {
       }
     } catch {}
     
-    // Layer 3: Geolocation with timeout
+    // Layer 3: Geolocation
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -414,7 +586,7 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [getLocation]);
 
-  // 🔥 Optimized toggle with optimistic update
+  // ✅ Toggle online/offline
   const toggleOnline = useCallback(async () => {
     if (authLoading || lockRef.current) return;
     if (!isAuthenticated || !profile?.id) {
@@ -432,7 +604,7 @@ export default function HomeTabs({ country, lang }: Props) {
     localStorage.setItem('noffor_online', JSON.stringify(next));
     
     try {
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
           is_online: next, 
@@ -440,9 +612,11 @@ export default function HomeTabs({ country, lang }: Props) {
         })
         .eq('id', profile.id);
       
+      if (updateError) throw updateError;
+      
       toast(next ? tr.on : tr.off, 'success');
-    } catch {
-      // Rollback on failure
+    } catch (err) {
+      // Rollback
       setOnline(!next);
       localStorage.setItem('noffor_online', JSON.stringify(!next));
       toast(tr.error, 'error');
@@ -469,14 +643,13 @@ export default function HomeTabs({ country, lang }: Props) {
       setLocating(false);
       
       if (!loc) {
-        toast('Location denied', 'error');
+        toast(tr.locationDenied, 'error');
         return;
       }
       
       setUserLocation(loc);
       fetchNearbyCount(loc.lat, loc.lng);
       
-      // 🔥 Use rAF for smooth transition
       requestAnimationFrame(() => setShowMap(true));
     } catch {
       toast(tr.error, 'error');
@@ -486,7 +659,7 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [authLoading, showMap, tr, getLocation, fetchNearbyCount]);
 
-  // 🔥 Cleanup handler
+  // 🔥 Close map handler
   const handleCloseMap = useCallback(() => {
     setShowMap(false);
     if (bookingState === 'searching') {
@@ -495,7 +668,9 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [bookingState, resetBooking]);
 
-  // 🔥 Minimal render
+  // ═══════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
@@ -518,15 +693,16 @@ export default function HomeTabs({ country, lang }: Props) {
         />
       </div>
 
-      {/* Booking UI - only render when needed */}
+      {/* Booking searching state */}
       {bookingState === 'searching' && (
         <div className="bg-white rounded-xl border p-6 text-center">
           <Loader2 size={40} className="animate-spin text-green-500 mx-auto mb-3" />
           <p className="font-bold text-gray-700">{tr.findingWorker}</p>
+          <p className="text-sm text-gray-400 mt-1">{tr.searchingNearby}</p>
         </div>
       )}
 
-      {/* Map - only render when needed */}
+      {/* Map */}
       {showMap && userLocation && bookingState !== 'tracking' && (
         <div 
           className="relative rounded-xl overflow-hidden border shadow-sm"
@@ -561,7 +737,7 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* Worker listener - only for authenticated users */}
+      {/* Worker listener */}
       {isAuthenticated && profile?.id && userLocation && (
         <WorkerBookingListener
           workerId={profile.id}
