@@ -451,6 +451,7 @@ export default function HomeTabs({ country, lang }: Props) {
   const trackingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(false);
+  const profileLoadedRef = useRef(false);
 
   // 🔥 Cleanup on unmount
   useEffect(() => {
@@ -462,22 +463,23 @@ export default function HomeTabs({ country, lang }: Props) {
     };
   }, []);
 
-  // ✅ Sync online state from profile (ALWAYS sync)
+  // ✅ FIXED: Smart sync — session restore-এর সময় false করে না
   useEffect(() => {
-    if (!authLoading && profile) {
+    if (authLoading) return;
+    
+    if (profile) {
+      profileLoadedRef.current = true;
       const profileOnline = !!profile.is_online;
       setOnline(profileOnline);
       localStorage.setItem('noffor_online', JSON.stringify(profileOnline));
-    }
-  }, [authLoading, profile]);
-
-  // ✅ Reset online state on logout
-  useEffect(() => {
-    if (!isAuthenticated && !authLoading) {
+    } else if (!isAuthenticated) {
+      profileLoadedRef.current = false;
       setOnline(false);
       localStorage.setItem('noffor_online', JSON.stringify(false));
     }
-  }, [isAuthenticated, authLoading]);
+    // authLoading false + isAuthenticated true + profile null = session restoring
+    // কিছু করবেন না, localStorage-এর মান বহাল থাকুক
+  }, [authLoading, profile, isAuthenticated]);
 
   // ✅ Cross-tab sync via localStorage
   useEffect(() => {
@@ -638,12 +640,31 @@ export default function HomeTabs({ country, lang }: Props) {
         return;
       }
       
+      // ✅ চেক: ইউজার অনলাইন কিনা
+      if (!online) {
+        toast(tr.goOnlineFirst, 'warning');
+        lockRef.current = false;
+        setIsHiring(false);
+        return;
+      }
+      
+      // ✅ চেক: ইউজার লগইন করা কিনা
+      if (!isAuthenticated) {
+        toast(tr.loginRequired, 'warning');
+        router.push(`/${country}/${lang}/login`);
+        lockRef.current = false;
+        setIsHiring(false);
+        return;
+      }
+      
       setLocating(true);
       const loc = await getLocation();
       setLocating(false);
       
       if (!loc) {
         toast(tr.locationDenied, 'error');
+        lockRef.current = false;
+        setIsHiring(false);
         return;
       }
       
@@ -657,7 +678,7 @@ export default function HomeTabs({ country, lang }: Props) {
       setIsHiring(false);
       setTimeout(() => { lockRef.current = false; }, 300);
     }
-  }, [authLoading, showMap, tr, getLocation, fetchNearbyCount]);
+  }, [authLoading, showMap, tr, getLocation, fetchNearbyCount, online, isAuthenticated, country, lang, router]);
 
   // 🔥 Close map handler
   const handleCloseMap = useCallback(() => {
