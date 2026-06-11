@@ -14,14 +14,14 @@ const T: Record<string, Record<string, string>> = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// কনফিগ
+// কনফিগ — ✅ ফিক্সড: accuracy 500m, interval 10s
 // ═══════════════════════════════════════════════════════════
 const CONFIG = {
-  UPDATE_INTERVAL_MS: 15000,
-  MIN_ACCURACY_M: 100,
+  UPDATE_INTERVAL_MS: 10000,    // ১০ সেকেন্ড পর পর আপডেট
+  MIN_ACCURACY_M: 500,          // ৫০০ মিটার পর্যন্ত একসেপ্ট
   MAX_RETRY: 3,
   RETRY_DELAY_MS: 2000,
-  GPS_TIMEOUT_MS: 10000,
+  GPS_TIMEOUT_MS: 15000,        // ১৫ সেকেন্ড টাইমআউট
   GPS_MAX_AGE_MS: 30000,
   RECONNECT_DELAY_MS: 5000,
   START_DELAY_MS: 1000,
@@ -108,7 +108,6 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
       setError(null);
       retryCountRef.current = 0;
     } catch (err: any) {
-      console.error('Location update error:', err?.message);
       setError(err?.message || tr.locationError);
 
       if (retryCountRef.current < CONFIG.MAX_RETRY) {
@@ -119,11 +118,11 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
   }, [workerId, tr]);
 
   // ═══════════════════════════════════════════════════════
-  // Start Tracking
+  // Start Tracking — ✅ ফিক্সড: accuracy check 500m
   // ═══════════════════════════════════════════════════════
   const startTracking = useCallback(() => {
     if (!navigator.geolocation || !workerId || !aliveRef.current) return;
-    if (trackingRef.current) return; // Already tracking
+    if (trackingRef.current) return;
     trackingRef.current = true;
 
     // Permission check
@@ -142,6 +141,8 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
         if (now - lastUpdateRef.current < CONFIG.UPDATE_INTERVAL_MS) return;
         
         const { latitude, longitude, accuracy } = pos.coords;
+        
+        // ✅ ফিক্স: 500m পর্যন্ত accuracy accept করবে (আগে 100m ছিল)
         if (accuracy > CONFIG.MIN_ACCURACY_M) return;
 
         lastUpdateRef.current = now;
@@ -209,16 +210,13 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
           if (!aliveRef.current) return;
           const booking = payload.new;
 
-          // Browser notification
           showBrowserNotification(
             `🔔 ${tr.newRequest}`,
             `${booking.job_title || tr.notificationBody} - ${booking.offered_amount || 0} QAR`
           );
 
-          // Sound
           playBeepSound();
 
-          // Save notification (fire-and-forget)
           supabase.from('notifications').insert({
             user_id: workerId,
             title: tr.newRequest,
@@ -254,7 +252,6 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
     if (isOnline) {
       const t = setTimeout(startTracking, CONFIG.START_DELAY_MS);
       
-      // Request notification permission
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
@@ -287,15 +284,6 @@ export default function LiveLocationTracker({ workerId, isOnline, lang }: Props)
       }
     };
   }, []);
-
-  // ═══════════════════════════════════════════════════════
-  // Dev logging
-  // ═══════════════════════════════════════════════════════
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📍 Tracker: ${isOnline ? 'ONLINE' : 'OFFLINE'} | Worker: ${workerId}${error ? ` | Error: ${error}` : ''}`);
-    }
-  }, [isOnline, workerId, error]);
 
   return null;
 }
