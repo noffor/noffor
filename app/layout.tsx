@@ -1,4 +1,4 @@
-// app/layout.tsx - Favicon + PWA Fixed
+// app/layout.tsx - PWA Service Worker Removed
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -56,19 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        
-        {/* Service Worker */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js');
-                });
-              }
-            `,
-          }}
-        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
