@@ -2,16 +2,14 @@
 // 🚀 1M+ DAILY USERS • Enterprise Grade • 4 Languages • Production Ready
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wifi, WifiOff, X, Loader2, AlertCircle, RefreshCw, LogIn, Shield, Zap, Navigation, Clock, MapPin, Phone, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useQuickHire } from '@/hooks/useQuickHire';
 import WorkerBookingListener from '@/components/worker/WorkerBookingListener';
-
-// 🔥 Dynamic import with preload for faster rendering
-const LiveWorkerMap = lazy(() => import('@/components/map/LiveWorkerMap'));
+import LiveWorkerMap from '@/components/map/LiveWorkerMap';
 
 interface Props { country: string; lang: string; }
 interface LocationData { lat: number; lng: number; }
@@ -477,8 +475,6 @@ export default function HomeTabs({ country, lang }: Props) {
       setOnline(false);
       localStorage.setItem('noffor_online', JSON.stringify(false));
     }
-    // authLoading false + isAuthenticated true + profile null = session restoring
-    // কিছু করবেন না, localStorage-এর মান বহাল থাকুক
   }, [authLoading, profile, isAuthenticated]);
 
   // ✅ Cross-tab sync via localStorage
@@ -600,7 +596,6 @@ export default function HomeTabs({ country, lang }: Props) {
     lockRef.current = true;
     const next = !online;
     
-    // Optimistic update
     setOnline(next);
     setLoading(true);
     localStorage.setItem('noffor_online', JSON.stringify(next));
@@ -618,7 +613,6 @@ export default function HomeTabs({ country, lang }: Props) {
       
       toast(next ? tr.on : tr.off, 'success');
     } catch (err) {
-      // Rollback
       setOnline(!next);
       localStorage.setItem('noffor_online', JSON.stringify(!next));
       toast(tr.error, 'error');
@@ -628,7 +622,7 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
-  // ✅ FIXED: onQuickHire handler — ম্যাপ থেকে লেবার সিলেক্ট করলে booking তৈরি হবে
+  // ✅ FIXED: onQuickHire handler
   const handleWorkerQuickHire = useCallback((worker: any) => {
     if (!userLocation) {
       toast(tr.locationDenied, 'error');
@@ -662,7 +656,6 @@ export default function HomeTabs({ country, lang }: Props) {
         return;
       }
       
-      // ✅ চেক: ইউজার অনলাইন কিনা
       if (!online) {
         toast(tr.goOnlineFirst, 'warning');
         lockRef.current = false;
@@ -670,7 +663,6 @@ export default function HomeTabs({ country, lang }: Props) {
         return;
       }
       
-      // ✅ চেক: ইউজার লগইন করা কিনা
       if (!isAuthenticated) {
         toast(tr.loginRequired, 'warning');
         router.push(`/${country}/${lang}/login`);
@@ -745,7 +737,7 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* ✅ FIXED: Map with onQuickHire prop */}
+      {/* ✅ Map - সরাসরি render, কোন Suspense নেই */}
       {showMap && userLocation && bookingState !== 'tracking' && (
         <div 
           className="relative rounded-xl overflow-hidden border shadow-sm"
@@ -764,21 +756,14 @@ export default function HomeTabs({ country, lang }: Props) {
             <X size={16} className="text-gray-600" />
           </button>
 
-          <Suspense fallback={
-            <div className="flex items-center justify-center" style={{ minHeight: '280px', background: '#f3f4f6' }}>
-              <Loader2 size={24} className="animate-spin text-gray-400" />
-            </div>
-          }>
-            {/* ✅ onQuickHire prop যোগ করা হয়েছে */}
-            <LiveWorkerMap
-              country={country}
-              lang={lang}
-              userLat={userLocation.lat}
-              userLng={userLocation.lng}
-              onClose={handleCloseMap}
-              onQuickHire={handleWorkerQuickHire}
-            />
-          </Suspense>
+          <LiveWorkerMap
+            country={country}
+            lang={lang}
+            userLat={userLocation.lat}
+            userLng={userLocation.lng}
+            onClose={handleCloseMap}
+            onQuickHire={handleWorkerQuickHire}
+          />
         </div>
       )}
 
