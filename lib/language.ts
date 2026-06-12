@@ -13,6 +13,62 @@ export const languages = {
 export type LangCode = keyof typeof languages;
 
 // ═══════════════════════════════════════════════════════════
+// Category Translation — 42 Categories (12 Main + 30 Other)
+// ═══════════════════════════════════════════════════════════
+const CATEGORY_NAMES: Record<string, Record<string, string>> = {
+  // ✅ 12 Main Categories
+  Driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
+  Electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
+  Plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
+  Mason: { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
+  'AC Technician': { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
+  Painter: { en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
+  Carpenter: { en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
+  Welder: { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
+  Cleaner: { en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
+  Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
+  Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
+  Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+  
+  // ✅ 30 Other Categories
+  Housemaid: { en: 'Housemaid', bn: 'গৃহকর্মী', ar: 'خادمة', hi: 'हाउसमेड' },
+  Nanny: { en: 'Nanny', bn: 'আয়া', ar: 'مربية', hi: 'नैनी' },
+  'Office Assistant': { en: 'Office Assistant', bn: 'অফিস সহকারী', ar: 'مساعد مكتبي', hi: 'ऑफिस असिस्टेंट' },
+  Receptionist: { en: 'Receptionist', bn: 'রিসেপশনিস্ট', ar: 'موظف استقبال', hi: 'रिसेप्शनिस्ट' },
+  Salesman: { en: 'Salesman', bn: 'সেলসম্যান', ar: 'بائع', hi: 'सेल्समैन' },
+  Cashier: { en: 'Cashier', bn: 'ক্যাশিয়ার', ar: 'كاشير', hi: 'कैशियर' },
+  'Security Guard': { en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
+  Nurse: { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
+  Pharmacist: { en: 'Pharmacist', bn: 'ফার্মাসিস্ট', ar: 'صيدلي', hi: 'फार्मासिस्ट' },
+  'Lab Technician': { en: 'Lab Technician', bn: 'ল্যাব টেকনিশিয়ান', ar: 'فني مختبر', hi: 'लैब तकनीशियन' },
+  Physiotherapist: { en: 'Physiotherapist', bn: 'ফিজিওথেরাপিস্ট', ar: 'معالج طبيعي', hi: 'फिजियोथेरेपिस्ट' },
+  Mechanic: { en: 'Mechanic', bn: 'মেকানিক', ar: 'ميكانيكي', hi: 'मैकेनिक' },
+  Tailor: { en: 'Tailor', bn: 'দর্জি', ar: 'خياط', hi: 'दर्जी' },
+  Barista: { en: 'Barista', bn: 'বারিস্তা', ar: 'باريستا', hi: 'बरिस्ता' },
+  Photographer: { en: 'Photographer', bn: 'ফটোগ্রাফার', ar: 'مصور', hi: 'फोटोग्राफर' },
+  'CCTV Technician': { en: 'CCTV Technician', bn: 'সিসিটিভি টেকনিশিয়ান', ar: 'فني كاميرات', hi: 'CCTV तकनीशियन' },
+  'Gypsum Carpenter': { en: 'Gypsum Carpenter', bn: 'জিপসাম কার্পেন্টার', ar: 'نجار جبس', hi: 'जिप्सम कारपेंटर' },
+  'Tiles Mason': { en: 'Tiles Mason', bn: 'টাইলস মিস্ত্রি', ar: 'عامل تبليط', hi: 'टाइल्स मिस्त्री' },
+  Blacksmith: { en: 'Blacksmith', bn: 'কামার', ar: 'حداد', hi: 'लोहार' },
+  'General Labour': { en: 'General Labour', bn: 'সাধারণ শ্রমিক', ar: 'عامل عام', hi: 'सामान्य श्रमिक' },
+  'Steel Fixer': { en: 'Steel Fixer', bn: 'স্টিল ফিক্সার', ar: 'مثبت حديد', hi: 'स्टील फिक्सर' },
+  Scaffolder: { en: 'Scaffolder', bn: 'স্ক্যাফোল্ডার', ar: 'عامل سقالات', hi: 'स्कैफोल्डर' },
+  'Heavy Driver': { en: 'Heavy Driver', bn: 'ভারী ড্রাইভার', ar: 'سائق ثقيل', hi: 'भारी ड्राइवर' },
+  'Forklift Operator': { en: 'Forklift Operator', bn: 'ফর্কলিফট অপারেটর', ar: 'مشغل رافعة', hi: 'फोर्कलिफ्ट ऑपरेटर' },
+  'Crane Operator': { en: 'Crane Operator', bn: 'ক্রেন অপারেটর', ar: 'مشغل رافعة', hi: 'क्रेन ऑपरेटर' },
+  'Pipe Fitter': { en: 'Pipe Fitter', bn: 'পাইপ ফিটার', ar: 'مركب أنابيب', hi: 'पाइप फिटर' },
+  Waiter: { en: 'Waiter', bn: 'ওয়েটার', ar: 'نادل', hi: 'वेटर' },
+  'Hotel Housekeeping': { en: 'Hotel Housekeeping', bn: 'হোটেল হাউসকিপিং', ar: 'تدبير فندقي', hi: 'होटल हाउसकीपिंग' },
+  Beautician: { en: 'Beautician', bn: 'বিউটিশিয়ান', ar: 'خبيرة تجميل', hi: 'ब्यूटीशियन' },
+  Barber: { en: 'Barber', bn: 'নাপিত', ar: 'حلاق', hi: 'नाई' },
+  
+  // Legacy support
+  Security: { en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
+  Teacher: { en: 'Teacher', bn: 'শিক্ষক', ar: 'معلم', hi: 'शिक्षक' },
+  Chef: { en: 'Chef', bn: 'শেফ', ar: 'طاهي', hi: 'शेफ' },
+};
+
+// ═══════════════════════════════════════════════════════════
 // All Translations (Memory Optimized)
 // ═══════════════════════════════════════════════════════════
 export const texts: Record<LangCode, Record<string, string>> = {
@@ -831,7 +887,6 @@ const NAME_OVERRIDES: Record<string, Record<string, string>> = {
   Nahar: { bn: 'নাহার', ar: 'نهر', hi: 'नाहर' },
   Akhter: { bn: 'আখতার', ar: 'أختر', hi: 'अख्तर' },
   Ferdous: { bn: 'ফেরদৌস', ar: 'فردوس', hi: 'फेरदौस' },
-  
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1102,25 +1157,6 @@ export async function translateNameAsync(
 // ═══════════════════════════════════════════════════════════
 // Category Translation
 // ═══════════════════════════════════════════════════════════
-const CATEGORY_NAMES: Record<string, Record<string, string>> = {
-  Driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
-  Electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
-  Plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
-  Mason: { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
-  'AC Technician': { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
-  Painter: { en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
-  Carpenter: { en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
-  Welder: { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
-  Cleaner: { en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
-  Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
-  Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
-  Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
-  Security: { en: 'Security', bn: 'নিরাপত্তারক্ষী', ar: 'حارس أمن', hi: 'सुरक्षा गार्ड' },
-  Teacher: { en: 'Teacher', bn: 'শিক্ষক', ar: 'معلم', hi: 'शिक्षक' },
-  Nurse: { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
-  Chef: { en: 'Chef', bn: 'শেফ', ar: 'طاهي', hi: 'शेफ' },
-};
-
 export function translateCategory(category: string, lang: string): string {
   return CATEGORY_NAMES[category]?.[lang] || category;
 }

@@ -128,7 +128,7 @@ const SimilarWorkerCard = React.memo(({ worker, lang, country, router }: {
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold truncate">
-          {translateName(worker.name, lang, worker)} {/* ✅ Profile object pass করা হয়েছে */}
+          {translateName(worker.name, lang, worker)}
         </p>
         <p className="text-xs text-gray-500 truncate">
           {translateCategory(worker.category, lang)}
@@ -654,46 +654,44 @@ function ProfilePageContent() {
         </div>
       </div>
 
-      {/* Mobile StickyBar */}
+      {/* ✅ Mobile StickyBar — Worker: WhatsApp+Call+Job Offer, Employer: WhatsApp+Call */}
       {!isOwnProfile && phoneNumber && (
         <StickyBar 
           phone={phoneNumber} 
           lang={lang} 
           country={country}
-          onJobOffer={() => setShowBooking(true)} 
+          onJobOffer={profile?.role !== 'employer' ? () => setShowBooking(true) : undefined} 
         />
       )}
 
-      {/* PC Floating Buttons */}
-      {!isOwnProfile && (
+      {/* ✅ PC Floating Buttons — Worker: WhatsApp+Call+Job Offer, Employer: WhatsApp+Call */}
+      {!isOwnProfile && phoneNumber && (
         <div className="fixed bottom-6 right-6 hidden lg:flex lg:flex-col gap-3 z-50">
-          {phoneNumber && (
-            <>
-              <a 
-                href={whatsappUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
-                aria-label="Chat on WhatsApp"
-              >
-                <MessageCircle size={24} />
-              </a>
-              <a 
-                href={callUrl} 
-                className="bg-blue-500 hover:bg-blue-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
-                aria-label="Call"
-              >
-                <Phone size={24} />
-              </a>
-            </>
-          )}
-          <button 
-            onClick={() => setShowBooking(true)} 
-            className="bg-orange-500 hover:bg-orange-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
-            aria-label="Send Job Offer"
+          <a 
+            href={whatsappUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="bg-green-500 hover:bg-green-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
+            aria-label="Chat on WhatsApp"
           >
-            <Briefcase size={24} />
-          </button>
+            <MessageCircle size={24} />
+          </a>
+          <a 
+            href={callUrl} 
+            className="bg-blue-500 hover:bg-blue-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
+            aria-label="Call"
+          >
+            <Phone size={24} />
+          </a>
+          {profile?.role !== 'employer' && (
+            <button 
+              onClick={() => setShowBooking(true)} 
+              className="bg-orange-500 hover:bg-orange-600 text-white p-3.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-90"
+              aria-label="Send Job Offer"
+            >
+              <Briefcase size={24} />
+            </button>
+          )}
         </div>
       )}
 

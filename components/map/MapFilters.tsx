@@ -6,9 +6,10 @@ import {getText,LangCode} from '@/lib/language';
 import {Filter,MapPin,Ruler} from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════
-// ৪ ভাষায় ক্যাটাগরি (Module-level static)
+// ৪ ভাষায় ক্যাটাগরি — 42 Categories (12 Main + 30 Other)
 // ═══════════════════════════════════════════════════════════
 const CATEGORIES:Record<string,Record<string,string>>={
+  // ✅ 12 Main Categories
   Driver:{en:'Driver',ar:'سائق',bn:'ড্রাইভার',hi:'ड्राइवर'},
   Electrician:{en:'Electrician',ar:'كهربائي',bn:'ইলেকট্রিশিয়ান',hi:'इलेक्ट्रीशियन'},
   Plumber:{en:'Plumber',ar:'سباك',bn:'প্লাম্বার',hi:'प्लंबर'},
@@ -21,6 +22,38 @@ const CATEGORIES:Record<string,Record<string,string>>={
   Cook:{en:'Cook',ar:'طباخ',bn:'রাঁধুনি',hi:'रसोइया'},
   Helper:{en:'Helper',ar:'مساعد',bn:'হেল্পার',hi:'हेल्पर'},
   Gardener:{en:'Gardener',ar:'بستاني',bn:'মালী',hi:'माली'},
+  
+  // ✅ 30 Other Categories
+  Housemaid:{en:'Housemaid',ar:'خادمة',bn:'গৃহকর্মী',hi:'हाउसमेड'},
+  Nanny:{en:'Nanny',ar:'مربية',bn:'আয়া',hi:'नैनी'},
+  'Office Assistant':{en:'Office Assistant',ar:'مساعد مكتبي',bn:'অফিস সহকারী',hi:'ऑफिस असिस्टेंट'},
+  Receptionist:{en:'Receptionist',ar:'موظف استقبال',bn:'রিসেপশনিস্ট',hi:'रिसेप्शनिस्ट'},
+  Salesman:{en:'Salesman',ar:'بائع',bn:'সেলসম্যান',hi:'सेल्समैन'},
+  Cashier:{en:'Cashier',ar:'كاشير',bn:'ক্যাশিয়ার',hi:'कैशियर'},
+  'Security Guard':{en:'Security Guard',ar:'حارس أمن',bn:'সিকিউরিটি গার্ড',hi:'सिक्योरिटी गार्ड'},
+  Nurse:{en:'Nurse',ar:'ممرض',bn:'নার্স',hi:'नर्स'},
+  Pharmacist:{en:'Pharmacist',ar:'صيدلي',bn:'ফার্মাসিস্ট',hi:'फार्मासिस्ट'},
+  'Lab Technician':{en:'Lab Technician',ar:'فني مختبر',bn:'ল্যাব টেকনিশিয়ান',hi:'लैब तकनीशियन'},
+  Physiotherapist:{en:'Physiotherapist',ar:'معالج طبيعي',bn:'ফিজিওথেরাপিস্ট',hi:'फिजियोथेरेपिस्ट'},
+  Mechanic:{en:'Mechanic',ar:'ميكانيكي',bn:'মেকানিক',hi:'मैकेनिक'},
+  Tailor:{en:'Tailor',ar:'خياط',bn:'দর্জি',hi:'दर्जी'},
+  Barista:{en:'Barista',ar:'باريستا',bn:'বারিস্তা',hi:'बरिस्ता'},
+  Photographer:{en:'Photographer',ar:'مصور',bn:'ফটোগ্রাফার',hi:'फोटोग्राफर'},
+  'CCTV Technician':{en:'CCTV Technician',ar:'فني كاميرات',bn:'সিসিটিভি টেকনিশিয়ান',hi:'CCTV तकनीशियन'},
+  'Gypsum Carpenter':{en:'Gypsum Carpenter',ar:'نجار جبس',bn:'জিপসাম কার্পেন্টার',hi:'जिप्सम कारपेंटर'},
+  'Tiles Mason':{en:'Tiles Mason',ar:'عامل تبليط',bn:'টাইলস মিস্ত্রি',hi:'टाइल्स मिस्त्री'},
+  Blacksmith:{en:'Blacksmith',ar:'حداد',bn:'কামার',hi:'लोहार'},
+  'General Labour':{en:'General Labour',ar:'عامل عام',bn:'সাধারণ শ্রমিক',hi:'सामान्य श्रमिक'},
+  'Steel Fixer':{en:'Steel Fixer',ar:'مثبت حديد',bn:'স্টিল ফিক্সার',hi:'स्टील फिक्सर'},
+  Scaffolder:{en:'Scaffolder',ar:'عامل سقالات',bn:'স্ক্যাফোল্ডার',hi:'स्कैफोल्डर'},
+  'Heavy Driver':{en:'Heavy Driver',ar:'سائق ثقيل',bn:'ভারী ড্রাইভার',hi:'भारी ड्राइवर'},
+  'Forklift Operator':{en:'Forklift Operator',ar:'مشغل رافعة',bn:'ফর্কলিফট অপারেটর',hi:'फोर्कलिफ्ट ऑपरेटर'},
+  'Crane Operator':{en:'Crane Operator',ar:'مشغل رافعة',bn:'ক্রেন অপারেটর',hi:'क्रेन ऑपरेटर'},
+  'Pipe Fitter':{en:'Pipe Fitter',ar:'مركب أنابيب',bn:'পাইপ ফিটার',hi:'पाइप फिटर'},
+  Waiter:{en:'Waiter',ar:'نادل',bn:'ওয়েটার',hi:'वेटर'},
+  'Hotel Housekeeping':{en:'Hotel Housekeeping',ar:'تدبير فندقي',bn:'হোটেল হাউসকিপিং',hi:'होटल हाउसकीपिंग'},
+  Beautician:{en:'Beautician',ar:'خبيرة تجميل',bn:'বিউটিশিয়ান',hi:'ब्यूटीशियन'},
+  Barber:{en:'Barber',ar:'حلاق',bn:'নাপিত',hi:'नाई'},
 };
 
 // ═══════════════════════════════════════════════════════════

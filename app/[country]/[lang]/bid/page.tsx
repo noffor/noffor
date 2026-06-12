@@ -8,7 +8,8 @@ import MobileNav from '@/components/layout/MobileNav';
 import { 
   Plus, MapPin, Clock, DollarSign, Users, Send, Briefcase, X, Filter, Zap, 
   Building, MessageCircle, Utensils, Phone, CheckCircle, Award, TrendingDown,
-  AlertCircle, RefreshCw
+  AlertCircle, RefreshCw, Wrench, SprayCan, ChefHat, Flower, Scissors, 
+  ShoppingCart, Monitor, Truck, HardHat, Shield, Camera, Heart
 } from 'lucide-react';
 
 // ============ ADVANCED CACHE SYSTEM ============
@@ -283,17 +284,102 @@ class RequestBatcher {
   }
 }
 
-// ============ MEMOIZED CATEGORIES ============
-const CATEGORY_LIST = [
-  { key: 'all', icon: Filter, name: 'All' },
-  { key: 'Driver', icon: Users, name: 'Driver' },
-  { key: 'Electrician', icon: Zap, name: 'Electrician' },
-  { key: 'Plumber', icon: Users, name: 'Plumber' },
-  { key: 'Mason', icon: Building, name: 'Mason' },
-  { key: 'AC Technician', icon: Users, name: 'AC Technician' },
-  { key: 'Painter', icon: Users, name: 'Painter' },
-  { key: 'Carpenter', icon: Users, name: 'Carpenter' },
-] as const;
+// ============ CATEGORY TRANSLATION MAP — 42 Categories (4 Languages) ============
+const CATEGORY_TRANSLATIONS: Record<string, Record<string, string>> = {
+  Driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
+  Electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
+  Plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
+  Mason: { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
+  'AC Technician': { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
+  Painter: { en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
+  Carpenter: { en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
+  Welder: { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
+  Cleaner: { en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
+  Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
+  Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
+  Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+  Housemaid: { en: 'Housemaid', bn: 'গৃহকর্মী', ar: 'خادمة', hi: 'हाउसमेड' },
+  Nanny: { en: 'Nanny', bn: 'আয়া', ar: 'مربية', hi: 'नैनी' },
+  'Office Assistant': { en: 'Office Assistant', bn: 'অফিস সহকারী', ar: 'مساعد مكتبي', hi: 'ऑफिस असिस्टेंट' },
+  Receptionist: { en: 'Receptionist', bn: 'রিসেপশনিস্ট', ar: 'موظف استقبال', hi: 'रिसेप्शनिस्ट' },
+  Salesman: { en: 'Salesman', bn: 'সেলসম্যান', ar: 'بائع', hi: 'सेल्समैन' },
+  Cashier: { en: 'Cashier', bn: 'ক্যাশিয়ার', ar: 'كاشير', hi: 'कैशियर' },
+  'Security Guard': { en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
+  Nurse: { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
+  Pharmacist: { en: 'Pharmacist', bn: 'ফার্মাসিস্ট', ar: 'صيدلي', hi: 'फार्मासिस्ट' },
+  'Lab Technician': { en: 'Lab Technician', bn: 'ল্যাব টেকনিশিয়ান', ar: 'فني مختبر', hi: 'लैब तकनीशियन' },
+  Physiotherapist: { en: 'Physiotherapist', bn: 'ফিজিওথেরাপিস্ট', ar: 'معالج طبيعي', hi: 'फिजियोथेरेपिस्ट' },
+  Mechanic: { en: 'Mechanic', bn: 'মেকানিক', ar: 'ميكانيكي', hi: 'मैकेनिक' },
+  Tailor: { en: 'Tailor', bn: 'দর্জি', ar: 'خياط', hi: 'दर्जी' },
+  Barista: { en: 'Barista', bn: 'বারিস্তা', ar: 'باريستا', hi: 'बरिस्ता' },
+  Photographer: { en: 'Photographer', bn: 'ফটোগ্রাফার', ar: 'مصور', hi: 'फोटोग्राफर' },
+  'CCTV Technician': { en: 'CCTV Technician', bn: 'সিসিটিভি টেকনিশিয়ান', ar: 'فني كاميرات', hi: 'CCTV तकनीशियन' },
+  'Gypsum Carpenter': { en: 'Gypsum Carpenter', bn: 'জিপসাম কার্পেন্টার', ar: 'نجار جبس', hi: 'जिप्सम कारपेंटर' },
+  'Tiles Mason': { en: 'Tiles Mason', bn: 'টাইলস মিস্ত্রি', ar: 'عامل تبليط', hi: 'टाइल्स मिस्त्री' },
+  Blacksmith: { en: 'Blacksmith', bn: 'কামার', ar: 'حداد', hi: 'लोहार' },
+  'General Labour': { en: 'General Labour', bn: 'সাধারণ শ্রমিক', ar: 'عامل عام', hi: 'सामान्य श्रमिक' },
+  'Steel Fixer': { en: 'Steel Fixer', bn: 'স্টিল ফিক্সার', ar: 'مثبت حديد', hi: 'स्टील फिक्सर' },
+  Scaffolder: { en: 'Scaffolder', bn: 'স্ক্যাফোল্ডার', ar: 'عامل سقالات', hi: 'स्कैफोल्डर' },
+  'Heavy Driver': { en: 'Heavy Driver', bn: 'ভারী ড্রাইভার', ar: 'سائق ثقيل', hi: 'भारी ड्राइवर' },
+  'Forklift Operator': { en: 'Forklift Operator', bn: 'ফর্কলিফট অপারেটর', ar: 'مشغل رافعة', hi: 'फोर्कलिफ्ट ऑपरेटर' },
+  'Crane Operator': { en: 'Crane Operator', bn: 'ক্রেন অপারেটর', ar: 'مشغل رافعة', hi: 'क्रेन ऑपरेटर' },
+  'Pipe Fitter': { en: 'Pipe Fitter', bn: 'পাইপ ফিটার', ar: 'مركب أنابيب', hi: 'पाइप फिटर' },
+  Waiter: { en: 'Waiter', bn: 'ওয়েটার', ar: 'نادل', hi: 'वेटर' },
+  'Hotel Housekeeping': { en: 'Hotel Housekeeping', bn: 'হোটেল হাউসকিপিং', ar: 'تدبير فندقي', hi: 'होटल हाउसकीपिंग' },
+  Beautician: { en: 'Beautician', bn: 'বিউটিশিয়ান', ar: 'خبيرة تجميل', hi: 'ब्यूटीशियन' },
+  Barber: { en: 'Barber', bn: 'নাপিত', ar: 'حلاق', hi: 'नाई' },
+};
+
+const translateCategory = (category: string, lang: string): string => {
+  return CATEGORY_TRANSLATIONS[category]?.[lang] || category;
+};
+
+// ============ MEMOIZED CATEGORIES — 42 Categories with Icons ============
+const getCategoryList = (lang: string) => [
+  { key: 'all', icon: Filter, name: { en: 'All', bn: 'সব', ar: 'الكل', hi: 'सभी' }[lang] || 'All' },
+  { key: 'Driver', icon: Users, name: translateCategory('Driver', lang) },
+  { key: 'Electrician', icon: Zap, name: translateCategory('Electrician', lang) },
+  { key: 'Plumber', icon: Wrench, name: translateCategory('Plumber', lang) },
+  { key: 'Mason', icon: Building, name: translateCategory('Mason', lang) },
+  { key: 'AC Technician', icon: Zap, name: translateCategory('AC Technician', lang) },
+  { key: 'Painter', icon: SprayCan, name: translateCategory('Painter', lang) },
+  { key: 'Carpenter', icon: HardHat, name: translateCategory('Carpenter', lang) },
+  { key: 'Welder', icon: Wrench, name: translateCategory('Welder', lang) },
+  { key: 'Cleaner', icon: SprayCan, name: translateCategory('Cleaner', lang) },
+  { key: 'Cook', icon: ChefHat, name: translateCategory('Cook', lang) },
+  { key: 'Helper', icon: Users, name: translateCategory('Helper', lang) },
+  { key: 'Gardener', icon: Flower, name: translateCategory('Gardener', lang) },
+  { key: 'Housemaid', icon: Heart, name: translateCategory('Housemaid', lang) },
+  { key: 'Nanny', icon: Heart, name: translateCategory('Nanny', lang) },
+  { key: 'Office Assistant', icon: Briefcase, name: translateCategory('Office Assistant', lang) },
+  { key: 'Receptionist', icon: Monitor, name: translateCategory('Receptionist', lang) },
+  { key: 'Salesman', icon: ShoppingCart, name: translateCategory('Salesman', lang) },
+  { key: 'Cashier', icon: DollarSign, name: translateCategory('Cashier', lang) },
+  { key: 'Security Guard', icon: Shield, name: translateCategory('Security Guard', lang) },
+  { key: 'Nurse', icon: Heart, name: translateCategory('Nurse', lang) },
+  { key: 'Pharmacist', icon: Briefcase, name: translateCategory('Pharmacist', lang) },
+  { key: 'Lab Technician', icon: Monitor, name: translateCategory('Lab Technician', lang) },
+  { key: 'Physiotherapist', icon: Heart, name: translateCategory('Physiotherapist', lang) },
+  { key: 'Mechanic', icon: Wrench, name: translateCategory('Mechanic', lang) },
+  { key: 'Tailor', icon: Scissors, name: translateCategory('Tailor', lang) },
+  { key: 'Barista', icon: ChefHat, name: translateCategory('Barista', lang) },
+  { key: 'Photographer', icon: Camera, name: translateCategory('Photographer', lang) },
+  { key: 'CCTV Technician', icon: Monitor, name: translateCategory('CCTV Technician', lang) },
+  { key: 'Gypsum Carpenter', icon: HardHat, name: translateCategory('Gypsum Carpenter', lang) },
+  { key: 'Tiles Mason', icon: Building, name: translateCategory('Tiles Mason', lang) },
+  { key: 'Blacksmith', icon: Wrench, name: translateCategory('Blacksmith', lang) },
+  { key: 'General Labour', icon: Users, name: translateCategory('General Labour', lang) },
+  { key: 'Steel Fixer', icon: HardHat, name: translateCategory('Steel Fixer', lang) },
+  { key: 'Scaffolder', icon: Building, name: translateCategory('Scaffolder', lang) },
+  { key: 'Heavy Driver', icon: Truck, name: translateCategory('Heavy Driver', lang) },
+  { key: 'Forklift Operator', icon: Truck, name: translateCategory('Forklift Operator', lang) },
+  { key: 'Crane Operator', icon: Truck, name: translateCategory('Crane Operator', lang) },
+  { key: 'Pipe Fitter', icon: Wrench, name: translateCategory('Pipe Fitter', lang) },
+  { key: 'Waiter', icon: ChefHat, name: translateCategory('Waiter', lang) },
+  { key: 'Hotel Housekeeping', icon: Building, name: translateCategory('Hotel Housekeeping', lang) },
+  { key: 'Beautician', icon: Scissors, name: translateCategory('Beautician', lang) },
+  { key: 'Barber', icon: Scissors, name: translateCategory('Barber', lang) },
+];
 
 // ============ TRANSLATIONS ============
 const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -498,7 +584,8 @@ const JobCard = React.memo(({ job, lang, onBid, onViewBids, userPhone }: {
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-gray-800 text-sm lg:text-base truncate">{job.title}</h3>
-              <p className="text-xs text-green-600 font-medium">{job.category}</p>
+              {/* ⭐ CATEGORY TRANSLATED */}
+              <p className="text-xs text-green-600 font-medium">{translateCategory(job.category, lang)}</p>
             </div>
           </div>
           <div className="flex gap-1 flex-shrink-0">
@@ -695,6 +782,9 @@ export default function BidPage() {
     setUserPhone(savedPhone);
   }, []);
 
+  // ⭐ Memoized category list for current language
+  const categoryList = useMemo(() => getCategoryList(lang), [lang]);
+
   // ============ OPTIMIZED DATA FETCHING ============
   const fetchJobs = useCallback(async (pageNum: number = 1, append = false) => {
     const cacheKey = `jobs:${country}:${pageNum}:${filter}`;
@@ -706,57 +796,57 @@ export default function BidPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // ✅ পরিবর্তন করুন:
-return cache.get(cacheKey, async () => {
-  // ✅ .abortSignal() রিমুভ
-  const { data: jobsData, error } = await supabase
-    .from('job_posts')
-    .select('*')
-    .eq('country', country)
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .range((pageNum - 1) * 20, pageNum * 20 - 1);
+    return cache.get(cacheKey, async () => {
+      let query = supabase
+        .from('job_posts')
+        .select('*')
+        .eq('country', country)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .range((pageNum - 1) * 20, pageNum * 20 - 1);
 
-  if (error) throw error;
-  
-  // ✅ Abort check manually
-  if (controller.signal.aborted) return { jobs: [], hasMore: false };
-  
-  if (!jobsData || jobsData.length === 0) return { jobs: [], hasMore: false };
+      if (filter !== 'all') {
+        query = query.eq('category', filter);
+      }
 
-  // Batch fetch bids
-  const jobIds = jobsData.map((j: any) => j.id);
-  
-  // ✅ .abortSignal() রিমুভ
-  const { data: allBids } = await supabase
-    .from('bids')
-    .select('job_id, labor_phone')
-    .in('job_id', jobIds);
+      const { data: jobsData, error } = await query;
 
-  // ✅ Abort check manually
-  if (controller.signal.aborted) return { jobs: [], hasMore: false };
+      if (error) throw error;
+      
+      if (controller.signal.aborted) return { jobs: [], hasMore: false };
+      
+      if (!jobsData || jobsData.length === 0) return { jobs: [], hasMore: false };
 
-  const countMap: Record<string, number> = {};
-  const userBidMap: Record<string, boolean> = {};
-  
-  allBids?.forEach((b: any) => {
-    countMap[b.job_id] = (countMap[b.job_id] || 0) + 1;
-    if (userPhone && b.labor_phone === userPhone) {
-      userBidMap[b.job_id] = true;
-    }
-  });
+      const jobIds = jobsData.map((j: any) => j.id);
+      
+      const { data: allBids } = await supabase
+        .from('bids')
+        .select('job_id, labor_phone')
+        .in('job_id', jobIds);
 
-  const enriched = jobsData.map((job: any) => ({ 
-    ...job, 
-    bid_count: countMap[job.id] || 0,
-    user_bid: userBidMap[job.id] || false
-  }));
+      if (controller.signal.aborted) return { jobs: [], hasMore: false };
 
-  return { 
-    jobs: enriched, 
-    hasMore: jobsData.length === 20 
-  };
-});
+      const countMap: Record<string, number> = {};
+      const userBidMap: Record<string, boolean> = {};
+      
+      allBids?.forEach((b: any) => {
+        countMap[b.job_id] = (countMap[b.job_id] || 0) + 1;
+        if (userPhone && b.labor_phone === userPhone) {
+          userBidMap[b.job_id] = true;
+        }
+      });
+
+      const enriched = jobsData.map((job: any) => ({ 
+        ...job, 
+        bid_count: countMap[job.id] || 0,
+        user_bid: userBidMap[job.id] || false
+      }));
+
+      return { 
+        jobs: enriched, 
+        hasMore: jobsData.length === 20 
+      };
+    });
   }, [country, filter, userPhone, cache]);
 
   // ============ LOAD JOBS WITH PAGINATION ============
@@ -876,15 +966,14 @@ return cache.get(cacheKey, async () => {
     
     subscriptionCleanupRef.current = cleanup;
     
-    // Initial load
     loadJobs(true);
     
     return () => {
-  cleanup();
-  if (abortControllerRef.current) {
-    abortControllerRef.current.abort(); // ✅ এটা রাখতে হবে
-  }
-};
+      cleanup();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [country, loadJobs, connectionManager]);
 
   // ============ POST JOB WITH OPTIMISTIC UPDATE ============
@@ -897,7 +986,6 @@ return cache.get(cacheKey, async () => {
     
     setSubmitting(true);
     
-    // Optimistic update
     const optimisticJob = {
       id: `temp-${Date.now()}`,
       title: title.trim(),
@@ -948,7 +1036,6 @@ return cache.get(cacheKey, async () => {
     } catch (err: any) {
       console.error('Post job error:', err);
       alert(err.message || 'Failed to post job');
-      // Remove optimistic job on failure
       setJobs(prev => prev.filter(j => j.id !== optimisticJob.id));
     }
     
@@ -984,7 +1071,6 @@ return cache.get(cacheKey, async () => {
 
     setSubmitting(true);
     
-    // Optimistic update
     setJobs(prev => prev.map(j => 
       j.id === jobId 
         ? { ...j, bid_count: (j.bid_count || 0) + 1, user_bid: true }
@@ -1024,7 +1110,6 @@ return cache.get(cacheKey, async () => {
         if (retries === maxRetries) {
           console.error('Bid error:', err);
           alert(err.message || 'Failed to place bid');
-          // Revert optimistic update
           setJobs(prev => prev.map(j => 
             j.id === jobId 
               ? { ...j, bid_count: Math.max(0, (j.bid_count || 0) - 1), user_bid: false }
@@ -1136,9 +1221,9 @@ return cache.get(cacheKey, async () => {
             </div>
           </div>
 
-          {/* Category Filter */}
+          {/* ⭐ Category Filter - 42 Categories in 4 Languages */}
           <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm py-2">
-            {CATEGORY_LIST.map(cat => (
+            {categoryList.map(cat => (
               <button
                 key={cat.key}
                 onClick={() => {
@@ -1154,7 +1239,7 @@ return cache.get(cacheKey, async () => {
                 }`}
               >
                 <cat.icon size={14} className="mx-auto mb-0.5" />
-                {tr[cat.key === 'AC Technician' ? 'ac_tech' : cat.key === 'Electrician' ? 'electric' : cat.name?.toLowerCase() as keyof typeof tr] || cat.name}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -1229,10 +1314,13 @@ return cache.get(cacheKey, async () => {
                   <input value={title} onChange={e => setTitle(e.target.value)} placeholder={tr.job_title} 
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all" />
                   
+                  {/* ⭐ Category Select with Translations */}
                   <select value={category} onChange={e => setCategory(e.target.value)} 
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white">
                     <option value="">{tr.select_category}</option>
-                    {siteConfig.categories.map((c: any) => <option key={c.slug} value={c.name}>{c.name}</option>)}
+                    {Object.entries(CATEGORY_TRANSLATIONS).map(([key, val]) => (
+                      <option key={key} value={key}>{val[lang] || val.en}</option>
+                    ))}
                   </select>
                   
                   <div className="grid grid-cols-2 gap-2">
@@ -1286,7 +1374,8 @@ return cache.get(cacheKey, async () => {
                 </div>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 mb-3 border border-green-100">
                   <p className="font-semibold text-sm text-gray-800">{showBidForm.title}</p>
-                  <p className="text-xs text-gray-500">{showBidForm.category} • {showBidForm.location || tr.any_location}</p>
+                  {/* ⭐ Category Translated in Bid Modal */}
+                  <p className="text-xs text-gray-500">{translateCategory(showBidForm.category, lang)} • {showBidForm.location || tr.any_location}</p>
                   <p className="text-xs text-green-600 font-semibold mt-1">{showBidForm.budget_min || 0}-{showBidForm.budget_max || 0} {tr.qar}</p>
                   {showBidForm.duty_time && <p className="text-xs text-gray-500 mt-1">🕐 {showBidForm.duty_time}</p>}
                   {showBidForm.meal_provided && <p className="text-xs text-orange-600 mt-1">🍽️ {tr.meal_provided}</p>}
@@ -1335,7 +1424,8 @@ return cache.get(cacheKey, async () => {
                 <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl p-3 mb-4 border border-gray-100">
                   <p className="font-semibold text-sm text-gray-800">{showBids.title}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                    <span>{showBids.category}</span>
+                    {/* ⭐ Category Translated in Bids Modal */}
+                    <span>{translateCategory(showBids.category, lang)}</span>
                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                     <span>{showBids.location || tr.any_location}</span>
                   </div>
