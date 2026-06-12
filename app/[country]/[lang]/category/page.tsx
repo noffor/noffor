@@ -1,4 +1,3 @@
-// app/[country]/[lang]/categories/page.tsx
 import { redirect } from 'next/navigation';
 
 export default function CategoriesPage({ 
@@ -7,5 +6,5 @@ export default function CategoriesPage({
   params: { country: string; lang: string } 
 }) {
   const { country, lang } = params;
-  redirect(`/${country}/${lang}`);
+  redirect('/' + country + '/' + lang);
 }
