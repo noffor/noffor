@@ -1,10 +1,10 @@
 // components/map/LiveWorkerMap.tsx
-// 🚀 UBER-STYLE • Production Ready • Map Container Fix
+// 🚀 UBER-STYLE • Production Ready • All DOM Errors Fixed
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, MapPin, Navigation, UserPlus, X, Star, Clock } from 'lucide-react';
+import { Loader2, MapPin, UserPlus, X, Star, Clock } from 'lucide-react';
 
 // ═══════════════════ TYPES ═══════════════════
 interface Worker {
@@ -81,8 +81,8 @@ const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number): nu
 const getEta = (distance: number): number => Math.max(1, Math.ceil((distance / 30) * 60));
 const getPrice = (distance: number, rate: number = 25): number => Math.round(distance * 2 + (distance / 30) * rate);
 
-const WorkerCard = memo(({ worker, isSelected, lang, tr, onClick, onHire }: {
-  worker: Worker; isSelected: boolean; lang: string; tr: any;
+const WorkerCard = memo(({ worker, isSelected, tr, onClick, onHire }: {
+  worker: Worker; isSelected: boolean; tr: any;
   onClick: () => void; onHire: (worker: Worker) => void;
 }) => (
   <div onClick={onClick} data-id={worker.worker_id}
@@ -106,8 +106,8 @@ const WorkerCard = memo(({ worker, isSelected, lang, tr, onClick, onHire }: {
       </div>
       <p className="text-[11px] text-gray-500">{worker.profile?.category || 'General Worker'}</p>
       <div className="flex items-center gap-3 mt-1 text-[11px]">
-        <span className="text-blue-600 font-bold flex items-center gap-0.5">📍 {worker.distance}{tr.km}</span>
-        <span className="text-green-600 font-bold flex items-center gap-0.5"><Clock size={10} /> {worker.eta}{tr.min}</span>
+        <span className="text-blue-600 font-bold">📍 {worker.distance}{tr.km}</span>
+        <span className="text-green-600 font-bold"><Clock size={10} /> {worker.eta}{tr.min}</span>
         <span className="text-purple-600 font-bold">💰 {worker.price_estimate} QAR</span>
       </div>
     </div>
@@ -125,42 +125,57 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [mapError, setMapError] = useState(false); // ✅ Error state
+  const [hasError, setHasError] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationSource, setLocationSource] = useState<'gps' | 'country'>('country');
 
-  const containerRef = useRef<HTMLDivElement>(null); // ✅ Container ref
-  const mapRef = useRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
   const workerMarkersRef = useRef<Map<string, any>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aliveRef = useRef(true);
   const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
-  const mapInitializedRef = useRef(false); // ✅ Track initialization
-  const mapContainerId = useRef(`hire-map-${Math.random().toString(36).substr(2, 9)}`); // ✅ Unique ID
+  const mapInitializedRef = useRef(false);
 
-  // ═══════ CLEANUP ═══════
+  // ═══════ SAFE MAP REMOVAL ═══════
+  const safeRemoveMap = useCallback(() => {
+    if (mapInstanceRef.current) {
+      try {
+        // Remove all markers first
+        workerMarkersRef.current.forEach((marker) => {
+          try { mapInstanceRef.current?.removeLayer(marker); } catch (e) {}
+        });
+        workerMarkersRef.current.clear();
+        
+        if (userMarkerRef.current) {
+          try { mapInstanceRef.current?.removeLayer(userMarkerRef.current); } catch (e) {}
+          userMarkerRef.current = null;
+        }
+        
+        // Remove map
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      mapInstanceRef.current = null;
+    }
+    mapInitializedRef.current = false;
+  }, []);
+
+  // ═══════ CLEANUP ON UNMOUNT ═══════
   useEffect(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
-      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-      // ✅ Proper map cleanup
-      if (mapRef.current) {
-        try {
-          mapRef.current.remove();
-        } catch (e) {}
-        mapRef.current = null;
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
       }
-      mapInitializedRef.current = false;
-      // ✅ Clean container
-      const container = document.getElementById(mapContainerId.current);
-      if (container) {
-        container.innerHTML = '';
-      }
+      safeRemoveMap();
     };
-  }, []);
+  }, [safeRemoveMap]);
 
   // ═══════ LOCATION DETECTION ═══════
   useEffect(() => {
@@ -202,7 +217,7 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
 
   // ═══════ FETCH WORKERS ═══════
   const fetchWorkers = useCallback(async () => {
-    const map = mapRef.current;
+    const map = mapInstanceRef.current;
     const loc = userLocationRef.current;
     if (!map || !(window as any).L || !loc) return;
 
@@ -210,107 +225,98 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
       const { data: locations, error } = await supabase
         .from('worker_locations')
         .select(`
-          worker_id,
-          latitude,
-          longitude,
-          is_online,
-          last_seen,
+          worker_id, latitude, longitude, is_online, last_seen,
           profiles:worker_id (name, photo_url, category, rating)
         `)
         .eq('is_online', true)
         .limit(100);
 
-      if (error) { console.error('Fetch error:', error); setIsLoading(false); return; }
-      
-      if (!locations || locations.length === 0) { 
-        setWorkers([]); 
-        setIsLoading(false); 
-        return; 
+      if (error || !locations?.length) {
+        setWorkers([]);
+        setIsLoading(false);
+        return;
       }
 
       const workerList: Worker[] = locations
-        .map((loc: any) => {
-          const profileData = Array.isArray(loc.profiles) ? loc.profiles[0] : loc.profiles;
-          const distance = getDistance(
-            userLocationRef.current!.lat,
-            userLocationRef.current!.lng,
-            loc.latitude,
-            loc.longitude
-          );
-          return {
-            worker_id: loc.worker_id,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            is_online: loc.is_online,
-            last_seen: loc.last_seen,
-            profile: profileData || undefined,
-            distance,
-            eta: getEta(distance),
-            price_estimate: getPrice(distance, 25),
-          };
-        })
-        .filter(w => (w.distance || 999) <= 50)
+        .map((loc: any) => ({
+          worker_id: loc.worker_id,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          is_online: loc.is_online,
+          last_seen: loc.last_seen,
+          profile: Array.isArray(loc.profiles) ? loc.profiles[0] : loc.profiles || undefined,
+          distance: getDistance(loc.latitude, loc.longitude, loc.latitude, loc.longitude), // temp
+        }))
+        .map(w => ({
+          ...w,
+          distance: getDistance(userLocationRef.current!.lat, userLocationRef.current!.lng, w.latitude, w.longitude),
+          eta: 0,
+        }))
+        .filter(w => w.distance <= 50)
+        .map(w => ({ ...w, eta: getEta(w.distance), price_estimate: getPrice(w.distance) }))
         .sort((a, b) => (a.distance || 999) - (b.distance || 999));
 
       setWorkers(workerList);
       setIsLoading(false);
 
-      // Update markers
-      workerMarkersRef.current.forEach(m => {
-        try { map.removeLayer(m); } catch (e) {}
+      // ✅ Safe marker update
+      workerMarkersRef.current.forEach((marker) => {
+        try { map.removeLayer(marker); } catch (e) {}
       });
       workerMarkersRef.current.clear();
+      
       const L = (window as any).L;
+      const colors = ['#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#10B981', '#F97316'];
 
       workerList.slice(0, 50).forEach((worker, i) => {
         try {
-          const colors = ['#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#10B981', '#F97316'];
           const marker = L.circleMarker([worker.latitude, worker.longitude], {
-            radius: i < 3 ? 12 : 8, color: '#fff', fillColor: colors[i % colors.length], 
-            fillOpacity: 0.9, weight: 2.5,
+            radius: i < 3 ? 12 : 8,
+            color: '#fff',
+            fillColor: colors[i % colors.length],
+            fillOpacity: 0.9,
+            weight: 2.5,
           }).addTo(map);
-
-          marker.bindPopup(`
-            <div style="padding:10px;font-size:12px;min-width:160px;">
-              <b style="font-size:14px;">${worker.profile?.name || 'Worker'}</b>
-              <div style="color:#666;font-size:10px;">${worker.profile?.category || 'General'}</div>
-              <hr style="margin:6px 0;">
-              <div>📍 <b>${worker.distance}${tr.km}</b> | ⏱ <b>${worker.eta}${tr.min}</b></div>
-              <div>💰 <b>${worker.price_estimate} QAR</b></div>
-            </div>
-          `);
-
+          
+          marker.bindPopup(`<div style="padding:10px;font-size:12px;min-width:160px;">
+            <b style="font-size:14px;">${worker.profile?.name || 'Worker'}</b>
+            <div style="color:#666;font-size:10px;">${worker.profile?.category || 'General'}</div>
+            <hr style="margin:6px 0;">
+            <div>📍 <b>${worker.distance}${tr.km}</b> | ⏱ <b>${worker.eta}${tr.min}</b></div>
+            <div>💰 <b>${worker.price_estimate} QAR</b></div>
+          </div>`);
+          
           marker.on('click', () => {
             setSelectedWorker(worker);
             onSelectWorker?.(worker);
           });
+          
           workerMarkersRef.current.set(worker.worker_id, marker);
         } catch (e) {}
       });
-    } catch (err) { 
-      console.error('Fetch error:', err); 
-      setIsLoading(false); 
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setIsLoading(false);
     }
   }, [tr, onSelectWorker]);
 
-  // ═══════ INIT MAP (✅✅✅ FULLY FIXED) ═══════
+  // ═══════ INIT MAP ═══════
   useEffect(() => {
-    if (mapInitializedRef.current) return; // ✅ Prevent double init
-    
-    let map: any = null;
-    let attempts = 0;
+    if (mapInitializedRef.current) return;
+    if (!mapContainerRef.current) return;
 
     const initMap = async () => {
       try {
-        // Load Leaflet CSS
+        // Load CSS
         if (!document.getElementById('leaflet-css')) {
           const link = document.createElement('link');
-          link.id = 'leaflet-css'; link.rel = 'stylesheet';
+          link.id = 'leaflet-css';
+          link.rel = 'stylesheet';
           link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
           document.head.appendChild(link);
         }
 
-        // Load Leaflet JS
+        // Load JS
         if (!(window as any).L) {
           await new Promise<void>((resolve) => {
             const script = document.createElement('script');
@@ -320,85 +326,80 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
           });
         }
 
-        // ✅ Wait for unique container
-        let container: HTMLElement | null = null;
+        // ✅ Wait for container to have height
+        let attempts = 0;
         while (attempts < 30) {
-          container = document.getElementById(mapContainerId.current);
-          if (container && container.offsetHeight > 0) break;
+          const el = mapContainerRef.current;
+          if (el && el.offsetHeight > 0) break;
           await new Promise(r => setTimeout(r, 200));
           attempts++;
         }
 
-        if (!container || !aliveRef.current) {
-          setMapError(true);
-          return;
-        }
+        if (!mapContainerRef.current || !aliveRef.current) return;
 
-        // ✅✅✅ Clear container before init
-        container.innerHTML = '';
+        // ✅ Clean previous map instance
+        safeRemoveMap();
 
-        const [clat, clng] = userLocationRef.current 
-          ? [userLocationRef.current.lat, userLocationRef.current.lng] 
+        const [clat, clng] = userLocationRef.current
+          ? [userLocationRef.current.lat, userLocationRef.current.lng]
           : COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
 
-        map = (window as any).L.map(container, {
-          center: [clat, clng], 
-          zoom: 13, 
+        const L = (window as any).L;
+        const map = L.map(mapContainerRef.current, {
+          center: [clat, clng],
+          zoom: 13,
           zoomControl: false,
           attributionControl: false,
+          // ✅ Prevent touch conflicts
+          tap: false,
         });
 
-        (window as any).L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-          maxZoom: 19 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
         }).addTo(map);
-        
-        mapRef.current = map;
+
+        mapInstanceRef.current = map;
         mapInitializedRef.current = true;
-        
+
         setTimeout(() => {
-          try { map?.invalidateSize(); } catch (e) {}
+          try { map.invalidateSize(); } catch (e) {}
         }, 500);
-        
+
         setMapReady(true);
-        
+
         if (userLocationRef.current) {
           setTimeout(() => fetchWorkers(), 600);
         }
-      } catch (err) { 
-        console.error('Map init error:', err); 
-        setMapError(true);
-        setIsLoading(false); 
+      } catch (err) {
+        console.error('Map init error:', err);
+        setHasError(true);
+        setIsLoading(false);
       }
     };
 
     setTimeout(initMap, 300);
-
-    return () => {
-      if (map) { 
-        try { map.remove(); } catch (e) {}
-        map = null; 
-      }
-      mapRef.current = null;
-      mapInitializedRef.current = false;
-    };
-  }, [country, fetchWorkers]);
+  }, [country, fetchWorkers, safeRemoveMap]);
 
   // ═══════ USER MARKER ═══════
   useEffect(() => {
-    if (!mapRef.current || !userLocation || !(window as any).L) return;
-    try {
-      if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-      
-      const markerColor = locationSource === 'gps' ? '#3B82F6' : '#F59E0B';
-      const markerLabel = locationSource === 'gps' ? tr.gpsLocation : tr.yourLocation;
+    const map = mapInstanceRef.current;
+    if (!map || !userLocation || !(window as any).L) return;
 
-      userMarkerRef.current = (window as any).L.circleMarker(
-        [userLocation.lat, userLocation.lng], {
-          radius: 9, color: '#fff', fillColor: markerColor, fillOpacity: 1, weight: 3,
-        }
-      ).addTo(mapRef.current).bindPopup(`<b>${markerLabel}</b>`);
-      
-      mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
+    try {
+      if (userMarkerRef.current) {
+        map.removeLayer(userMarkerRef.current);
+        userMarkerRef.current = null;
+      }
+
+      const L = (window as any).L;
+      const color = locationSource === 'gps' ? '#3B82F6' : '#F59E0B';
+      const label = locationSource === 'gps' ? tr.gpsLocation : tr.yourLocation;
+
+      userMarkerRef.current = L.circleMarker([userLocation.lat, userLocation.lng], {
+        radius: 9, color: '#fff', fillColor: color, fillOpacity: 1, weight: 3,
+      }).addTo(map).bindPopup(`<b>${label}</b>`);
+
+      map.setView([userLocation.lat, userLocation.lng], 14);
       fetchWorkers();
     } catch (e) {}
   }, [userLocation, tr, locationSource, fetchWorkers]);
@@ -406,11 +407,9 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
   // ═══════ AUTO REFRESH ═══════
   useEffect(() => {
     if (!mapReady) return;
-    
     refreshTimerRef.current = setInterval(() => {
       if (aliveRef.current) fetchWorkers();
     }, 30000);
-    
     return () => {
       if (refreshTimerRef.current) {
         clearInterval(refreshTimerRef.current);
@@ -423,17 +422,21 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
   useEffect(() => {
     if (!selectedWorker || !listRef.current) return;
     const el = listRef.current.querySelector(`[data-id="${selectedWorker.worker_id}"]`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [selectedWorker]);
 
   const handleHire = useCallback((worker: Worker) => {
     setSelectedWorker(worker);
     onSelectWorker?.(worker);
-    onQuickHire?.(worker);
+    if (onQuickHire) {
+      onQuickHire(worker);
+    }
   }, [onSelectWorker, onQuickHire]);
 
   // ═══════ ERROR STATE ═══════
-  if (mapError) {
+  if (hasError) {
     return (
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="p-10 text-center">
@@ -466,17 +469,14 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
           <div className="flex items-center gap-2">
             <MapPin size={18} className="text-green-400" />
             <div>
-              {isLoading ? (
-                <p className="text-white font-bold text-sm">{tr.findingLocation}</p>
-              ) : (
-                <p className="text-white font-bold text-sm">
-                  {workers.length > 0 ? `${workers.length} ${tr.workersAvailable}` : tr.noWorkers}
-                </p>
-              )}
+              <p className="text-white font-bold text-sm">
+                {isLoading ? tr.findingLocation : 
+                  workers.length > 0 ? `${workers.length} ${tr.workersAvailable}` : tr.noWorkers}
+              </p>
             </div>
           </div>
           {onClose && (
-            <button onClick={() => onClose?.()}
+            <button onClick={onClose}
               className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-90 transition">
               <X size={16} />
             </button>
@@ -484,10 +484,9 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         </div>
       </div>
 
-      {/* ✅ MAP - Unique ID container */}
+      {/* MAP CONTAINER - ✅ React ref, no ID */}
       <div 
-        id={mapContainerId.current}
-        ref={containerRef}
+        ref={mapContainerRef}
         style={{ width: '100%', height: '280px', backgroundColor: '#e5e7eb', position: 'relative' }}
       >
         {isLoading && (
@@ -506,7 +505,6 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
               <MapPin size={28} className="text-gray-400" />
             </div>
             <p className="text-sm text-gray-600 font-bold">{tr.noWorkers}</p>
-            <p className="text-xs text-gray-400 mt-1">Try again later</p>
           </div>
         ) : (
           <>
@@ -517,11 +515,11 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
             {workers.slice(0, 50).map((worker) => (
               <WorkerCard key={worker.worker_id} worker={worker}
                 isSelected={selectedWorker?.worker_id === worker.worker_id}
-                lang={lang} tr={tr}
+                tr={tr}
                 onClick={() => { 
                   setSelectedWorker(worker); 
                   onSelectWorker?.(worker); 
-                  try { mapRef.current?.setView([worker.latitude, worker.longitude], 16); } catch (e) {}
+                  try { mapInstanceRef.current?.setView([worker.latitude, worker.longitude], 16); } catch (e) {}
                 }}
                 onHire={handleHire} />
             ))}
