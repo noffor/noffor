@@ -1,4 +1,4 @@
-// hooks/useQuickHire.ts - আপনার useRealtime interface মেনে
+// hooks/useQuickHire.ts - ✅ UBER-STYLE QUICK HIRE • FULLY FIXED
 "use client";
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -107,7 +107,7 @@ export function useQuickHire(): QuickHireResult {
     };
   }, []);
 
-  // ✅ ফিক্সড: আপনার useRealtime interface মেনে কল
+  // ✅ Realtime listener
   useRealtime({
     table: 'bookings',
     event: 'UPDATE',
@@ -140,6 +140,16 @@ export function useQuickHire(): QuickHireResult {
     category: string = 'all',
     amount: number = 100,
   ): Promise<QuickHireBooking | null> => {
+    // ✅✅✅ Validation
+    console.log('🔍 matchWorker called:', { userLat, userLng, employerPhone, employerName, category, amount });
+    
+    if (!employerPhone || employerPhone.trim() === '') {
+      console.error('❌ Employer phone is empty!');
+      setError('Phone number required');
+      setLoading(false);
+      return null;
+    }
+
     // আগের রিকোয়েস্ট ক্যান্সেল
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -157,6 +167,25 @@ export function useQuickHire(): QuickHireResult {
       const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT_MS);
 
       try {
+        // ✅✅✅ Step 1: Fetch employer profile FIRST
+        const { data: employer, error: employerError } = await supabase
+          .from('profiles')
+          .select('id, phone, name')
+          .eq('phone', employerPhone)
+          .single();
+
+        if (employerError || !employer) {
+          console.error('❌ Employer not found for phone:', employerPhone);
+          if (aliveRef.current) {
+            setError('Please complete your profile first');
+            setLoading(false);
+          }
+          return null;
+        }
+
+        console.log('✅ Employer found:', employer);
+
+        // ✅ Step 2: Fetch online workers
         const { data: workers, error: workerError } = await supabase
           .from('worker_locations')
           .select(`
@@ -191,11 +220,13 @@ export function useQuickHire(): QuickHireResult {
           return null;
         }
 
+        // ✅ Step 3: Calculate distances
         const withDistance = workers
           .map((w: any) => ({
             ...w,
             distance: calcDistance(userLat, userLng, w.latitude, w.longitude),
             eta: 0,
+            profile: Array.isArray(w.profiles) ? w.profiles[0] : w.profiles || undefined,
           }))
           .filter((w: any) => w.distance <= CONFIG.MAX_DISTANCE_KM)
           .map((w: any) => ({ ...w, eta: calcETA(w.distance) }))
@@ -210,52 +241,60 @@ export function useQuickHire(): QuickHireResult {
         }
 
         const closest = withDistance[0];
+        console.log('✅ Closest worker:', { 
+          id: closest.worker_id, 
+          name: closest.profile?.name, 
+          distance: closest.distance,
+          eta: closest.eta 
+        });
 
-        const { data: employer } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('phone', employerPhone)
-          .single();
+        // ✅✅✅ Step 4: Create booking with REAL employer data
+        const bookingData = {
+          worker_id: closest.worker_id,
+          employer_id: employer.id,                      // ✅ REAL UUID
+          employer_phone: employerPhone,                 // ✅ REAL phone
+          employer_name: employerName,                   // ✅ REAL name
+          job_title: category !== 'all' ? `${category} - Quick Hire` : 'Quick Hire',
+          job_description: 'Quick hire request',
+          category: closest.profile?.category || 'General',
+          offered_amount: amount,
+          total_amount: amount,
+          payment_type: 'fixed',
+          payment_method: 'cash',
+          location_text: `${userLat.toFixed(4)},${userLng.toFixed(4)}`,
+          location_lat: userLat,
+          location_lng: userLng,
+          worker_lat: closest.latitude,
+          worker_lon: closest.longitude,
+          distance_km: closest.distance,
+          eta_minutes: closest.eta,
+          start_date: new Date().toISOString().split('T')[0],
+          start_time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+          duration_days: 1,
+          contact_phone: employerPhone,
+          status: 'pending',
+          special_instructions: 'Quick Hire - Auto Matched',
+        };
 
-        const employerId = employer?.id || employerPhone;
+        console.log('📦 Creating booking:', bookingData);
 
         const { data: newBooking, error: bookingError } = await supabase
           .from('bookings')
-          .insert({
-            worker_id: closest.worker_id,
-            employer_id: employerId,
-            employer_phone: employerPhone,
-            employer_name: employerName,
-            job_title: category !== 'all' ? `${category} - Quick Hire` : 'Quick Hire',
-            job_description: 'Quick hire request',
-            category: closest.profiles?.category || 'General',
-            offered_amount: amount,
-            total_amount: amount,
-            payment_type: 'fixed',
-            payment_method: 'cash',
-            location_text: `${userLat.toFixed(4)},${userLng.toFixed(4)}`,
-            location_lat: userLat,
-            location_lng: userLng,
-            worker_lat: closest.latitude,
-            worker_lon: closest.longitude,
-            distance_km: closest.distance,
-            eta_minutes: closest.eta,
-            start_date: new Date().toISOString().split('T')[0],
-            start_time: new Date().toTimeString().split(' ')[0].substring(0, 5),
-            duration_days: 1,
-            contact_phone: employerPhone,
-            status: 'pending',
-            special_instructions: 'Quick Hire - Auto Matched',
-          })
+          .insert(bookingData)
           .select()
           .single();
 
         if (!aliveRef.current || controller.signal.aborted) return null;
-        if (bookingError) throw bookingError;
+        if (bookingError) {
+          console.error('❌ Booking insert error:', bookingError);
+          throw bookingError;
+        }
+
+        console.log('✅ Booking created:', newBooking);
 
         currentBookingRef.current = newBooking.id;
         
-        // Fire-and-forget notification
+        // ✅ Step 5: Send notification to worker
         supabase
           .from('notifications')
           .insert({
@@ -264,10 +303,16 @@ export function useQuickHire(): QuickHireResult {
             message: `${employerName} • ${closest.distance}km • ${closest.eta}min • ${amount} QAR`,
             type: 'quick_hire',
             is_read: false,
-            metadata: { booking_id: newBooking.id },
+            metadata: { 
+              booking_id: newBooking.id,
+              employer_name: employerName,
+              distance: closest.distance,
+              amount: amount
+            },
           })
           .then(({ error: notifError }) => {
             if (notifError) console.warn('Notification failed:', notifError);
+            else console.log('✅ Notification sent to worker');
           });
 
         const result: QuickHireBooking = { ...newBooking, worker: closest };
@@ -282,6 +327,7 @@ export function useQuickHire(): QuickHireResult {
 
       } catch (err: any) {
         clearTimeout(timeoutId);
+        console.error('❌ matchWorker error:', err);
         
         if (err?.message === 'AbortError' || !aliveRef.current) {
           return null;
@@ -289,6 +335,7 @@ export function useQuickHire(): QuickHireResult {
 
         if (retryRef.current < CONFIG.RETRY_MAX) {
           retryRef.current++;
+          console.log(`🔄 Retry ${retryRef.current}/${CONFIG.RETRY_MAX}...`);
           await new Promise(resolve => setTimeout(resolve, 1000 * retryRef.current));
           return attemptMatch();
         }

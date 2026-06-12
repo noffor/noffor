@@ -656,27 +656,40 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
-  // ✅ FIXED: onQuickHire handler
-  const handleWorkerQuickHire = useCallback((worker: any) => {
-    if (!userLocation) {
-      toast(tr.locationDenied, 'error');
-      return;
-    }
-    
-    matchWorker(
-      userLocation.lat,
-      userLocation.lng,
-      country,
-      profile?.phone || '',
-      profile?.name || 'Employer',
-      worker.profile?.category || 'all',
-      worker.price_estimate || 100
-    );
-    
-    setBookingState('searching');
-    setShowMap(false);
-    toast(tr.findingWorker, 'info');
-  }, [userLocation, country, profile, matchWorker, tr]);
+  /// ✅✅✅ FIXED: Real data pass with console debug
+const handleWorkerQuickHire = useCallback((worker: any) => {
+  console.log('🚀 Hire Now clicked!', {
+    worker: worker?.profile?.name,
+    category: worker?.profile?.category,
+    price: worker?.price_estimate,
+    userPhone: profile?.phone,
+    userName: profile?.name,
+  });
+
+  if (!userLocation) {
+    toast(tr.locationDenied, 'error');
+    return;
+  }
+  
+  if (!profile?.phone) {
+    toast('Please add phone number in profile', 'error');
+    return;
+  }
+  
+  matchWorker(
+    userLocation.lat,
+    userLocation.lng,
+    country,
+    profile.phone,                                    // ✅ REAL phone
+    profile?.name || 'Employer',                      // ✅ REAL name
+    worker?.profile?.category || worker?.category || 'all',
+    worker?.price_estimate || worker?.price || 100
+  );
+  
+  setBookingState('searching');
+  setShowMap(false);
+  toast(tr.findingWorker, 'info');
+}, [userLocation, country, profile, matchWorker, tr]);
 
   // 🔥 Quick hire handler
   const handleQuickHire = useCallback(async () => {
