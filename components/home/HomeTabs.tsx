@@ -1,5 +1,6 @@
 // components/home/HomeTabs.tsx
 // 🚀 1M+ DAILY USERS • Enterprise Grade • 4 Languages • Production Ready
+// ✅ PERSISTENT ONLINE STATE - পেজ চেঞ্জ করলে অফলাইন হবে না
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
@@ -409,6 +410,11 @@ const QuickHireButton = memo(({
 QuickHireButton.displayName = 'QuickHireButton';
 
 // ═══════════════════════════════════════════════════════════
+// ✅✅✅ FIXED: PERSISTENT ONLINE STATE
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY = 'noffor_employer_online';
+
+// ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 
@@ -422,12 +428,15 @@ export default function HomeTabs({ country, lang }: Props) {
 
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   
-  // ✅ Initialize from localStorage for instant state
+  // ✅✅✅ FIX: localStorage থেকে state init, profile override করবে না
   const [online, setOnline] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('noffor_online');
-        if (stored !== null) return JSON.parse(stored);
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored !== null) {
+          const data = JSON.parse(stored);
+          return data?.isOnline || false;
+        }
       } catch {}
     }
     return false;
@@ -449,7 +458,7 @@ export default function HomeTabs({ country, lang }: Props) {
   const trackingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(false);
-  const profileLoadedRef = useRef(false);
+  const profileSyncedRef = useRef(false); // ✅ Track if profile already synced
 
   // 🔥 Cleanup on unmount
   useEffect(() => {
@@ -461,30 +470,45 @@ export default function HomeTabs({ country, lang }: Props) {
     };
   }, []);
 
-  // ✅ FIXED: Smart sync — session restore-এর সময় false করে না
+  // ✅✅✅ FIXED: Profile sync - শুধু প্রথমবার এবং localStorage খালি থাকলে
   useEffect(() => {
     if (authLoading) return;
     
-    if (profile) {
-      profileLoadedRef.current = true;
-      const profileOnline = !!profile.is_online;
-      setOnline(profileOnline);
-      localStorage.setItem('noffor_online', JSON.stringify(profileOnline));
-    } else if (!isAuthenticated) {
-      profileLoadedRef.current = false;
-      setOnline(false);
-      localStorage.setItem('noffor_online', JSON.stringify(false));
+    if (profile && isAuthenticated && !profileSyncedRef.current) {
+      profileSyncedRef.current = true;
+      
+      // localStorage-এ value থাকলে profile থেকে নিবে না
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        // localStorage খালি থাকলেই শুধু profile থেকে সেট করবে
+        const profileOnline = !!profile.is_online;
+        setOnline(profileOnline);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+          isOnline: profileOnline, 
+          userId: profile.id,
+          timestamp: Date.now() 
+        }));
+      }
     }
-  }, [authLoading, profile, isAuthenticated]);
+    
+    // Logout হলে reset
+    if (!isAuthenticated && !authLoading && profileSyncedRef.current) {
+      profileSyncedRef.current = false;
+      setOnline(false);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [authLoading, isAuthenticated, profile]);
 
-  // ✅ Cross-tab sync via localStorage
+  // ✅ Cross-tab sync via localStorage event
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'noffor_online') {
+      if (e.key === STORAGE_KEY) {
         try {
-          const newValue = JSON.parse(e.newValue || 'false');
-          setOnline(newValue);
-        } catch {}
+          const data = JSON.parse(e.newValue || '{}');
+          setOnline(data?.isOnline || false);
+        } catch {
+          setOnline(false);
+        }
       }
     };
     window.addEventListener('storage', handleStorage);
@@ -584,7 +608,7 @@ export default function HomeTabs({ country, lang }: Props) {
     }
   }, [getLocation]);
 
-  // ✅ Toggle online/offline
+  // ✅✅✅ FIXED: Toggle online/offline with localStorage persistence
   const toggleOnline = useCallback(async () => {
     if (authLoading || lockRef.current) return;
     if (!isAuthenticated || !profile?.id) {
@@ -596,9 +620,14 @@ export default function HomeTabs({ country, lang }: Props) {
     lockRef.current = true;
     const next = !online;
     
+    // ✅ Optimistic update - আগে state + localStorage
     setOnline(next);
     setLoading(true);
-    localStorage.setItem('noffor_online', JSON.stringify(next));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+      isOnline: next, 
+      userId: profile.id,
+      timestamp: Date.now() 
+    }));
     
     try {
       const { error: updateError } = await supabase
@@ -613,8 +642,13 @@ export default function HomeTabs({ country, lang }: Props) {
       
       toast(next ? tr.on : tr.off, 'success');
     } catch (err) {
+      // DB fail হলে revert
       setOnline(!next);
-      localStorage.setItem('noffor_online', JSON.stringify(!next));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+        isOnline: !next, 
+        userId: profile.id,
+        timestamp: Date.now() 
+      }));
       toast(tr.error, 'error');
     } finally {
       setLoading(false);
