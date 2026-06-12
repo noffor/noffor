@@ -1,5 +1,5 @@
 // components/map/LiveWorkerMap.tsx
-// 🚀 UBER-STYLE • Production Ready • All Fixed
+// 🚀 UBER-STYLE • Production Ready • Map Container Fix
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
@@ -44,29 +44,29 @@ const T: Record<string, any> = {
     loading: 'Finding workers near you...', noWorkers: 'No workers available nearby',
     km: 'km', min: 'min', hireNow: 'Hire Now', yourLocation: '📍 Your Location',
     tapWorker: 'Tap a worker to hire', findingLocation: 'Detecting your location...',
-    ipLocation: '📍 IP Location', gpsLocation: '📍 GPS Location',
-    workersAvailable: 'workers available',
+    gpsLocation: '📍 GPS Location', workersAvailable: 'workers available',
+    error: 'Something went wrong!', refresh: 'Refresh Page', goHome: 'Go Home',
   },
   bn: {
     loading: 'আপনার আশেপাশে শ্রমিক খোঁজা হচ্ছে...', noWorkers: 'আশেপাশে কোনো শ্রমিক পাওয়া যায়নি',
     km: 'কিমি', min: 'মিনিট', hireNow: 'এখনই হায়ার করুন', yourLocation: '📍 আপনার অবস্থান',
     tapWorker: 'শ্রমিক সিলেক্ট করতে ট্যাপ করুন', findingLocation: 'আপনার লোকেশন খোঁজা হচ্ছে...',
-    ipLocation: '📍 আইপি লোকেশন', gpsLocation: '📍 জিপিএস লোকেশন',
-    workersAvailable: 'জন শ্রমিক উপলব্ধ',
+    gpsLocation: '📍 জিপিএস লোকেশন', workersAvailable: 'জন শ্রমিক উপলব্ধ',
+    error: 'কিছু ভুল হয়েছে!', refresh: 'রিফ্রেশ করুন', goHome: 'হোমে যান',
   },
   ar: {
     loading: 'جاري البحث عن عمال بالقرب منك...', noWorkers: 'لا يوجد عمال متاحون',
     km: 'كم', min: 'دقيقة', hireNow: 'وظف الآن', yourLocation: '📍 موقعك',
     tapWorker: 'اضغط على عامل للتوظيف', findingLocation: 'جاري تحديد موقعك...',
-    ipLocation: '📍 موقع IP', gpsLocation: '📍 موقع GPS',
-    workersAvailable: 'عمال متاحون',
+    gpsLocation: '📍 موقع GPS', workersAvailable: 'عمال متاحون',
+    error: 'حدث خطأ ما!', refresh: 'تحديث الصفحة', goHome: 'الرئيسية',
   },
   hi: {
     loading: 'आपके आसपास श्रमिक खोज रहे हैं...', noWorkers: 'आसपास कोई श्रमिक उपलब्ध नहीं',
     km: 'किमी', min: 'मिनट', hireNow: 'अभी हायर करें', yourLocation: 'आपकी स्थिति',
     tapWorker: 'श्रमिक चुनने के लिए टैप करें', findingLocation: 'आपकी लोकेशन ढूंढ रहे हैं...',
-    ipLocation: '📍 आईपी लोकेशन', gpsLocation: '📍 जीपीएस लोकेशन',
-    workersAvailable: 'श्रमिक उपलब्ध',
+    gpsLocation: '📍 जीपीएस लोकेशन', workersAvailable: 'श्रमिक उपलब्ध',
+    error: 'कुछ गलत हो गया!', refresh: 'रीफ्रेश करें', goHome: 'होम',
   },
 };
 
@@ -125,9 +125,11 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapError, setMapError] = useState(false); // ✅ Error state
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationSource, setLocationSource] = useState<'gps' | 'ip' | 'country'>('country');
+  const [locationSource, setLocationSource] = useState<'gps' | 'country'>('country');
 
+  const containerRef = useRef<HTMLDivElement>(null); // ✅ Container ref
   const mapRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
   const workerMarkersRef = useRef<Map<string, any>>(new Map());
@@ -135,7 +137,8 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aliveRef = useRef(true);
   const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
-  const mapInitRef = useRef(false); // ✅ Prevent double init
+  const mapInitializedRef = useRef(false); // ✅ Track initialization
+  const mapContainerId = useRef(`hire-map-${Math.random().toString(36).substr(2, 9)}`); // ✅ Unique ID
 
   // ═══════ CLEANUP ═══════
   useEffect(() => {
@@ -143,18 +146,25 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
     return () => {
       aliveRef.current = false;
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+      // ✅ Proper map cleanup
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
         mapRef.current = null;
       }
-      mapInitRef.current = false;
+      mapInitializedRef.current = false;
+      // ✅ Clean container
+      const container = document.getElementById(mapContainerId.current);
+      if (container) {
+        container.innerHTML = '';
+      }
     };
   }, []);
 
   // ═══════ LOCATION DETECTION ═══════
   useEffect(() => {
     const detectLocation = async () => {
-      // Priority: Props > GPS > Country default
       if (userLat && userLng) {
         const loc = { lat: userLat, lng: userLng };
         setUserLocation(loc);
@@ -163,7 +173,6 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         return;
       }
 
-      // Try GPS
       if ('geolocation' in navigator) {
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -181,7 +190,6 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         } catch {}
       }
 
-      // Fallback to country center
       const [lat, lng] = COUNTRY_CENTERS[country] || COUNTRY_CENTERS.qa;
       const loc = { lat, lng };
       setUserLocation(loc);
@@ -207,12 +215,7 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
           longitude,
           is_online,
           last_seen,
-          profiles:worker_id (
-            name,
-            photo_url,
-            category,
-            rating
-          )
+          profiles:worker_id (name, photo_url, category, rating)
         `)
         .eq('is_online', true)
         .limit(100);
@@ -225,9 +228,9 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         return; 
       }
 
-      // ✅ ফিক্স: Process with distance
       const workerList: Worker[] = locations
         .map((loc: any) => {
+          const profileData = Array.isArray(loc.profiles) ? loc.profiles[0] : loc.profiles;
           const distance = getDistance(
             userLocationRef.current!.lat,
             userLocationRef.current!.lng,
@@ -240,7 +243,7 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
             longitude: loc.longitude,
             is_online: loc.is_online,
             last_seen: loc.last_seen,
-            profile: Array.isArray(loc.profiles) ? loc.profiles[0] : loc.profiles || undefined,
+            profile: profileData || undefined,
             distance,
             eta: getEta(distance),
             price_estimate: getPrice(distance, 25),
@@ -253,35 +256,36 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
       setIsLoading(false);
 
       // Update markers
-      workerMarkersRef.current.forEach(m => map.removeLayer(m));
+      workerMarkersRef.current.forEach(m => {
+        try { map.removeLayer(m); } catch (e) {}
+      });
       workerMarkersRef.current.clear();
       const L = (window as any).L;
 
       workerList.slice(0, 50).forEach((worker, i) => {
-        const colors = ['#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#10B981', '#F97316'];
-        const marker = L.circleMarker([worker.latitude, worker.longitude], {
-          radius: i < 3 ? 12 : 8, 
-          color: '#fff', 
-          fillColor: colors[i % colors.length], 
-          fillOpacity: 0.9, 
-          weight: 2.5,
-        }).addTo(map);
+        try {
+          const colors = ['#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899', '#10B981', '#F97316'];
+          const marker = L.circleMarker([worker.latitude, worker.longitude], {
+            radius: i < 3 ? 12 : 8, color: '#fff', fillColor: colors[i % colors.length], 
+            fillOpacity: 0.9, weight: 2.5,
+          }).addTo(map);
 
-        marker.bindPopup(`
-          <div style="padding:10px;font-size:12px;min-width:160px;">
-            <b style="font-size:14px;">${worker.profile?.name || 'Worker'}</b>
-            <div style="color:#666;font-size:10px;">${worker.profile?.category || 'General'}</div>
-            <hr style="margin:6px 0;">
-            <div>📍 <b>${worker.distance}${tr.km}</b> | ⏱ <b>${worker.eta}${tr.min}</b></div>
-            <div>💰 <b>${worker.price_estimate} QAR</b></div>
-          </div>
-        `);
+          marker.bindPopup(`
+            <div style="padding:10px;font-size:12px;min-width:160px;">
+              <b style="font-size:14px;">${worker.profile?.name || 'Worker'}</b>
+              <div style="color:#666;font-size:10px;">${worker.profile?.category || 'General'}</div>
+              <hr style="margin:6px 0;">
+              <div>📍 <b>${worker.distance}${tr.km}</b> | ⏱ <b>${worker.eta}${tr.min}</b></div>
+              <div>💰 <b>${worker.price_estimate} QAR</b></div>
+            </div>
+          `);
 
-        marker.on('click', () => {
-          setSelectedWorker(worker);
-          onSelectWorker?.(worker);
-        });
-        workerMarkersRef.current.set(worker.worker_id, marker);
+          marker.on('click', () => {
+            setSelectedWorker(worker);
+            onSelectWorker?.(worker);
+          });
+          workerMarkersRef.current.set(worker.worker_id, marker);
+        } catch (e) {}
       });
     } catch (err) { 
       console.error('Fetch error:', err); 
@@ -289,20 +293,19 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
     }
   }, [tr, onSelectWorker]);
 
-  // ═══════ INIT MAP (✅ Only once) ═══════
+  // ═══════ INIT MAP (✅✅✅ FULLY FIXED) ═══════
   useEffect(() => {
-    if (mapInitRef.current) return; // ✅ Already initialized
-    mapInitRef.current = true;
-
+    if (mapInitializedRef.current) return; // ✅ Prevent double init
+    
     let map: any = null;
+    let attempts = 0;
 
     const initMap = async () => {
       try {
         // Load Leaflet CSS
         if (!document.getElementById('leaflet-css')) {
           const link = document.createElement('link');
-          link.id = 'leaflet-css'; 
-          link.rel = 'stylesheet';
+          link.id = 'leaflet-css'; link.rel = 'stylesheet';
           link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
           document.head.appendChild(link);
         }
@@ -317,16 +320,22 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
           });
         }
 
-        // Wait for container
+        // ✅ Wait for unique container
         let container: HTMLElement | null = null;
-        let attempts = 0;
         while (attempts < 30) {
-          container = document.getElementById('hire-map');
-          if (container?.offsetHeight) break;
+          container = document.getElementById(mapContainerId.current);
+          if (container && container.offsetHeight > 0) break;
           await new Promise(r => setTimeout(r, 200));
           attempts++;
         }
-        if (!container || !aliveRef.current) return;
+
+        if (!container || !aliveRef.current) {
+          setMapError(true);
+          return;
+        }
+
+        // ✅✅✅ Clear container before init
+        container.innerHTML = '';
 
         const [clat, clng] = userLocationRef.current 
           ? [userLocationRef.current.lat, userLocationRef.current.lng] 
@@ -344,15 +353,20 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         }).addTo(map);
         
         mapRef.current = map;
-        setTimeout(() => map?.invalidateSize(), 500);
+        mapInitializedRef.current = true;
+        
+        setTimeout(() => {
+          try { map?.invalidateSize(); } catch (e) {}
+        }, 500);
+        
         setMapReady(true);
         
-        // Fetch workers after map ready
         if (userLocationRef.current) {
           setTimeout(() => fetchWorkers(), 600);
         }
       } catch (err) { 
         console.error('Map init error:', err); 
+        setMapError(true);
         setIsLoading(false); 
       }
     };
@@ -361,34 +375,35 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
 
     return () => {
       if (map) { 
-        map.remove(); 
+        try { map.remove(); } catch (e) {}
         map = null; 
       }
       mapRef.current = null;
+      mapInitializedRef.current = false;
     };
-  }, [country, fetchWorkers]); // ✅ fetchWorkers dependency
+  }, [country, fetchWorkers]);
 
   // ═══════ USER MARKER ═══════
   useEffect(() => {
     if (!mapRef.current || !userLocation || !(window as any).L) return;
-    if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
-    
-    const markerColor = locationSource === 'gps' ? '#3B82F6' : '#F59E0B';
-    const markerLabel = locationSource === 'gps' ? tr.gpsLocation : tr.yourLocation;
+    try {
+      if (userMarkerRef.current) mapRef.current.removeLayer(userMarkerRef.current);
+      
+      const markerColor = locationSource === 'gps' ? '#3B82F6' : '#F59E0B';
+      const markerLabel = locationSource === 'gps' ? tr.gpsLocation : tr.yourLocation;
 
-    userMarkerRef.current = (window as any).L.circleMarker(
-      [userLocation.lat, userLocation.lng], {
-        radius: 9, color: '#fff', fillColor: markerColor, fillOpacity: 1, weight: 3,
-      }
-    ).addTo(mapRef.current).bindPopup(`<b>${markerLabel}</b>`);
-    
-    mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
-    
-    // Fetch workers when location changes
-    fetchWorkers();
+      userMarkerRef.current = (window as any).L.circleMarker(
+        [userLocation.lat, userLocation.lng], {
+          radius: 9, color: '#fff', fillColor: markerColor, fillOpacity: 1, weight: 3,
+        }
+      ).addTo(mapRef.current).bindPopup(`<b>${markerLabel}</b>`);
+      
+      mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
+      fetchWorkers();
+    } catch (e) {}
   }, [userLocation, tr, locationSource, fetchWorkers]);
 
-  // ═══════ AUTO REFRESH (✅ Cleanup fixed) ═══════
+  // ═══════ AUTO REFRESH ═══════
   useEffect(() => {
     if (!mapReady) return;
     
@@ -417,6 +432,32 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
     onQuickHire?.(worker);
   }, [onSelectWorker, onQuickHire]);
 
+  // ═══════ ERROR STATE ═══════
+  if (mapError) {
+    return (
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="p-10 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <MapPin size={28} className="text-red-400" />
+          </div>
+          <p className="text-sm text-gray-600 font-bold">{tr.error}</p>
+          <div className="flex gap-2 justify-center mt-4">
+            <button onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-bold">
+              {tr.refresh}
+            </button>
+            {onClose && (
+              <button onClick={onClose}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-bold">
+                {tr.goHome}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
       {/* HEADER */}
@@ -443,8 +484,12 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
         </div>
       </div>
 
-      {/* MAP */}
-      <div id="hire-map" style={{ width: '100%', height: '280px', backgroundColor: '#e5e7eb', position: 'relative' }}>
+      {/* ✅ MAP - Unique ID container */}
+      <div 
+        id={mapContainerId.current}
+        ref={containerRef}
+        style={{ width: '100%', height: '280px', backgroundColor: '#e5e7eb', position: 'relative' }}
+      >
         {isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 z-50 gap-3">
             <Loader2 size={40} className="animate-spin text-blue-500" />
@@ -476,7 +521,7 @@ export default function LiveWorkerMap({ country, lang, userLat, userLng, onSelec
                 onClick={() => { 
                   setSelectedWorker(worker); 
                   onSelectWorker?.(worker); 
-                  mapRef.current?.setView([worker.latitude, worker.longitude], 16); 
+                  try { mapRef.current?.setView([worker.latitude, worker.longitude], 16); } catch (e) {}
                 }}
                 onHire={handleHire} />
             ))}
