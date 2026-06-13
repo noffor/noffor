@@ -1,18 +1,10 @@
-// components/layout/Sidebar.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • ১২ মেইন + More
+// components/layout/Sidebar.tsx
+// 🚀 ১২ মেইন ক্যাটাগরি + More 30+ → শুধু OTHER ৩০
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { categories } from '@/lib/config';
 import { getText, LangCode } from '@/lib/language';
-import { Grid3X3, ArrowRight, ChevronRight } from 'lucide-react';
-
-// ═══════════════════════════════════════════════════════════
-// WebP ইমেজ অপ্টিমাইজার
-// ═══════════════════════════════════════════════════════════
-const getWebP = (url: string): string => {
-  if (!url) return '';
-  if (url.includes('supabase.co/storage')) return `${url}?width=40&quality=80&format=webp`;
-  return url;
-};
+import { Grid3X3, ChevronRight } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════
 // Helper: Get category name by language from config
@@ -27,7 +19,7 @@ const getCatName = (cat: any, lang: string): string => {
 // ═══════════════════════════════════════════════════════════
 const CategoryItem = React.memo(({ cat, lang, rest }: { cat: any; lang: string; rest: string }) => {
   const displayName = useMemo(() => getCatName(cat, lang), [cat, lang]);
-  const iconSrc = useMemo(() => getWebP(cat.icon || `/categories/${cat.slug}.png`), [cat.icon, cat.slug]);
+  const iconSrc = useMemo(() => cat.icon || `/categories/${cat.slug}.png`, [cat.icon, cat.slug]);
 
   return (
     <Link
@@ -50,23 +42,27 @@ const CategoryItem = React.memo(({ cat, lang, rest }: { cat: any; lang: string; 
 CategoryItem.displayName = 'CategoryItem';
 
 // ═══════════════════════════════════════════════════════════
-// Sidebar (Memoized) — ✅ ১২ মেইন ক্যাটাগরি + More বাটন
+// Sidebar — ✅ ১২ মেইন + "More 30+" → Only OTHER categories
 // ═══════════════════════════════════════════════════════════
 const Sidebar = React.memo(({ country, lang, onMoreClick }: { 
   country: string; 
   lang: string; 
-  onMoreClick?: () => void;  // ✅ Callback for "More" button
+  onMoreClick?: () => void;
 }) => {
   const t = useMemo(() => (key: string) => getText(lang as LangCode, key), [lang]);
   const rest = useMemo(() => `/${country}/${lang}`, [country, lang]);
   
-  // ⭐ শুধু মেইন ১২ ক্যাটাগরি (isMain: true)
-  const mainCats = useMemo(() => categories.filter(c => (c as any).isMain === true), []);
+  // ✅ শুধু মেইন ১২ ক্যাটাগরি (isMain: true)
+  const mainCats = useMemo(() => 
+    categories.filter(c => (c as any).isMain === true), 
+  []);
   
-  // ⭐ বাকি ৩০ ক্যাটাগরির কাউন্ট
-  const otherCount = useMemo(() => categories.filter(c => (c as any).isMain !== true).length, []);
+  // ✅ বাকি ৩০ OTHER ক্যাটাগরির কাউন্ট
+  const otherCount = useMemo(() => 
+    categories.filter(c => (c as any).isMain !== true).length, 
+  []);
 
-  // ⭐ "More" লেবেল ৪ ভাষায়
+  // "More" লেবেল ৪ ভাষায়
   const moreLabel = useMemo(() => {
     switch (lang) {
       case 'bn': return `আরও ${otherCount}+`;
@@ -85,7 +81,7 @@ const Sidebar = React.memo(({ country, lang, onMoreClick }: {
       <div className="px-3 py-2.5 border-b bg-gradient-to-r from-orange-50 to-white flex items-center gap-2">
         <Grid3X3 size={16} className="text-orange-500" />
         <h3 className="text-sm font-bold text-gray-700">{t('categories')}</h3>
-        <span className="text-xs text-gray-400 ml-auto">{categories.length}</span>
+        <span className="text-xs text-gray-400 ml-auto">{mainCats.length}</span>
       </div>
 
       {/* ✅ ১২ মেইন ক্যাটাগরি */}
@@ -95,25 +91,23 @@ const Sidebar = React.memo(({ country, lang, onMoreClick }: {
         ))}
       </div>
 
-      {/* ✅ Divider + More Button */}
+      {/* ✅ Divider + More Button → Opens Only OTHER 30 */}
       <div className="border-t border-gray-100">
         {onMoreClick ? (
-          // PC: More বাটন ক্লিক করলে AllCategoriesPage ওপেন হবে
           <button
             onClick={onMoreClick}
             className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-all active:scale-[0.98] group"
           >
-            <span>{moreLabel}</span>
+            <span className="text-xs lg:text-sm">{moreLabel}</span>
             <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
         ) : (
-          // Fallback: সরাসরি /categories পেজে লিংক
           <Link
             href={`${rest}/categories`}
             className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 no-underline transition-all active:scale-[0.98] group"
           >
-            <span>{moreLabel}</span>
-            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            <span className="text-xs lg:text-sm">{moreLabel}</span>
+            <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         )}
       </div>
