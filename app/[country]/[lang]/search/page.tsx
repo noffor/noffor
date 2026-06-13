@@ -683,8 +683,11 @@ export default function SearchPage(){
             </div>
           </>
         )}
+            </div>
+      {/* ✅ Fixed MobileNav */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+        <MobileNav country={country} lang={lang}/>
       </div>
-      <MobileNav country={country} lang={lang}/>
     </div>
   );
 }
