@@ -1,10 +1,10 @@
-// components/layout/Header.tsx - সার্চ আইকন → Search Page
+// components/layout/Header.tsx - Language + Country Fix + Search Icon
 "use client";
 import React,{useCallback,useMemo} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {getCountry,getCityName,getAreaName} from '@/lib/countries';
-import {getText,LangCode} from '@/lib/language';
+import {getText,LangCode,getCountryName} from '@/lib/language';
 import {DollarSign,Search,MapPin,Building2,Globe,Plus} from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════
@@ -16,6 +16,31 @@ const T:Record<string,Record<string,string>>={
   ar:{map:'خريطة',bid:'مزايدة',dashboard:'لوحة',create:'إنشاء',selectCity:'مدينة',selectArea:'منطقة'},
   hi:{map:'मैप',bid:'बिड',dashboard:'डैश',create:'बनाएं',selectCity:'शहर',selectArea:'क्षेत्र'},
 };
+
+// ✅ Language labels (সংক্ষিপ্ত)
+const LANGUAGES = [
+  { code: 'en', label: 'EN' },
+  { code: 'bn', label: 'বাংলা' },
+  { code: 'ar', label: 'عربي' },
+  { code: 'hi', label: 'हिन्दी' },
+];
+
+// ✅ Country list with Arabic names
+const COUNTRIES = [
+  { code: 'qa', label: '🇶🇦', nameEn: 'Qatar', nameBn: 'কাতার', nameAr: 'قطر', nameHi: 'कतर' },
+  { code: 'sa', label: '🇸🇦', nameEn: 'Saudi', nameBn: 'সৌদি', nameAr: 'السعودية', nameHi: 'सऊदी' },
+  { code: 'ae', label: '🇦🇪', nameEn: 'UAE', nameBn: 'ইউএই', nameAr: 'الإمارات', nameHi: 'यूएई' },
+  { code: 'kw', label: '🇰🇼', nameEn: 'Kuwait', nameBn: 'কুয়েত', nameAr: 'الكويت', nameHi: 'कुवैत' },
+  { code: 'bh', label: '🇧🇭', nameEn: 'Bahrain', nameBn: 'বাহরাইন', nameAr: 'البحرين', nameHi: 'बहरीन' },
+  { code: 'om', label: '🇴🇲', nameEn: 'Oman', nameBn: 'ওমান', nameAr: 'عمان', nameHi: 'ओमान' },
+];
+
+function getCountryDisplayName(code: string, lang: string): string {
+  const c = COUNTRIES.find(x => x.code === code);
+  if (!c) return code.toUpperCase();
+  const key = `name${lang.charAt(0).toUpperCase() + lang.slice(1)}` as keyof typeof c;
+  return (c as any)[key] || c.nameEn;
+}
 
 // ═══════════════════════════════════════════════════════════
 // SearchBar (PC Only)
@@ -78,8 +103,14 @@ const Header=React.memo(({country,lang}:Props)=>{
           <Link href={`${rest}/bid`} className="px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 no-underline transition-colors active:scale-95 flex items-center gap-1"><DollarSign size={14}/>{tr.bid}</Link>
           <Link href={`${rest}/dashboard`} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 no-underline transition-colors active:scale-95">{tr.dashboard}</Link>
           <Link href={`${rest}/create`} className="px-3 py-2 bg-orange-600 text-white rounded-lg text-xs font-semibold hover:bg-orange-700 no-underline transition-colors active:scale-95 flex items-center gap-1"><Plus size={14}/>{tr.create}</Link>
+          
+          {/* ✅ Language Switcher — সংক্ষিপ্ত লেবেল */}
           <div className="flex gap-0.5 bg-gray-100 rounded-xl p-1">
-            {['en','ar','bn','hi'].map(l=>(<a key={l} href={`/${country}/${l}`} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold no-underline transition-all ${lang===l?'bg-white text-orange-600 shadow-sm ring-1 ring-orange-200':'text-gray-500 hover:text-gray-700'}`}>{l.toUpperCase()}</a>))}
+            {LANGUAGES.map(l=>(
+              <a key={l.code} href={`/${country}/${l.code}`} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold no-underline transition-all ${lang===l.code?'bg-white text-orange-600 shadow-sm ring-1 ring-orange-200':'text-gray-500 hover:text-gray-700'}`}>
+                {l.label}
+              </a>
+            ))}
           </div>
         </div>
       </div>
@@ -89,9 +120,12 @@ const Header=React.memo(({country,lang}:Props)=>{
         <div className="flex items-center gap-1.5">
           <Link href={`${rest}`} className="flex-shrink-0"><img src="/logo.svg" alt="Noffor" className="h-7"/></Link>
           
+          {/* ✅ Country Select — with translated names */}
           <div className="relative flex-1 min-w-0">
             <select value={country} onChange={e=>window.location.href=`/${e.target.value}/${lang}`} className="w-full pl-6 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 appearance-none cursor-pointer">
-              <option value="qa">🇶🇦 Qatar</option><option value="sa">🇸🇦 Saudi</option><option value="ae">🇦🇪 UAE</option><option value="kw">🇰🇼 Kuwait</option><option value="bh">🇧🇭 Bahrain</option><option value="om">🇴🇲 Oman</option>
+              {COUNTRIES.map(c=>(
+                <option key={c.code} value={c.code}>{c.label} {getCountryDisplayName(c.code, lang)}</option>
+              ))}
             </select>
             <Globe size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"/>
           </div>
@@ -112,8 +146,9 @@ const Header=React.memo(({country,lang}:Props)=>{
             <MapPin size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"/>
           </div>
           
+          {/* ✅ Language Select — সংক্ষিপ্ত লেবেল */}
           <select value={lang} onChange={e=>window.location.href=`/${country}/${e.target.value}`} className="px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 flex-shrink-0 appearance-none cursor-pointer">
-            <option value="en">EN</option><option value="ar">AR</option><option value="bn">BN</option><option value="hi">HI</option>
+            {LANGUAGES.map(l=>(<option key={l.code} value={l.code}>{l.label}</option>))}
           </select>
           
           {/* ✅ সার্চ আইকন - ক্লিক করলে Search Page */}
