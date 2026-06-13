@@ -470,7 +470,8 @@ export default function SearchPage(){
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 lg:pb-0" style={{contain:'layout style paint'}}>      <Header country={country} lang={lang}/>
+    <div className="min-h-screen bg-gray-50" style={{contain:'layout style paint'}}>
+      <Header country={country} lang={lang}/>
       <div className="max-w-4xl mx-auto px-3 lg:px-4 py-3">
         
         {/* ✅ FIXED: Search Bar Layout - Search Mode: Text */}
@@ -682,11 +683,8 @@ export default function SearchPage(){
             </div>
           </>
         )}
-            </div>
-      {/* ✅ Fixed MobileNav */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        <MobileNav country={country} lang={lang}/>
       </div>
+      
     </div>
   );
 }
