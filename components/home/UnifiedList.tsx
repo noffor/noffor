@@ -15,6 +15,56 @@ const CACHE_TTL = 30000;
 const RETRY_MAX = 2;
 
 // ═══════════════════════════════════════════════════════════
+// ✅ UPDATED: All 42 categories with icons
+// ═══════════════════════════════════════════════════════════
+const defaultImages: Record<string, string> = {
+  'Driver': '/icons/driver.png',
+  'Electrician': '/icons/electrician.png',
+  'Plumber': '/icons/plumber.png',
+  'Mason': '/icons/mason.png',
+  'AC Technician': '/icons/ac-technician.png',
+  'Painter': '/icons/painter.png',
+  'Carpenter': '/icons/carpenter.png',
+  'Cleaner': '/icons/cleaner.png',
+  'Cook': '/icons/cook.png',
+  'Helper': '/icons/helper.png',
+  'Gardener': '/icons/gardener.png',
+  'Welder': '/icons/welder.png',
+  'Security Guard': '/icons/security-guard.png',
+  'Teacher': '/icons/teacher.png',
+  'Nurse': '/icons/nurse.png',
+  'Chef': '/icons/chef.png',
+  'Housemaid': '/icons/housemaid.png',
+  'Nanny': '/icons/nanny.png',
+  'Office Assistant': '/icons/office-assistant.png',
+  'Receptionist': '/icons/receptionist.png',
+  'Salesman': '/icons/salesman.png',
+  'Cashier': '/icons/cashier.png',
+  'Pharmacist': '/icons/pharmacist.png',
+  'Lab Technician': '/icons/lab-technician.png',
+  'Physiotherapist': '/icons/physiotherapist.png',
+  'Mechanic': '/icons/mechanic.png',
+  'Tailor': '/icons/tailor.png',
+  'Barista': '/icons/barista.png',
+  'Photographer': '/icons/photographer.png',
+  'CCTV Technician': '/icons/cctv-technician.png',
+  'Gypsum Carpenter': '/icons/gypsum-carpenter.png',
+  'Tiles Mason': '/icons/tiles-mason.png',
+  'Blacksmith': '/icons/blacksmith.png',
+  'General Labour': '/icons/general-labour.png',
+  'Steel Fixer': '/icons/steel-fixer.png',
+  'Scaffolder': '/icons/scaffolder.png',
+  'Heavy Driver': '/icons/heavy-driver.png',
+  'Forklift Operator': '/icons/forklift-operator.png',
+  'Crane Operator': '/icons/crane-operator.png',
+  'Pipe Fitter': '/icons/pipe-fitter.png',
+  'Waiter': '/icons/waiter.png',
+  'Hotel Housekeeping': '/icons/hotel-housekeeping.png',
+  'Beautician': '/icons/beautician.png',
+  'Barber': '/icons/barber.png',
+};
+
+// ═══════════════════════════════════════════════════════════
 const dataCache = new Map<string, { data: any[]; timestamp: number }>();
 
 // ═══════════════════════════════════════════════════════════
@@ -53,14 +103,6 @@ const getWebP = (url: string, w = 400, q = 80): string => {
   if (url.includes('supabase.co/storage')) return `${url}?width=${w}&quality=${q}&format=webp&resize=cover`;
   if (url.includes('cloudinary.com')) return url.replace('/upload/', `/upload/w_${w},q_${q},f_webp/`);
   return url;
-};
-
-const defaultImages: Record<string, string> = {
-  'Driver': '/images/default-driver.jpg', 'Electrician': '/images/default-electrician.jpg',
-  'Plumber': '/images/default-plumber.jpg', 'Mason': '/images/default-mason.jpg',
-  'AC Technician': '/images/default-ac.jpg', 'Painter': '/images/default-painter.jpg',
-  'Carpenter': '/images/default-carpenter.jpg', 'Cleaner': '/images/default-cleaner.jpg',
-  'Cook': '/images/default-cook.jpg', 'Helper': '/images/default-helper.jpg',
 };
 
 const T: Record<string, Record<string, string>> = {
@@ -269,7 +311,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
     }
 
     try {
-      // ✅ FIXED: Count query with is_public filter
+      // ✅ Count query with is_public filter
       const { count, error: countErr } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -294,7 +336,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
       const safeTo = Math.min(from + ITEMS_PER_PAGE - 1, total - 1, MAX_ITEMS - 1);
 
-      // ✅ FIXED: Fetch query with is_public filter
+      // ✅ Fetch query with is_public filter
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -336,7 +378,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
   }, [type, country]);
 
   // ═══════════════════════════════════════════════════════
-  // ✅ FIXED: Fast initial load with sessionStorage
+  // ✅ Fast initial load with sessionStorage
   useEffect(() => {
     aliveRef.current = true;
     
