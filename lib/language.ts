@@ -3,20 +3,38 @@
 
 import { supabase } from '@/lib/supabase';
 
+// ═══════════════════════════════════════════════════════════
+// Type Definitions
+// ═══════════════════════════════════════════════════════════
 export const languages = {
   en: { code: 'en', name: 'English', dir: 'ltr' },
   bn: { code: 'bn', name: 'বাংলা', dir: 'ltr' },
   ar: { code: 'ar', name: 'العربية', dir: 'rtl' },
   hi: { code: 'hi', name: 'हिन्दी', dir: 'ltr' },
-};
+} as const;
 
 export type LangCode = keyof typeof languages;
+export type LanguageConfig = typeof languages[LangCode];
 
 // ═══════════════════════════════════════════════════════════
-// Category Translation — 42 Categories (12 Main + 30 Other)
+// Country Names — ONLY 6 GULF COUNTRIES
+// ═══════════════════════════════════════════════════════════
+export function getCountryName(country: string, lang: string): string {
+  const names: Record<string, Record<string, string>> = {
+    qa: { en: 'Qatar', bn: 'কাতার', ar: 'قطر', hi: 'कतर' },
+    sa: { en: 'Saudi Arabia', bn: 'সৌদি আরব', ar: 'السعودية', hi: 'सऊदी अरब' },
+    ae: { en: 'UAE', bn: 'ইউএই', ar: 'الإمارات', hi: 'यूएई' },
+    kw: { en: 'Kuwait', bn: 'কুয়েত', ar: 'الكويت', hi: 'कुवैत' },
+    bh: { en: 'Bahrain', bn: 'বাহরাইন', ar: 'البحرين', hi: 'बहरीन' },
+    om: { en: 'Oman', bn: 'ওমান', ar: 'عمان', hi: 'ओमान' },
+  };
+  return names[country]?.[lang] || country.toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Category Translation — 42 Categories
 // ═══════════════════════════════════════════════════════════
 const CATEGORY_NAMES: Record<string, Record<string, string>> = {
-  // ✅ 12 Main Categories
   Driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
   Electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
   Plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
@@ -29,8 +47,6 @@ const CATEGORY_NAMES: Record<string, Record<string, string>> = {
   Cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
   Helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
   Gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
-  
-  // ✅ 30 Other Categories
   Housemaid: { en: 'Housemaid', bn: 'গৃহকর্মী', ar: 'خادمة', hi: 'हाउसमेड' },
   Nanny: { en: 'Nanny', bn: 'আয়া', ar: 'مربية', hi: 'नैनी' },
   'Office Assistant': { en: 'Office Assistant', bn: 'অফিস সহকারী', ar: 'مساعد مكتبي', hi: 'ऑफिस असिस्टेंट' },
@@ -61,15 +77,13 @@ const CATEGORY_NAMES: Record<string, Record<string, string>> = {
   'Hotel Housekeeping': { en: 'Hotel Housekeeping', bn: 'হোটেল হাউসকিপিং', ar: 'تدبير فندقي', hi: 'होटल हाउसकीपिंग' },
   Beautician: { en: 'Beautician', bn: 'বিউটিশিয়ান', ar: 'خبيرة تجميل', hi: 'ब्यूटीशियन' },
   Barber: { en: 'Barber', bn: 'নাপিত', ar: 'حلاق', hi: 'नाई' },
-  
-  // Legacy support
   Security: { en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
   Teacher: { en: 'Teacher', bn: 'শিক্ষক', ar: 'معلم', hi: 'शिक्षक' },
   Chef: { en: 'Chef', bn: 'শেফ', ar: 'طاهي', hi: 'शेफ' },
 };
 
 // ═══════════════════════════════════════════════════════════
-// All Translations (Memory Optimized)
+// All Translations
 // ═══════════════════════════════════════════════════════════
 export const texts: Record<LangCode, Record<string, string>> = {
   en: {
@@ -739,7 +753,7 @@ export const texts: Record<LangCode, Record<string, string>> = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Number Translation (Super Fast)
+// Number Translation
 // ═══════════════════════════════════════════════════════════
 const DIGIT_MAPS: Record<string, Record<string, string>> = {
   en: { '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9' },
@@ -749,21 +763,29 @@ const DIGIT_MAPS: Record<string, Record<string, string>> = {
 };
 
 export function translateNumber(num: string | number, lang: string): string {
-  const numStr = num.toString();
-  const map = DIGIT_MAPS[lang] || DIGIT_MAPS.en;
-  let result = '';
-  for (let i = 0; i < numStr.length; i++) {
-    result += map[numStr[i]] || numStr[i];
+  try {
+    const numStr = num.toString();
+    const map = DIGIT_MAPS[lang] || DIGIT_MAPS.en;
+    let result = '';
+    for (let i = 0; i < numStr.length; i++) {
+      result += map[numStr[i]] || numStr[i];
+    }
+    return result;
+  } catch {
+    return String(num);
   }
-  return result;
 }
 
 export function translatePhone(phone: string, lang: string): string {
   if (!phone || lang === 'en') return phone || '';
-  return phone.replace(/[0-9]/g, (digit) => {
-    const map = DIGIT_MAPS[lang];
-    return map ? map[digit] || digit : digit;
-  });
+  try {
+    return phone.replace(/[0-9]/g, (digit) => {
+      const map = DIGIT_MAPS[lang];
+      return map ? map[digit] || digit : digit;
+    });
+  } catch {
+    return phone;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -828,20 +850,28 @@ const SYLLABLE_MAP_HI: Record<string, string> = {
 const NAME_OVERRIDES: Record<string, Record<string, string>> = {
   Mohammed: { bn: 'মোহাম্মদ', ar: 'محمد', hi: 'मोहम्मद' },
   Mohammad: { bn: 'মোহাম্মদ', ar: 'محمد', hi: 'मोहम्मद' },
+  Muhammad: { bn: 'মুহাম্মদ', ar: 'محمد', hi: 'मुहम्मद' },
   Ahmed: { bn: 'আহমেদ', ar: 'أحمد', hi: 'अहमद' },
+  Ahmad: { bn: 'আহমদ', ar: 'أحمد', hi: 'अहमद' },
   Ali: { bn: 'আলী', ar: 'علي', hi: 'अली' },
   Hassan: { bn: 'হাসান', ar: 'حسن', hi: 'हसन' },
   Hussain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
   Hossain: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
   Hossen: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
   Hosen: { bn: 'হোসেন', ar: 'حسين', hi: 'हुसैन' },
+  Hussein: { bn: 'হুসেইন', ar: 'حسين', hi: 'हुसैन' },
   Omar: { bn: 'ওমর', ar: 'عمر', hi: 'उमर' },
+  Umar: { bn: 'উমর', ar: 'عمر', hi: 'उमर' },
   Abdullah: { bn: 'আব্দুল্লাহ', ar: 'عبد الله', hi: 'अब्दुल्लाह' },
+  Abdulla: { bn: 'আব্দুল্লা', ar: 'عبد الله', hi: 'अब्दुल्ला' },
   Fatima: { bn: 'ফাতিমা', ar: 'فاطمة', hi: 'फातिमा' },
   Aisha: { bn: 'আয়েশা', ar: 'عائشة', hi: 'आयशा' },
+  Ayesha: { bn: 'আয়েশা', ar: 'عائشة', hi: 'आयशा' },
   Mariam: { bn: 'মরিয়ম', ar: 'مريم', hi: 'मरियम' },
+  Maryam: { bn: 'মরিয়ম', ar: 'مريم', hi: 'मरियम' },
   Ibrahim: { bn: 'ইব্রাহিম', ar: 'إبراهيم', hi: 'इब्राहिम' },
   Yusuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
+  Yousuf: { bn: 'ইউসুফ', ar: 'يوسف', hi: 'यूसुफ' },
   Karim: { bn: 'করিম', ar: 'كريم', hi: 'करीम' },
   Rahim: { bn: 'রহিম', ar: 'رحيم', hi: 'रहीम' },
   Salam: { bn: 'সালাম', ar: 'سلام', hi: 'सलाम' },
@@ -852,12 +882,14 @@ const NAME_OVERRIDES: Record<string, Record<string, string>> = {
   Rahman: { bn: 'রহমান', ar: 'رحمن', hi: 'रहमान' },
   Islam: { bn: 'ইসলাম', ar: 'إسلام', hi: 'इस्लाम' },
   Akter: { bn: 'আক্তার', ar: 'أختر', hi: 'अख्तर' },
+  Akhter: { bn: 'আখতার', ar: 'أختر', hi: 'अख्तर' },
   Begum: { bn: 'বেগম', ar: 'بيغوم', hi: 'बेगम' },
   Khatun: { bn: 'খাতুন', ar: 'خاتون', hi: 'खातून' },
   Rojjob: { bn: 'রোজজব', ar: 'روجوب', hi: 'रोजजॉब' },
   Rana: { bn: 'রানা', ar: 'رنا', hi: 'राना' },
   Rubel: { bn: 'রুবেল', ar: 'روبل', hi: 'रूबेल' },
   Shuvo: { bn: 'শুভ', ar: 'شوفو', hi: 'शुभ' },
+  Shubo: { bn: 'শুভ', ar: 'شوفو', hi: 'शुभ' },
   Hasan: { bn: 'হাসান', ar: 'حسن', hi: 'हसन' },
   Habib: { bn: 'হাবিব', ar: 'حبيب', hi: 'हबीब' },
   Haque: { bn: 'হক', ar: 'حق', hi: 'हक' },
@@ -885,8 +917,38 @@ const NAME_OVERRIDES: Record<string, Record<string, string>> = {
   Ara: { bn: 'আরা', ar: 'آرا', hi: 'आरा' },
   Banu: { bn: 'বানু', ar: 'بانو', hi: 'बानू' },
   Nahar: { bn: 'নাহার', ar: 'نهر', hi: 'नाहर' },
-  Akhter: { bn: 'আখতার', ar: 'أختر', hi: 'अख्तर' },
   Ferdous: { bn: 'ফেরদৌস', ar: 'فردوس', hi: 'फेरदौस' },
+  Ferdousi: { bn: 'ফেরদৌসী', ar: 'فردوسي', hi: 'फेरदौसी' },
+  Saleh: { bn: 'সালেহ', ar: 'صالح', hi: 'सालेह' },
+  Mostafa: { bn: 'মোস্তফা', ar: 'مصطفى', hi: 'मुस्तफा' },
+  Mustafa: { bn: 'মুস্তফা', ar: 'مصطفى', hi: 'मुस्तफा' },
+  Nur: { bn: 'নূর', ar: 'نور', hi: 'नूर' },
+  Noor: { bn: 'নূর', ar: 'نور', hi: 'नूर' },
+  Aziz: { bn: 'আজিজ', ar: 'عزيز', hi: 'अजीज' },
+  Rashid: { bn: 'রশিদ', ar: 'رشيد', hi: 'रशीद' },
+  Harun: { bn: 'হারুন', ar: 'هارون', hi: 'हारुन' },
+  Idris: { bn: 'ইদ্রিস', ar: 'إدريس', hi: 'इदरीस' },
+  Ismail: { bn: 'ইসমাইল', ar: 'إسماعيل', hi: 'इस्माइल' },
+  Siraj: { bn: 'সিরাজ', ar: 'سراج', hi: 'सिराज' },
+  Anis: { bn: 'আনিস', ar: 'أنيس', hi: 'अनीस' },
+  Faruk: { bn: 'ফারুক', ar: 'فاروق', hi: 'फारूक' },
+  Farooq: { bn: 'ফারুক', ar: 'فاروق', hi: 'फारूक' },
+  Rafiq: { bn: 'রফিক', ar: 'رفيق', hi: 'रफीक' },
+  Shafiq: { bn: 'শফিক', ar: 'شفيع', hi: 'शफीक' },
+  Tariq: { bn: 'তারিক', ar: 'طارق', hi: 'तारिक' },
+  Khalid: { bn: 'খালিদ', ar: 'خالد', hi: 'खालिद' },
+  Walid: { bn: 'ওয়ালিদ', ar: 'وليد', hi: 'वालिद' },
+  Saiful: { bn: 'সাইফুল', ar: 'سيفول', hi: 'सैफुल' },
+  Zahid: { bn: 'জাহিদ', ar: 'زاهد', hi: 'जाहिद' },
+  Nasir: { bn: 'নাসির', ar: 'ناصر', hi: 'नासिर' },
+  Sobuj: { bn: 'সবুজ', ar: 'سوبوج', hi: 'सबुज' },
+  Motin: { bn: 'মতিন', ar: 'ماتين', hi: 'मोतिन' },
+  Helal: { bn: 'হেলাল', ar: 'هلال', hi: 'हेलाल' },
+  Anowar: { bn: 'আনোয়ার', ar: 'أنور', hi: 'अनोवार' },
+  Anwar: { bn: 'আনোয়ার', ar: 'أنور', hi: 'अनवर' },
+  Karimullah: { bn: 'করিমুল্লাহ', ar: 'كريم الله', hi: 'करीमुल्लाह' },
+  Halim: { bn: 'হালিম', ar: 'حليم', hi: 'हलीम' },
+  Monir: { bn: 'মনির', ar: 'منير', hi: 'मोनीर' },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -895,6 +957,7 @@ const NAME_OVERRIDES: Record<string, Record<string, string>> = {
 const nameCache = new Map<string, any>();
 let allNamesLoaded = false;
 let allNamesPromise: Promise<void> | null = null;
+const CACHE_MAX_SIZE = 10000;
 
 async function loadAllNamesToCache(): Promise<void> {
   if (allNamesLoaded) return;
@@ -902,17 +965,41 @@ async function loadAllNamesToCache(): Promise<void> {
   
   allNamesPromise = (async () => {
     try {
-      const { data, error } = await supabase
-        .from('name_translations')
-        .select('*');
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      let totalLoaded = 0;
       
-      if (!error && data) {
-        data.forEach((row: any) => {
-          nameCache.set(row.name_en.toLowerCase(), row);
-        });
-        allNamesLoaded = true;
-        console.log('✅ Loaded', data.length, 'names to cache');
+      while (hasMore && nameCache.size < CACHE_MAX_SIZE) {
+        const { data, error } = await supabase
+          .from('name_translations')
+          .select('*')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        if (error) {
+          console.error('Failed to load name translations:', error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          data.forEach((row: any) => {
+            if (nameCache.size < CACHE_MAX_SIZE) {
+              nameCache.set(row.name_en.toLowerCase(), row);
+            }
+          });
+          totalLoaded += data.length;
+          page++;
+          
+          if (data.length < pageSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+      
+      allNamesLoaded = true;
+      console.log(`✅ Loaded ${totalLoaded} names to cache`);
     } catch (err) {
       console.error('Failed to load name translations:', err);
     }
@@ -943,15 +1030,12 @@ function smartTransliterate(name: string, lang: string): string {
   let i = 0;
   
   while (i < name.length) {
-    let matched = false;
-    
     // 3-character syllable check (longest first)
     if (i + 2 < name.length) {
       const triple = name.substring(i, i + 3).toLowerCase();
       if (syllableMap[triple]) {
         result += syllableMap[triple];
         i += 3;
-        matched = true;
         continue;
       }
     }
@@ -962,7 +1046,6 @@ function smartTransliterate(name: string, lang: string): string {
       if (syllableMap[double]) {
         result += syllableMap[double];
         i += 2;
-        matched = true;
         continue;
       }
     }
@@ -979,179 +1062,148 @@ function smartTransliterate(name: string, lang: string): string {
     i++;
   }
   
-  // Post-processing for Bangla
   if (lang === 'bn') {
-    result = postProcessBangla(result);
+    result = result
+      .replace(/কক/g, 'ক্ক')
+      .replace(/টট/g, 'ট্ট')
+      .replace(/ডড/g, 'ড্ড')
+      .replace(/নন/g, 'ন্ন')
+      .replace(/মম/g, 'ম্ম')
+      .replace(/লল/g, 'ল্ল')
+      .replace(/সস/g, 'স্স')
+      .replace(/বব/g, 'ব্ব')
+      .replace(/রর/g, 'র্র');
   }
   
   return result;
 }
 
-function postProcessBangla(text: string): string {
-  return text
-    .replace(/কক/g, 'ক্ক')
-    .replace(/টট/g, 'ট্ট')
-    .replace(/ডড/g, 'ড্ড')
-    .replace(/নন/g, 'ন্ন')
-    .replace(/মম/g, 'ম্ম')
-    .replace(/লল/g, 'ল্ল')
-    .replace(/সস/g, 'স্স')
-    .replace(/বব/g, 'ব্ব')
-    .replace(/রর/g, 'র্র');
-}
-
 // ═══════════════════════════════════════════════════════════
-// 🎯 MAIN translateName FUNCTION (100% Perfect)
+// 🎯 MAIN translateName FUNCTION
 // ═══════════════════════════════════════════════════════════
-
-/**
- * translateName - Multi-language name translation
- * 
- * Priority Order:
- * 1. Database profile names (name_bn, name_ar, name_hi)
- * 2. NAME_OVERRIDES (local cache)
- * 3. Supabase name_translations table (DB cache)
- * 4. Smart transliteration (algorithmic fallback)
- * 
- * @param name - English name to translate
- * @param lang - Target language (bn, ar, hi)
- * @param profile - Optional profile object from database
- * @returns Translated name string
- */
 export function translateName(name: string, lang: string, profile?: any): string {
-  // English or empty - return as is
   if (!name || lang === 'en') return name || '';
   
-  // ═══ PRIORITY 1: Database profile multi-lang names ═══
-  if (profile) {
-    const dbFieldMap: Record<string, string> = {
-      bn: profile?.name_bn,
-      ar: profile?.name_ar,
-      hi: profile?.name_hi,
-    };
-    if (dbFieldMap[lang] && dbFieldMap[lang].trim() !== '') {
-      return dbFieldMap[lang];
-    }
-  }
-  
-  // ═══ PRIORITY 2: Full name in local overrides ═══
-  if (NAME_OVERRIDES[name] && NAME_OVERRIDES[name][lang]) {
-    return NAME_OVERRIDES[name][lang];
-  }
-  
-  // Case-insensitive full name check
-  const lowerFullName = name.toLowerCase();
-  const capitalFullName = lowerFullName.charAt(0).toUpperCase() + lowerFullName.slice(1);
-  if (NAME_OVERRIDES[capitalFullName] && NAME_OVERRIDES[capitalFullName][lang]) {
-    return NAME_OVERRIDES[capitalFullName][lang];
-  }
-  
-  // ═══ PRIORITY 3 & 4: Process each part of the name ═══
-  const nameParts = name.split(/\s+/);
-  const translatedParts = nameParts.map(part => {
-    if (!part) return '';
-    
-    // Check local overrides
-    if (NAME_OVERRIDES[part] && NAME_OVERRIDES[part][lang]) {
-      return NAME_OVERRIDES[part][lang];
-    }
-    
-    const lowerPart = part.toLowerCase();
-    const capitalPart = lowerPart.charAt(0).toUpperCase() + lowerPart.slice(1);
-    if (NAME_OVERRIDES[capitalPart] && NAME_OVERRIDES[capitalPart][lang]) {
-      return NAME_OVERRIDES[capitalPart][lang];
-    }
-    
-    // Check DB cache
-    const cached = getCachedName(part);
-    if (cached) {
-      const dbLangMap: Record<string, string> = {
-        bn: cached.name_bn,
-        ar: cached.name_ar,
-        hi: cached.name_hi,
+  try {
+    // Priority 1: Database profile multi-lang names
+    if (profile) {
+      const dbFieldMap: Record<string, string> = {
+        bn: profile?.name_bn,
+        ar: profile?.name_ar,
+        hi: profile?.name_hi,
       };
-      if (dbLangMap[lang] && dbLangMap[lang].trim() !== '') {
-        return dbLangMap[lang];
+      if (dbFieldMap[lang] && dbFieldMap[lang].trim() !== '') {
+        return dbFieldMap[lang];
       }
     }
     
-    // Smart transliteration fallback
-    return smartTransliterate(part, lang);
-  });
-  
-  // 🔥 Load names to cache in background for next time
-  if (typeof window !== 'undefined') {
-    setTimeout(() => loadAllNamesToCache(), 100);
+    // Priority 2: Full name in local overrides
+    if (NAME_OVERRIDES[name] && NAME_OVERRIDES[name][lang]) {
+      return NAME_OVERRIDES[name][lang];
+    }
+    
+    const lowerFullName = name.toLowerCase();
+    const capitalFullName = lowerFullName.charAt(0).toUpperCase() + lowerFullName.slice(1);
+    if (NAME_OVERRIDES[capitalFullName] && NAME_OVERRIDES[capitalFullName][lang]) {
+      return NAME_OVERRIDES[capitalFullName][lang];
+    }
+    
+    // Priority 3 & 4: Process each part
+    const nameParts = name.split(/\s+/);
+    const translatedParts = nameParts.map(part => {
+      if (!part) return '';
+      
+      if (NAME_OVERRIDES[part] && NAME_OVERRIDES[part][lang]) {
+        return NAME_OVERRIDES[part][lang];
+      }
+      
+      const lowerPart = part.toLowerCase();
+      const capitalPart = lowerPart.charAt(0).toUpperCase() + lowerPart.slice(1);
+      if (NAME_OVERRIDES[capitalPart] && NAME_OVERRIDES[capitalPart][lang]) {
+        return NAME_OVERRIDES[capitalPart][lang];
+      }
+      
+      const cached = getCachedName(part);
+      if (cached) {
+        const dbLangMap: Record<string, string> = {
+          bn: cached.name_bn,
+          ar: cached.name_ar,
+          hi: cached.name_hi,
+        };
+        if (dbLangMap[lang] && dbLangMap[lang].trim() !== '') {
+          return dbLangMap[lang];
+        }
+      }
+      
+      return smartTransliterate(part, lang);
+    });
+    
+    if (typeof window !== 'undefined') {
+      setTimeout(() => loadAllNamesToCache(), 100);
+    }
+    
+    return translatedParts.join(' ');
+  } catch (error) {
+    console.error('Name translation error:', error);
+    return name;
   }
-  
-  return translatedParts.join(' ');
 }
 
-/**
- * translateNameAsync - Async version for guaranteed DB lookup
- * Use this when you need 100% DB-backed translation
- */
-export async function translateNameAsync(
-  name: string, 
-  lang: string, 
-  profile?: any
-): Promise<string> {
+export async function translateNameAsync(name: string, lang: string, profile?: any): Promise<string> {
   if (!name || lang === 'en') return name || '';
   
-  // Priority 1: Profile DB names
-  if (profile) {
-    const dbFieldMap: Record<string, string> = {
-      bn: profile?.name_bn,
-      ar: profile?.name_ar,
-      hi: profile?.name_hi,
-    };
-    if (dbFieldMap[lang] && dbFieldMap[lang].trim() !== '') {
-      return dbFieldMap[lang];
-    }
-  }
-  
-  // Priority 2: Local overrides (full name)
-  if (NAME_OVERRIDES[name] && NAME_OVERRIDES[name][lang]) {
-    return NAME_OVERRIDES[name][lang];
-  }
-  
-  // Ensure cache is loaded
-  await loadAllNamesToCache();
-  
-  // Process each part
-  const nameParts = name.split(/\s+/);
-  const translatedParts = nameParts.map(part => {
-    if (!part) return '';
-    
-    // Local overrides
-    if (NAME_OVERRIDES[part] && NAME_OVERRIDES[part][lang]) {
-      return NAME_OVERRIDES[part][lang];
-    }
-    
-    const lowerPart = part.toLowerCase();
-    const capitalPart = lowerPart.charAt(0).toUpperCase() + lowerPart.slice(1);
-    if (NAME_OVERRIDES[capitalPart] && NAME_OVERRIDES[capitalPart][lang]) {
-      return NAME_OVERRIDES[capitalPart][lang];
-    }
-    
-    // DB cache
-    const cached = getCachedName(part);
-    if (cached) {
-      const dbLangMap: Record<string, string> = {
-        bn: cached.name_bn,
-        ar: cached.name_ar,
-        hi: cached.name_hi,
+  try {
+    if (profile) {
+      const dbFieldMap: Record<string, string> = {
+        bn: profile?.name_bn,
+        ar: profile?.name_ar,
+        hi: profile?.name_hi,
       };
-      if (dbLangMap[lang] && dbLangMap[lang].trim() !== '') {
-        return dbLangMap[lang];
+      if (dbFieldMap[lang] && dbFieldMap[lang].trim() !== '') {
+        return dbFieldMap[lang];
       }
     }
     
-    // Smart transliteration
-    return smartTransliterate(part, lang);
-  });
-  
-  return translatedParts.join(' ');
+    if (NAME_OVERRIDES[name] && NAME_OVERRIDES[name][lang]) {
+      return NAME_OVERRIDES[name][lang];
+    }
+    
+    await loadAllNamesToCache();
+    
+    const nameParts = name.split(/\s+/);
+    const translatedParts = nameParts.map(part => {
+      if (!part) return '';
+      
+      if (NAME_OVERRIDES[part] && NAME_OVERRIDES[part][lang]) {
+        return NAME_OVERRIDES[part][lang];
+      }
+      
+      const lowerPart = part.toLowerCase();
+      const capitalPart = lowerPart.charAt(0).toUpperCase() + lowerPart.slice(1);
+      if (NAME_OVERRIDES[capitalPart] && NAME_OVERRIDES[capitalPart][lang]) {
+        return NAME_OVERRIDES[capitalPart][lang];
+      }
+      
+      const cached = getCachedName(part);
+      if (cached) {
+        const dbLangMap: Record<string, string> = {
+          bn: cached.name_bn,
+          ar: cached.name_ar,
+          hi: cached.name_hi,
+        };
+        if (dbLangMap[lang] && dbLangMap[lang].trim() !== '') {
+          return dbLangMap[lang];
+        }
+      }
+      
+      return smartTransliterate(part, lang);
+    });
+    
+    return translatedParts.join(' ');
+  } catch (error) {
+    console.error('Async name translation error:', error);
+    return name;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1201,6 +1253,5 @@ export function translateGender(gender: string, lang: string): string {
 // 🚀 Initialize name cache on load (client-side only)
 // ═══════════════════════════════════════════════════════════
 if (typeof window !== 'undefined') {
-  // Delay loading to not block initial render
   setTimeout(() => loadAllNamesToCache(), 500);
 }
