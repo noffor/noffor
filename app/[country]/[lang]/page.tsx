@@ -148,7 +148,7 @@ const AllCategoriesPage = React.memo(({ isOpen, onClose, country, lang }: {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 lg:grid-cols-6 gap-2">
               {filtered.map(cat => (
                 <Link key={cat.slug} href={`/${country}/${lang}/category/${cat.slug}`} onClick={onClose}
                   className="bg-white rounded-xl p-2 text-center border hover:border-orange-200 hover:shadow-md transition-all active:scale-95 group">
