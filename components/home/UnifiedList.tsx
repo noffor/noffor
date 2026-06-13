@@ -1,6 +1,4 @@
 // components/home/UnifiedList.tsx
-// 🚀 ১ বিলিয়ন ইউজার • TypeScript Error Free • Production Ready
-// ✅ Photo Filtered • WebP Optimized • Lazy Loaded • is_public FIXED
 "use client";
 import React, { useEffect, useState, useRef, useCallback, memo, useMemo, startTransition } from 'react';
 import { Star, MapPin, AlertCircle, RefreshCw } from 'lucide-react';
@@ -14,9 +12,7 @@ const MAX_ITEMS = 18;
 const CACHE_TTL = 30000;
 const RETRY_MAX = 2;
 
-// ═══════════════════════════════════════════════════════════
-// ✅ FIXED: All 42 categories with /icons/ path (PNG format)
-// ═══════════════════════════════════════════════════════════
+// ✅ 42 PNG icons from /icons/
 const defaultImages: Record<string, string> = {
   'Driver': '/icons/driver.png',
   'Electrician': '/icons/electrician.png',
@@ -64,10 +60,7 @@ const defaultImages: Record<string, string> = {
   'Barber': '/icons/barber.png',
 };
 
-// ═══════════════════════════════════════════════════════════
-const dataCache = new Map<string, { data: any[]; timestamp: number }>();
-
-// ═══════════════════════════════════════════════════════════
+// ✅ Image Preloader (বাদ গিয়েছিল - আবার যোগ করা)
 class ImagePreloader {
   private static cache = new Map<string, HTMLImageElement>();
   private static queue: string[] = [];
@@ -97,6 +90,8 @@ class ImagePreloader {
     this.loading = false;
   }
 }
+
+const dataCache = new Map<string, { data: any[]; timestamp: number }>();
 
 const getWebP = (url: string, w = 400, q = 80): string => {
   if (!url) return '';
@@ -266,8 +261,7 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
 });
 ItemCard.displayName = 'ItemCard';
 
-// ═══════════════════════════════════════════════════════════
-// 🚀 Main UnifiedList Component (is_public FIXED)
+// 🚀 Main UnifiedList Component
 export default function UnifiedList({ type, country, lang }: Props) {
   const tr = useMemo(() => T[lang] || T.en, [lang]);
   const [items, setItems] = useState<any[]>([]);
@@ -287,7 +281,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
   const isLabor = type === 'labor';
 
-  // ✅ FIXED: Data Loading with is_public filter
   const loadItems = useCallback(async (reset = false): Promise<any[]> => {
     if (!country || !aliveRef.current) return [];
 
@@ -302,6 +295,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
     if (!reset) {
       const cached = dataCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        // ✅ Image preload (বাদ গিয়েছিল - আবার যোগ)
         const urls = cached.data
           .map((item: any) => getWebP(item.photo_url, 400, 80))
           .filter((url: string) => url && url !== '/default-avatar.png');
@@ -311,7 +305,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
     }
 
     try {
-      // ✅ Count query with is_public filter
       const { count, error: countErr } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -336,7 +329,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
       const safeTo = Math.min(from + ITEMS_PER_PAGE - 1, total - 1, MAX_ITEMS - 1);
 
-      // ✅ Fetch query with is_public filter
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -358,6 +350,7 @@ export default function UnifiedList({ type, country, lang }: Props) {
 
       dataCache.set(cacheKey, { data: result, timestamp: Date.now() });
       
+      // ✅ Image preload (বাদ গিয়েছিল - আবার যোগ)
       const urls = result
         .map((item: any) => getWebP(item.photo_url, 400, 80))
         .filter((url: string) => url && url !== '/default-avatar.png');
@@ -377,12 +370,9 @@ export default function UnifiedList({ type, country, lang }: Props) {
     }
   }, [type, country]);
 
-  // ═══════════════════════════════════════════════════════
-  // ✅ Fast initial load with sessionStorage
   useEffect(() => {
     aliveRef.current = true;
     
-    // 🚀 Step 1: Try sessionStorage cache first (0ms)
     const cacheKey = `ul:${type}:${country}:0`;
     try {
       const cached = dataCache.get(cacheKey);
@@ -402,7 +392,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
       }
     } catch {}
     
-    // 🚀 Step 2: Supabase fetch
     const init = async () => {
       startTransition(() => { if (items.length === 0) setLoading(true); setError(null); });
       pageRef.current = 0;
@@ -413,7 +402,6 @@ export default function UnifiedList({ type, country, lang }: Props) {
           pageRef.current = 1;
           setLoading(false);
         });
-        // ✅ Cache to sessionStorage
         try {
           sessionStorage.setItem(`ul_${type}_${country}`, JSON.stringify({
             d: data, t: Date.now(), total: totalCount || data.length

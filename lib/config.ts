@@ -55,8 +55,8 @@ export const siteConfig = {
       nameBn: 'এসি টেকনিশিয়ান', 
       nameAr: 'فني تكييف', 
       nameHi: 'एसी तकनीशियन',
-      icon: '/icons/ac.png', 
-      banner: '/banners/ac.jpg',
+      icon: '/icons/ac-technician.png', 
+      banner: '/banners/ac-technician.jpg',
       isMain: true
     },
     { 
@@ -434,12 +434,12 @@ export const siteConfig = {
   ],
 
   // ═══════════════════════════════════════════════════════
-  // দেশ কনফিগ
+  // দেশ কনফিগ (৬টি গালফ দেশ)
   // ═══════════════════════════════════════════════════════
   countries: {
     qa: { name: 'Qatar', nameBn: 'কাতার', nameAr: 'قطر', nameHi: 'कतर', currency: 'QAR', phoneCode: '+974' },
     sa: { name: 'Saudi Arabia', nameBn: 'সৌদি আরব', nameAr: 'السعودية', nameHi: 'सऊदी अरब', currency: 'SAR', phoneCode: '+966' },
-    ae: { name: 'UAE', nameBn: 'UAE', nameAr: 'الإمارات', nameHi: 'UAE', currency: 'AED', phoneCode: '+971' },
+    ae: { name: 'UAE', nameBn: 'ইউএই', nameAr: 'الإمارات', nameHi: 'यूएई', currency: 'AED', phoneCode: '+971' },
     kw: { name: 'Kuwait', nameBn: 'কুয়েত', nameAr: 'الكويت', nameHi: 'कुवैत', currency: 'KWD', phoneCode: '+965' },
     bh: { name: 'Bahrain', nameBn: 'বাহরাইন', nameAr: 'البحرين', nameHi: 'बहरीन', currency: 'BHD', phoneCode: '+973' },
     om: { name: 'Oman', nameBn: 'ওমান', nameAr: 'عمان', nameHi: 'ओमान', currency: 'OMR', phoneCode: '+968' },
@@ -468,7 +468,7 @@ export const siteConfig = {
   // পেমেন্ট
   // ═══════════════════════════════════════════════════════
   payment: {
-    featuredPrice: 2, // QAR per day
+    featuredPrice: 2,
     featuredPriceText: '2 QAR/day',
     qrCode: '/images/qr-code.png',
   },
@@ -491,11 +491,11 @@ export function getCategoryName(slug: string, lang: string) {
 }
 
 export function getMainCategories() {
-  return categories.filter(c => (c as any).isMain === true);
+  return categories.filter(c => c.isMain === true);
 }
 
 export function getOtherCategories() {
-  return categories.filter(c => (c as any).isMain === false);
+  return categories.filter(c => c.isMain === false);
 }
 
 // ═══════════════════════════════════════════════════════════
