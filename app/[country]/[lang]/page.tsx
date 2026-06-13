@@ -1,12 +1,13 @@
 // app/[country]/[lang]/page.tsx
 // 🚀 SUPER SONIC • 42 CATEGORIES • PNG IMAGES • FULL PAGE MORE • COMPLETE
 "use client";
-import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition, lazy, Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Crosshair, Wifi, WifiOff, X, Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Link from 'next/link';
+import { categories } from '@/lib/config';
 
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
@@ -35,146 +36,39 @@ const CONFIG = {
 } as const;
 
 // ═══════════════════════════════════════════════════════════
-// 42 Categories
+// Helper: Get category name by language
 // ═══════════════════════════════════════════════════════════
-const MAIN_CATEGORIES = [
-  { slug: 'driver', nameEn: 'Driver', nameBn: 'ড্রাইভার', nameAr: 'سائق', nameHi: 'ड्राइवर' },
-  { slug: 'electrician', nameEn: 'Electrician', nameBn: 'ইলেকট্রিশিয়ান', nameAr: 'كهربائي', nameHi: 'इलेक्ट्रीशियन' },
-  { slug: 'plumber', nameEn: 'Plumber', nameBn: 'প্লাম্বার', nameAr: 'سباك', nameHi: 'प्लंबर' },
-  { slug: 'mason', nameEn: 'Mason', nameBn: 'রাজমিস্ত্রি', nameAr: 'بناء', nameHi: 'राजमिस्त्री' },
-  { slug: 'ac-technician', nameEn: 'AC Technician', nameBn: 'এসি টেকনিশিয়ান', nameAr: 'فني تكييف', nameHi: 'एसी तकनीशियन' },
-  { slug: 'painter', nameEn: 'Painter', nameBn: 'পেইন্টার', nameAr: 'دهان', nameHi: 'पेंटर' },
-  { slug: 'carpenter', nameEn: 'Carpenter', nameBn: 'কার্পেন্টার', nameAr: 'نجار', nameHi: 'बढ़ई' },
-  { slug: 'welder', nameEn: 'Welder', nameBn: 'ওয়েল্ডার', nameAr: 'لحام', nameHi: 'वेल्डर' },
-  { slug: 'cleaner', nameEn: 'Cleaner', nameBn: 'ক্লিনার', nameAr: 'منظف', nameHi: 'क्लीनर' },
-  { slug: 'cook', nameEn: 'Cook', nameBn: 'রাঁধুনি', nameAr: 'طباخ', nameHi: 'रसोइया' },
-  { slug: 'helper', nameEn: 'Helper', nameBn: 'হেল্পার', nameAr: 'مساعد', nameHi: 'हेल्पर' },
-  { slug: 'gardener', nameEn: 'Gardener', nameBn: 'মালী', nameAr: 'بستاني', nameHi: 'माली' },
-];
-
-const OTHER_CATEGORIES = [
-  { slug: 'housemaid', nameEn: 'Housemaid', nameBn: 'গৃহকর্মী', nameAr: 'خادمة', nameHi: 'हाउसमेड' },
-  { slug: 'nanny', nameEn: 'Nanny', nameBn: 'আয়া', nameAr: 'مربية', nameHi: 'नैनी' },
-  { slug: 'office-assistant', nameEn: 'Office Assistant', nameBn: 'অফিস সহকারী', nameAr: 'مساعد مكتبي', nameHi: 'ऑफिस असिस्टेंट' },
-  { slug: 'receptionist', nameEn: 'Receptionist', nameBn: 'রিসেপশনিস্ট', nameAr: 'موظف استقبال', nameHi: 'रिसेप्शनिस्ट' },
-  { slug: 'salesman', nameEn: 'Salesman', nameBn: 'সেলসম্যান', nameAr: 'بائع', nameHi: 'सेल्समैन' },
-  { slug: 'cashier', nameEn: 'Cashier', nameBn: 'ক্যাশিয়ার', nameAr: 'كاشير', nameHi: 'कैशियर' },
-  { slug: 'security-guard', nameEn: 'Security Guard', nameBn: 'সিকিউরিটি গার্ড', nameAr: 'حارس أمن', nameHi: 'सिक्योरिटी गार्ड' },
-  { slug: 'nurse', nameEn: 'Nurse', nameBn: 'নার্স', nameAr: 'ممرض', nameHi: 'नर्स' },
-  { slug: 'pharmacist', nameEn: 'Pharmacist', nameBn: 'ফার্মাসিস্ট', nameAr: 'صيدلي', nameHi: 'फार्मासिस्ट' },
-  { slug: 'lab-technician', nameEn: 'Lab Technician', nameBn: 'ল্যাব টেকনিশিয়ান', nameAr: 'فني مختبر', nameHi: 'लैब तकनीशियन' },
-  { slug: 'physiotherapist', nameEn: 'Physiotherapist', nameBn: 'ফিজিওথেরাপিস্ট', nameAr: 'معالج طبيعي', nameHi: 'फिजियोथेरेपिस्ट' },
-  { slug: 'mechanic', nameEn: 'Mechanic', nameBn: 'মেকানিক', nameAr: 'ميكانيكي', nameHi: 'मैकेनिक' },
-  { slug: 'tailor', nameEn: 'Tailor', nameBn: 'দর্জি', nameAr: 'خياط', nameHi: 'दर्जी' },
-  { slug: 'barista', nameEn: 'Barista', nameBn: 'বারিস্তা', nameAr: 'باريستا', nameHi: 'बरिस्ता' },
-  { slug: 'photographer', nameEn: 'Photographer', nameBn: 'ফটোগ্রাফার', nameAr: 'مصور', nameHi: 'फोटोग्राफर' },
-  { slug: 'cctv-technician', nameEn: 'CCTV Technician', nameBn: 'সিসিটিভি টেকনিশিয়ান', nameAr: 'فني كاميرات', nameHi: 'CCTV तकनीशियन' },
-  { slug: 'gypsum-carpenter', nameEn: 'Gypsum Carpenter', nameBn: 'জিপসাম কার্পেন্টার', nameAr: 'نجار جبس', nameHi: 'जिप्सम कारपेंटर' },
-  { slug: 'tiles-mason', nameEn: 'Tiles Mason', nameBn: 'টাইলস মিস্ত্রি', nameAr: 'عامل تبليط', nameHi: 'टाइल्स मिस्त्री' },
-  { slug: 'blacksmith', nameEn: 'Blacksmith', nameBn: 'কামার', nameAr: 'حداد', nameHi: 'लोहार' },
-  { slug: 'general-labour', nameEn: 'General Labour', nameBn: 'সাধারণ শ্রমিক', nameAr: 'عامل عام', nameHi: 'सामान्य श्रमिक' },
-  { slug: 'steel-fixer', nameEn: 'Steel Fixer', nameBn: 'স্টিল ফিক্সার', nameAr: 'مثبت حديد', nameHi: 'स्टील फिक्सर' },
-  { slug: 'scaffolder', nameEn: 'Scaffolder', nameBn: 'স্ক্যাফোল্ডার', nameAr: 'عامل سقالات', nameHi: 'स्कैफोल्डर' },
-  { slug: 'heavy-driver', nameEn: 'Heavy Driver', nameBn: 'ভারী ড্রাইভার', nameAr: 'سائق ثقيل', nameHi: 'भारी ड्राइवर' },
-  { slug: 'forklift-operator', nameEn: 'Forklift Operator', nameBn: 'ফর্কলিফট অপারেটর', nameAr: 'مشغل رافعة', nameHi: 'फोर्कलिफ्ट ऑपरेटर' },
-  { slug: 'crane-operator', nameEn: 'Crane Operator', nameBn: 'ক্রেন অপারেটর', nameAr: 'مشغل رافعة', nameHi: 'क्रेन ऑपरेटर' },
-  { slug: 'pipe-fitter', nameEn: 'Pipe Fitter', nameBn: 'পাইপ ফিটার', nameAr: 'مركب أنابيب', nameHi: 'पाइप फिटर' },
-  { slug: 'waiter', nameEn: 'Waiter', nameBn: 'ওয়েটার', nameAr: 'نادل', nameHi: 'वेटर' },
-  { slug: 'hotel-housekeeping', nameEn: 'Hotel Housekeeping', nameBn: 'হোটেল হাউসকিপিং', nameAr: 'تدبير فندقي', nameHi: 'होटल हाउसकीपिंग' },
-  { slug: 'beautician', nameEn: 'Beautician', nameBn: 'বিউটিশিয়ান', nameAr: 'خبيرة تجميل', nameHi: 'ब्यूटीशियन' },
-  { slug: 'barber', nameEn: 'Barber', nameBn: 'নাপিত', nameAr: 'حلاق', nameHi: 'नाई' },
-];
-
 const getCatName = (cat: any, lang: string): string => {
-  switch (lang) {
-    case 'bn': return cat.nameBn;
-    case 'ar': return cat.nameAr;
-    case 'hi': return cat.nameHi;
-    default: return cat.nameEn;
-  }
+  const key = `name${lang.charAt(0).toUpperCase() + lang.slice(1)}` as keyof typeof cat;
+  return (cat as any)[key] || cat.nameEn || cat.name || '';
 };
 
 // ═══════════════════════════════════════════════════════════
-// Category Card — PNG Image
-// ═══════════════════════════════════════════════════════════
-const CategoryCard = React.memo(({ cat, lang, country }: { cat: any; lang: string; country: string }) => {
-  const [imgError, setImgError] = useState(false);
-  const imgSrc = imgError ? '/categories/default.png' : `/categories/${cat.slug}.png`;
-  
-  return (
-    <Link
-      href={`/${country}/${lang}/category/${cat.slug}`}
-      className="bg-white rounded-xl p-2 text-center border hover:shadow-md hover:border-orange-200 transition-all active:scale-95 group"
-    >
-      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
-        <img
-          src={imgSrc}
-          alt={getCatName(cat, lang)}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-          onError={() => setImgError(true)}
-        />
-      </div>
-      <p className="text-[10px] lg:text-xs font-medium text-gray-700 group-hover:text-orange-600 truncate">
-        {getCatName(cat, lang)}
-      </p>
-    </Link>
-  );
-});
-CategoryCard.displayName = 'CategoryCard';
-
-// ═══════════════════════════════════════════════════════════
-// Category Grid — 12 Main + More Button
-// ═══════════════════════════════════════════════════════════
-const CategoryGrid = React.memo(({ country, lang, onMoreClick }: {
-  country: string; lang: string; onMoreClick: () => void;
-}) => (
-  <div>
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-sm font-bold text-gray-800">
-        {lang === 'bn' ? 'ক্যাটাগরি' : lang === 'ar' ? 'الفئات' : lang === 'hi' ? 'श्रेणियां' : 'Categories'}
-      </h3>
-    </div>
-    <div className="grid grid-cols-4 lg:grid-cols-6 gap-2">
-      {MAIN_CATEGORIES.map(cat => (
-        <CategoryCard key={cat.slug} cat={cat} lang={lang} country={country} />
-      ))}
-      
-      {/* More Categories Button */}
-      <button
-        onClick={onMoreClick}
-        className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-2 text-center border border-orange-200 hover:shadow-md hover:border-orange-300 transition-all active:scale-95 group"
-      >
-        <div className="w-full aspect-square rounded-lg overflow-hidden bg-orange-100 mb-1.5 flex items-center justify-center">
-          <span className="text-2xl lg:text-3xl">🔍</span>
-        </div>
-        <p className="text-[10px] lg:text-xs font-medium text-orange-600">
-          {lang === 'bn' ? 'আরও' : lang === 'ar' ? 'المزيد' : lang === 'hi' ? 'और' : 'More'}
-        </p>
-      </button>
-    </div>
-  </div>
-));
-CategoryGrid.displayName = 'CategoryGrid';
-
-// ═══════════════════════════════════════════════════════════
-// All Categories — FULL PAGE
+// All Categories — FULL PAGE (Mobile: 3 cols, PC: 6 cols)
 // ═══════════════════════════════════════════════════════════
 const AllCategoriesPage = React.memo(({ isOpen, onClose, country, lang }: {
   isOpen: boolean; onClose: () => void; country: string; lang: string;
 }) => {
   const [search, setSearch] = useState('');
   
-  const allCategories = [...MAIN_CATEGORIES, ...OTHER_CATEGORIES];
+  const allCats = useMemo(() => categories, []);
   
+  const mainCats = useMemo(() => allCats.filter(c => (c as any).isMain === true), [allCats]);
+  const otherCats = useMemo(() => allCats.filter(c => (c as any).isMain !== true), [allCats]);
+
   const filtered = search.trim()
-    ? allCategories.filter(c => 
-        c.nameEn.toLowerCase().includes(search.toLowerCase()) ||
-        c.nameBn?.includes(search) ||
-        c.nameAr?.includes(search) ||
-        c.nameHi?.includes(search)
-      )
-    : allCategories;
+    ? allCats.filter(c => {
+        const name = getCatName(c, 'en').toLowerCase();
+        const nameBn = getCatName(c, 'bn');
+        const nameAr = getCatName(c, 'ar');
+        const nameHi = getCatName(c, 'hi');
+        const q = search.toLowerCase();
+        return name.includes(q) || nameBn?.includes(search) || nameAr?.includes(search) || nameHi?.includes(search);
+      })
+    : allCats;
+
+  const filteredMain = useMemo(() => filtered.filter(c => (c as any).isMain === true), [filtered]);
+  const filteredOther = useMemo(() => filtered.filter(c => (c as any).isMain !== true), [filtered]);
 
   if (!isOpen) return null;
 
@@ -205,72 +99,78 @@ const AllCategoriesPage = React.memo(({ isOpen, onClose, country, lang }: {
         </div>
       </div>
 
-      {/* Scrollable Grid */}
+      {/* Scrollable Grid — ✅ Mobile: 3 cols, PC: 6 cols */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {filtered.length === 0 ? (
           <div className="text-center py-16">
             <Search size={40} className="text-gray-200 mx-auto mb-3" />
             <p className="text-gray-400 text-sm">
-              {lang === 'bn' ? 'কোনো ক্যাটাগরি পাওয়া যায়নি' : 'No categories found'}
+              {lang === 'bn' ? 'কোনো ক্যাটাগরি পাওয়া যায়নি' : lang === 'ar' ? 'لا توجد فئات' : lang === 'hi' ? 'कोई श्रेणी नहीं मिली' : 'No categories found'}
             </p>
           </div>
         ) : (
           <>
             {/* Main Categories */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-                {lang === 'bn' ? 'প্রধান ক্যাটাগরি' : lang === 'ar' ? 'الفئات الرئيسية' : lang === 'hi' ? 'मुख्य श्रेणियां' : 'Main Categories'}
-              </h3>
-              <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
-                {filtered.filter(c => MAIN_CATEGORIES.some(m => m.slug === c.slug)).map(cat => (
-                  <Link
-                    key={cat.slug}
-                    href={`/${country}/${lang}/category/${cat.slug}`}
-                    onClick={onClose}
-                    className="bg-white rounded-xl p-2 text-center border-2 border-orange-100 hover:border-orange-300 hover:shadow-md transition-all active:scale-95"
-                  >
-                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
-                      <img
-                        src={`/categories/${cat.slug}.png`}
-                        alt={getCatName(cat, lang)}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
-                      />
-                    </div>
-                    <p className="text-[10px] font-medium text-gray-700 truncate">{getCatName(cat, lang)}</p>
-                  </Link>
-                ))}
+            {filteredMain.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
+                  {lang === 'bn' ? 'প্রধান ক্যাটাগরি' : lang === 'ar' ? 'الفئات الرئيسية' : lang === 'hi' ? 'मुख्य श्रेणियां' : 'Main Categories'}
+                </h3>
+                {/* ✅ 3 cols on mobile, 6 cols on PC */}
+                <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+                  {filteredMain.map(cat => (
+                    <Link
+                      key={cat.slug}
+                      href={`/${country}/${lang}/category/${cat.slug}`}
+                      onClick={onClose}
+                      className="bg-white rounded-xl p-2 text-center border-2 border-orange-100 hover:border-orange-300 hover:shadow-md transition-all active:scale-95"
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
+                        <img
+                          src={cat.icon || `/categories/${cat.slug}.png`}
+                          alt={getCatName(cat, lang)}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
+                        />
+                      </div>
+                      <p className="text-[10px] lg:text-xs font-medium text-gray-700 truncate">{getCatName(cat, lang)}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Other Categories */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-                {lang === 'bn' ? 'অন্যান্য ক্যাটাগরি' : lang === 'ar' ? 'فئات أخرى' : lang === 'hi' ? 'अन्य श्रेणियां' : 'Other Categories'}
-              </h3>
-              <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
-                {filtered.filter(c => OTHER_CATEGORIES.some(o => o.slug === c.slug)).map(cat => (
-                  <Link
-                    key={cat.slug}
-                    href={`/${country}/${lang}/category/${cat.slug}`}
-                    onClick={onClose}
-                    className="bg-gray-50 rounded-xl p-2 text-center border hover:border-gray-300 hover:shadow-md transition-all active:scale-95"
-                  >
-                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
-                      <img
-                        src={`/categories/${cat.slug}.png`}
-                        alt={getCatName(cat, lang)}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
-                      />
-                    </div>
-                    <p className="text-[10px] font-medium text-gray-700 truncate">{getCatName(cat, lang)}</p>
-                  </Link>
-                ))}
+            {filteredOther.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
+                  {lang === 'bn' ? 'অন্যান্য ক্যাটাগরি' : lang === 'ar' ? 'فئات أخرى' : lang === 'hi' ? 'अन्य श्रेणियां' : 'Other Categories'}
+                </h3>
+                {/* ✅ 3 cols on mobile, 6 cols on PC */}
+                <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+                  {filteredOther.map(cat => (
+                    <Link
+                      key={cat.slug}
+                      href={`/${country}/${lang}/category/${cat.slug}`}
+                      onClick={onClose}
+                      className="bg-gray-50 rounded-xl p-2 text-center border hover:border-gray-300 hover:shadow-md transition-all active:scale-95"
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
+                        <img
+                          src={cat.icon || `/categories/${cat.slug}.png`}
+                          alt={getCatName(cat, lang)}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
+                        />
+                      </div>
+                      <p className="text-[10px] lg:text-xs font-medium text-gray-700 truncate">{getCatName(cat, lang)}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>
@@ -330,7 +230,7 @@ const MapToggle = React.memo(({ showMap, onClick, lang }: { showMap: boolean; on
 MapToggle.displayName = 'MapToggle';
 
 // ═══════════════════════════════════════════════════════════
-// PC Layout
+// PC Layout — ✅ Sidebar with onMoreClick + NO Category Grid
 // ═══════════════════════════════════════════════════════════
 const PCLayout = React.memo(({ country, lang, showMap, userLocation, online, toggleMap, toggleOnline, onMoreClick }: {
   country: string; lang: string; showMap: boolean;
@@ -350,15 +250,14 @@ const PCLayout = React.memo(({ country, lang, showMap, userLocation, online, tog
       <HeroBanner country={country} lang={lang} />
     )}
     <div className="flex gap-4 mt-4">
+      {/* ✅ Sidebar — ১২ মেইন + "More 30+" বাটন */}
       <div className="w-56 shrink-0">
         <Suspense fallback={<div className="w-56 h-96 bg-gray-100 animate-pulse rounded-xl" />}>
-          <Sidebar country={country} lang={lang} />
+          <Sidebar country={country} lang={lang} onMoreClick={onMoreClick} />
         </Suspense>
       </div>
+      {/* ✅ UnifiedList only — কোনো Category Grid নেই */}
       <div className="flex-1 min-w-0 space-y-4">
-        <div className="bg-white rounded-xl p-4 border">
-          <CategoryGrid country={country} lang={lang} onMoreClick={onMoreClick} />
-        </div>
         <div className="bg-white rounded-xl p-4 border">
           <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
             <UnifiedList type="labor" country={country} lang={lang} />
@@ -376,31 +275,62 @@ const PCLayout = React.memo(({ country, lang, showMap, userLocation, online, tog
 PCLayout.displayName = 'PCLayout';
 
 // ═══════════════════════════════════════════════════════════
-// Mobile Layout
+// Mobile Layout — ✅ Categories from config.ts
 // ═══════════════════════════════════════════════════════════
-const MobileLayout = React.memo(({ country, lang, onMoreClick }: { country: string; lang: string; onMoreClick: () => void }) => (
-  <div className="lg:hidden">
-    <HeroBanner country={country} lang={lang} />
-    <div className="mt-3">
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse rounded-xl" />}>
-        <HomeTabs country={country} lang={lang} />
-      </Suspense>
+const MobileLayout = React.memo(({ country, lang, onMoreClick }: { country: string; lang: string; onMoreClick: () => void }) => {
+  const mainCategories = useMemo(() => categories.slice(0, 12), []);
+  
+  return (
+    <div className="lg:hidden">
+      <HeroBanner country={country} lang={lang} />
+      <div className="mt-3">
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse rounded-xl" />}>
+          <HomeTabs country={country} lang={lang} />
+        </Suspense>
+      </div>
+      
+      {/* ✅ Categories from config.ts */}
+      <div className="bg-white rounded-xl p-3 border mt-3">
+        <h3 className="text-sm font-bold text-gray-800 mb-2">
+          {lang === 'bn' ? 'ক্যাটাগরি' : lang === 'ar' ? 'الفئات' : lang === 'hi' ? 'श्रेणियां' : 'Categories'}
+        </h3>
+        <div className="grid grid-cols-4 gap-2">
+          {mainCategories.map(cat => (
+            <Link key={cat.slug} href={`/${country}/${lang}/category/${cat.slug}`}
+              className="bg-white rounded-xl p-2 text-center border hover:shadow-md transition-all active:scale-95">
+              <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 mb-1.5">
+                <img src={cat.icon || `/categories/${cat.slug}.png`} alt={getCatName(cat, lang)}
+                  className="w-full h-full object-cover" loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }} />
+              </div>
+              <p className="text-[10px] font-medium text-gray-700 truncate">{getCatName(cat, lang)}</p>
+            </Link>
+          ))}
+          <button onClick={onMoreClick}
+            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-2 text-center border border-orange-200">
+            <div className="w-full aspect-square rounded-lg overflow-hidden bg-orange-100 mb-1.5 flex items-center justify-center">
+              <span className="text-2xl">🔍</span>
+            </div>
+            <p className="text-[10px] font-medium text-orange-600">
+              {lang === 'bn' ? 'আরও' : lang === 'ar' ? 'المزيد' : lang === 'hi' ? 'और' : 'More'}
+            </p>
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-xl p-3 border mt-3">
+        <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
+          <UnifiedList type="labor" country={country} lang={lang} />
+        </Suspense>
+      </div>
+      <div className="bg-white rounded-xl p-3 border mt-3">
+        <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
+          <UnifiedList type="employer" country={country} lang={lang} />
+        </Suspense>
+      </div>
     </div>
-    <div className="bg-white rounded-xl p-3 border mt-3">
-      <CategoryGrid country={country} lang={lang} onMoreClick={onMoreClick} />
-    </div>
-    <div className="bg-white rounded-xl p-3 border mt-3">
-      <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
-        <UnifiedList type="labor" country={country} lang={lang} />
-      </Suspense>
-    </div>
-    <div className="bg-white rounded-xl p-3 border mt-3">
-      <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
-        <UnifiedList type="employer" country={country} lang={lang} />
-      </Suspense>
-    </div>
-  </div>
-));
+  );
+});
 MobileLayout.displayName = 'MobileLayout';
 
 // ═══════════════════════════════════════════════════════════
@@ -521,7 +451,7 @@ function HomePage() {
         {!isDesktop && <MobileLayout country={country} lang={lang} onMoreClick={handleMoreClick} />}
       </main>
       
-      {/* ✅ All Categories — FULL PAGE */}
+      {/* ✅ All Categories — FULL PAGE: Mobile 3 cols, PC 6 cols */}
       <AllCategoriesPage isOpen={showAllCategories} onClose={handleCloseAllCategories} country={country} lang={lang} />
       
       <MobileNav country={country} lang={lang} />

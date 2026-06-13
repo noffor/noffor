@@ -1,91 +1,126 @@
-// components/layout/Sidebar.tsx - 🚀 42 CATEGORIES • PNG FROM /public/categories/ • MORE BUTTON
-import React,{useMemo} from 'react';
+// components/layout/Sidebar.tsx - ১ বিলিয়ন ইউজার • সুপারসনিক • ৪ ভাষা • ১২ মেইন + More
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import {categories} from '@/lib/config';
-import {getText,LangCode} from '@/lib/language';
-import {Grid3X3, Search} from 'lucide-react';
+import { categories } from '@/lib/config';
+import { getText, LangCode } from '@/lib/language';
+import { Grid3X3, ArrowRight, ChevronRight } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════
-// Category Item (Memoized) — ✅ PNG from /public/categories/
+// WebP ইমেজ অপ্টিমাইজার
 // ═══════════════════════════════════════════════════════════
-const CategoryItem=React.memo(({cat,lang,country}:{cat:any;lang:string;country:string})=>{
-  const displayName=useMemo(()=>{
-    const key=`name${lang.charAt(0).toUpperCase()+lang.slice(1)}` as keyof typeof cat;
-    return (cat as any)[key]||cat.name;
-  },[cat,lang]);
-  
-  const [imgError,setImgError]=React.useState(false);
-  // ✅ PNG from /public/categories/{slug}.png
-  const imgSrc=imgError?'/categories/default.png':`/categories/${cat.slug}.png`;
+const getWebP = (url: string): string => {
+  if (!url) return '';
+  if (url.includes('supabase.co/storage')) return `${url}?width=40&quality=80&format=webp`;
+  return url;
+};
 
-  return(
-    <Link 
-      href={`/${country}/${lang}/category/${cat.slug}`} 
+// ═══════════════════════════════════════════════════════════
+// Helper: Get category name by language from config
+// ═══════════════════════════════════════════════════════════
+const getCatName = (cat: any, lang: string): string => {
+  const key = `name${lang.charAt(0).toUpperCase() + lang.slice(1)}`;
+  return (cat as any)[key] || cat.nameEn || cat.name || cat.slug;
+};
+
+// ═══════════════════════════════════════════════════════════
+// Category Item (Memoized)
+// ═══════════════════════════════════════════════════════════
+const CategoryItem = React.memo(({ cat, lang, rest }: { cat: any; lang: string; rest: string }) => {
+  const displayName = useMemo(() => getCatName(cat, lang), [cat, lang]);
+  const iconSrc = useMemo(() => getWebP(cat.icon || `/categories/${cat.slug}.png`), [cat.icon, cat.slug]);
+
+  return (
+    <Link
+      href={`${rest}/category/${cat.slug}`}
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 no-underline transition-all active:scale-[0.98] group"
-      style={{transform:'translateZ(0)'}}
+      style={{ transform: 'translateZ(0)' }}
     >
-      <img 
-        src={imgSrc} 
-        alt={displayName} 
-        className="w-6 h-6 object-cover rounded flex-shrink-0 group-hover:scale-110 transition-transform" 
-        loading="lazy" 
+      <img
+        src={iconSrc}
+        alt={displayName}
+        className="w-5 h-5 object-contain flex-shrink-0 group-hover:scale-110 transition-transform rounded"
+        loading="lazy"
         decoding="async"
-        onError={()=>setImgError(true)}
+        onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
       />
-      <span className="truncate">{displayName}</span>
+      <span className="truncate text-xs lg:text-sm">{displayName}</span>
     </Link>
   );
 });
-CategoryItem.displayName='CategoryItem';
+CategoryItem.displayName = 'CategoryItem';
 
 // ═══════════════════════════════════════════════════════════
-// Sidebar (Memoized) — 12 Main + More Button
+// Sidebar (Memoized) — ✅ ১২ মেইন ক্যাটাগরি + More বাটন
 // ═══════════════════════════════════════════════════════════
-const Sidebar=React.memo(({country,lang}:{country:string;lang:string})=>{
-  const t=useMemo(()=>(key:string)=>getText(lang as LangCode,key),[lang]);
-  const memoizedCategories=useMemo(()=>categories,[]);
+const Sidebar = React.memo(({ country, lang, onMoreClick }: { 
+  country: string; 
+  lang: string; 
+  onMoreClick?: () => void;  // ✅ Callback for "More" button
+}) => {
+  const t = useMemo(() => (key: string) => getText(lang as LangCode, key), [lang]);
+  const rest = useMemo(() => `/${country}/${lang}`, [country, lang]);
   
-  // ১২টা Main categories (first 12)
-  const mainCategories=useMemo(()=>memoizedCategories.slice(0,12),[memoizedCategories]);
-  // বাকি Other categories
-  const otherCount=useMemo(()=>Math.max(0,memoizedCategories.length-12),[memoizedCategories]);
+  // ⭐ শুধু মেইন ১২ ক্যাটাগরি (isMain: true)
+  const mainCats = useMemo(() => categories.filter(c => (c as any).isMain === true), []);
+  
+  // ⭐ বাকি ৩০ ক্যাটাগরির কাউন্ট
+  const otherCount = useMemo(() => categories.filter(c => (c as any).isMain !== true).length, []);
 
-  return(
-    <div 
+  // ⭐ "More" লেবেল ৪ ভাষায়
+  const moreLabel = useMemo(() => {
+    switch (lang) {
+      case 'bn': return `আরও ${otherCount}+`;
+      case 'ar': return `المزيد ${otherCount}+`;
+      case 'hi': return `और ${otherCount}+`;
+      default: return `More ${otherCount}+`;
+    }
+  }, [lang, otherCount]);
+
+  return (
+    <div
       className="bg-white rounded-xl border shadow-sm overflow-hidden sticky top-20"
-      style={{contain:'layout style paint',transform:'translateZ(0)'}}
+      style={{ contain: 'layout style paint', transform: 'translateZ(0)' }}
     >
       {/* Header */}
       <div className="px-3 py-2.5 border-b bg-gradient-to-r from-orange-50 to-white flex items-center gap-2">
-        <Grid3X3 size={16} className="text-orange-500"/>
+        <Grid3X3 size={16} className="text-orange-500" />
         <h3 className="text-sm font-bold text-gray-700">{t('categories')}</h3>
-        <span className="text-xs text-gray-400 ml-auto">{memoizedCategories.length}</span>
+        <span className="text-xs text-gray-400 ml-auto">{categories.length}</span>
       </div>
-      
-      {/* ১২ Main Categories — ✅ PNG from /public/categories/ */}
-      <div className="py-1 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
-        {mainCategories.map(cat=>(
-          <CategoryItem key={cat.slug} cat={cat} lang={lang} country={country}/>
+
+      {/* ✅ ১২ মেইন ক্যাটাগরি */}
+      <div className="py-1">
+        {mainCats.map(cat => (
+          <CategoryItem key={cat.slug} cat={cat} lang={lang} rest={rest} />
         ))}
       </div>
-      
-      {/* ✅ More Categories Button — Clear & Visible */}
-      {otherCount > 0 && (
-        <div className="px-3 py-2.5 border-t bg-gradient-to-r from-orange-50 to-amber-50">
-          <Link 
-            href={`/${country}/${lang}/categories`}
-            className="flex items-center justify-center gap-2 text-sm font-semibold text-orange-600 hover:text-orange-700 no-underline bg-white/60 hover:bg-white rounded-lg py-2 px-3 transition-all active:scale-[0.98] border border-orange-200 hover:border-orange-300"
+
+      {/* ✅ Divider + More Button */}
+      <div className="border-t border-gray-100">
+        {onMoreClick ? (
+          // PC: More বাটন ক্লিক করলে AllCategoriesPage ওপেন হবে
+          <button
+            onClick={onMoreClick}
+            className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-all active:scale-[0.98] group"
           >
-            <Search size={14} />
-            {lang === 'bn' ? 'আরও ক্যাটাগরি' : lang === 'ar' ? 'المزيد من الفئات' : lang === 'hi' ? 'अधिक श्रेणियां' : 'More Categories'}
-            <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full">+{otherCount}</span>
+            <span>{moreLabel}</span>
+            <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        ) : (
+          // Fallback: সরাসরি /categories পেজে লিংক
+          <Link
+            href={`${rest}/categories`}
+            className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 no-underline transition-all active:scale-[0.98] group"
+          >
+            <span>{moreLabel}</span>
+            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 });
 
-Sidebar.displayName='Sidebar';
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;
