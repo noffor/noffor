@@ -655,16 +655,19 @@ function ProfilePageContent() {
       </div>
 
       {/* ✅ Mobile StickyBar — Worker: WhatsApp+Call+Job Offer, Employer: WhatsApp+Call */}
+      {/* ✅ FIXED: lg:hidden added so it's hidden on PC */}
       {!isOwnProfile && phoneNumber && (
-        <StickyBar 
-          phone={phoneNumber} 
-          lang={lang} 
-          country={country}
-          onJobOffer={profile?.role !== 'employer' ? () => setShowBooking(true) : undefined} 
-        />
+        <div className="lg:hidden">
+          <StickyBar 
+            phone={phoneNumber} 
+            lang={lang} 
+            country={country}
+            onJobOffer={profile?.role !== 'employer' ? () => setShowBooking(true) : undefined} 
+          />
+        </div>
       )}
 
-      {/* ✅ PC Floating Buttons — Worker: WhatsApp+Call+Job Offer, Employer: WhatsApp+Call */}
+      {/* ✅ PC Floating Buttons — Worker: WhatsApp+Call+Job Offer, Employer: শুধু WhatsApp+Call */}
       {!isOwnProfile && phoneNumber && (
         <div className="fixed bottom-6 right-6 hidden lg:flex lg:flex-col gap-3 z-50">
           <a 
