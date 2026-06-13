@@ -15,7 +15,7 @@ const CACHE_TTL = 30000;
 const RETRY_MAX = 2;
 
 // ═══════════════════════════════════════════════════════════
-// ✅ UPDATED: All 42 categories with icons
+// ✅ FIXED: All 42 categories with /icons/ path (PNG format)
 // ═══════════════════════════════════════════════════════════
 const defaultImages: Record<string, string> = {
   'Driver': '/icons/driver.png',
@@ -148,7 +148,7 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
   const imageSrc = useMemo(() => {
     if (imgError) {
       if (isLabor && item.category && defaultImages[item.category]) {
-        return getWebP(defaultImages[item.category], 400, 70);
+        return defaultImages[item.category];
       }
       return '/default-avatar.png';
     }
@@ -159,7 +159,7 @@ const ItemCard = memo(({ item, country, lang, isLabor }: {
       return getWebP(item.photo_url, 400, 80);
     }
     if (isLabor && item.category && defaultImages[item.category]) {
-      return getWebP(defaultImages[item.category], 400, 70);
+      return defaultImages[item.category];
     }
     return '/default-avatar.png';
   }, [item.photo_url, item.category, imgError, isLabor]);
