@@ -1,6 +1,4 @@
-// app/[country]/[lang]/layout.tsx - Preconnect + Preload Fixed
-import ChatWidget from '@/components/chat/ChatWidget';
-
+// app/[country]/[lang]/layout.tsx - ChatWidget removed
 export default async function LangLayout({ children, params }: {
   children: React.ReactNode;
   params: Promise<{ country: string; lang: string }>;
@@ -10,13 +8,10 @@ export default async function LangLayout({ children, params }: {
 
   return (
     <div dir={dir} lang={lang} className="bg-gray-50 min-h-screen">
-      {/* ✅ Preconnect Supabase */}
       <link rel="preconnect" href="https://pbytmyjsxbczhhbjlkea.supabase.co" crossOrigin="anonymous" />
       <link rel="dns-prefetch" href="https://pbytmyjsxbczhhbjlkea.supabase.co" />
-      {/* ✅ Preload only critical assets */}
       <link rel="preload" href="/logo.svg" as="image" />
       {children}
-      <ChatWidget lang={lang} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 // app/[country]/[lang]/page.tsx
 // 🚀 SUPER SONIC • 1B USERS • ZERO LAG • NO CRASH
+// ✅ FIXED: isAuthenticated destructure + authLoading logic
 "use client";
 import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -104,7 +105,6 @@ const AllCategoriesPage = React.memo(({ isOpen, onClose, country, lang }: {
     });
   }, [search, otherCats]);
 
-  // ✅ Instant navigation — no close, no flicker
   const goToCategory = useCallback((slug: string) => {
     startTransition(() => {
       router.push(`/${country}/${lang}/category/${slug}`);
@@ -206,7 +206,8 @@ function HomePage() {
   const country = (params as any).country || 'qa';
   const lang = (params as any).lang || 'en';
   
-  const { loading: authLoading } = useAuth();
+  // ✅ FIXED: isAuthenticated destructure করা হয়েছে
+  const { loading: authLoading, isAuthenticated } = useAuth();
   
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -293,7 +294,11 @@ function HomePage() {
   const handleMoreClick = useCallback(() => setShowAllCategories(true), []);
   const handleCloseAllCategories = useCallback(() => setShowAllCategories(false), []);
 
-  if (!mounted || authLoading) return <HomeSkeleton />;
+  // ✅ FIXED: authLoading check improve - authenticated users skip skeleton
+  if (!mounted) return <HomeSkeleton />;
+  
+  // ✅ শুধু তখনই skeleton দেখাবে যখন auth check হচ্ছে এবং user logged in না
+  if (authLoading && !isAuthenticated) return <HomeSkeleton />;
 
   const isDesktop = !isMobile;
   const txt = T[lang] || T.en;
