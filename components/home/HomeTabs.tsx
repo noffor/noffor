@@ -1,6 +1,6 @@
 // components/home/HomeTabs.tsx
-// 🚀 PRODUCTION READY • 42 CATEGORIES • 4 LANGUAGES • BOOKING FORM • ACCEPT/REJECT
-// ✅ Quick Hire → Map + Filter → Worker Tap → BookingForm → Submit → Waiting → Accept/Reject
+// 🚀 PRODUCTION READY • FULL SCREEN BOOKING FORM • MOBILE OPTIMIZED
+// ✅ Map → Worker Tap → Full Screen BookingForm → Submit → Waiting → Accept/Reject
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
@@ -27,9 +27,6 @@ const DEFAULT_LOC: Record<string, LocationData> = {
   bh: { lat: 26.0667, lng: 50.5577 }, om: { lat: 23.5880, lng: 58.3829 },
 };
 
-// ═══════════════════════════════════════════════
-// 42 CATEGORIES - 4 LANGUAGES
-// ═══════════════════════════════════════════════
 const ALL_CATEGORIES = [
   { id: 'all', en: 'All', bn: 'সব', ar: 'الكل', hi: 'सब' },
   { id: 'Driver', en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
@@ -78,9 +75,7 @@ const ALL_CATEGORIES = [
 
 const getCatName = (cat: any, lang: string): string => (cat as any)[lang] || cat.en;
 
-// ═══════════════════════════════════════════════
-// TRANSLATIONS
-// ═══════════════════════════════════════════════
+// Translations
 const T: Record<string, Record<string, string>> = {
   en: {
     quickHire: '⚡ Quick Hire', online: 'Online', offline: 'Offline',
@@ -91,12 +86,12 @@ const T: Record<string, Record<string, string>> = {
     emergency: 'SOS', min: 'min', km: 'km', away: 'away',
     workersNearby: 'nearby', locating: 'Locating...',
     loginRequired: 'Login required', filterBy: 'Filter:',
-    waitingAccept: 'Waiting for worker to accept...',
+    waitingAccept: 'Waiting for worker...',
     workerAccepted: '🎉 Worker Accepted!', workerRejected: '❌ Worker Rejected',
     arrivingIn: 'Arriving in', trackLive: 'Track Live',
-    offerHigher: 'Send New Offer', findOthers: 'Find Other Workers',
-    suggestions: 'Suggestions', close: 'Close',
-    tapWorker: '👆 Tap a worker to book', noWorkers: 'No workers nearby',
+    findOthers: 'Find Other Workers', suggestions: 'Suggestions', close: 'Close',
+    tapWorker: '👆 Tap to book', noWorkers: 'No workers nearby',
+    offerSent: 'Booking sent! Waiting for response...',
   },
   bn: {
     quickHire: '⚡ কুইক হায়ার', online: 'অনলাইন', offline: 'অফলাইন',
@@ -107,12 +102,12 @@ const T: Record<string, Record<string, string>> = {
     emergency: 'জরুরি', min: 'মিনিট', km: 'কিমি', away: 'দূরে',
     workersNearby: 'কাছে', locating: 'খুঁজছে...',
     loginRequired: 'লগইন', filterBy: 'ফিল্টার:',
-    waitingAccept: 'শ্রমিকের গ্রহণের অপেক্ষায়...',
+    waitingAccept: 'শ্রমিকের উত্তরের অপেক্ষায়...',
     workerAccepted: '🎉 শ্রমিক রাজি!', workerRejected: '❌ শ্রমিক রাজি নয়',
     arrivingIn: 'আসছেন', trackLive: 'ট্র্যাক',
-    offerHigher: 'নতুন অফার', findOthers: 'অন্য শ্রমিক খুঁজুন',
-    suggestions: 'পরামর্শ', close: 'বন্ধ',
+    findOthers: 'অন্য শ্রমিক খুঁজুন', suggestions: 'পরামর্শ', close: 'বন্ধ',
     tapWorker: '👆 বুক করতে ট্যাপ', noWorkers: 'শ্রমিক নেই',
+    offerSent: 'বুকিং পাঠানো হয়েছে! উত্তরের অপেক্ষায়...',
   },
   ar: {
     quickHire: '⚡ توظيف', online: 'متصل', offline: 'غير متصل',
@@ -123,12 +118,12 @@ const T: Record<string, Record<string, string>> = {
     emergency: 'طوارئ', min: 'دقيقة', km: 'كم', away: 'بعيد',
     workersNearby: 'قريب', locating: 'تحديد...',
     loginRequired: 'دخول', filterBy: 'تصفية:',
-    waitingAccept: 'بانتظار قبول العامل...',
+    waitingAccept: 'بانتظار العامل...',
     workerAccepted: '🎉 قبل العامل!', workerRejected: '❌ رفض العامل',
     arrivingIn: 'قادم', trackLive: 'تتبع',
-    offerHigher: 'عرض جديد', findOthers: 'ابحث عن غيرهم',
-    suggestions: 'اقتراحات', close: 'إغلاق',
+    findOthers: 'ابحث عن غيرهم', suggestions: 'اقتراحات', close: 'إغلاق',
     tapWorker: '👆 اضغط للحجز', noWorkers: 'لا يوجد',
+    offerSent: 'تم الإرسال! بانتظار الرد...',
   },
   hi: {
     quickHire: '⚡ क्विक', online: 'ऑनलाइन', offline: 'ऑफ',
@@ -142,9 +137,9 @@ const T: Record<string, Record<string, string>> = {
     waitingAccept: 'श्रमिक की प्रतीक्षा...',
     workerAccepted: '🎉 श्रमिक राजी!', workerRejected: '❌ इनकार',
     arrivingIn: 'आ रहे', trackLive: 'ट्रैक',
-    offerHigher: 'नया ऑफर', findOthers: 'दूसरे खोजें',
-    suggestions: 'सुझाव', close: 'बंद',
+    findOthers: 'दूसरे खोजें', suggestions: 'सुझाव', close: 'बंद',
     tapWorker: '👆 बुक करें', noWorkers: 'नहीं',
+    offerSent: 'भेजा गया! प्रतिक्रिया की प्रतीक्षा...',
   },
 };
 
@@ -160,7 +155,7 @@ const showToast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' =
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 2500);
 };
 
-// Memoized Components
+// Components
 const OnlineBtn = memo(({ online, loading, isAuth, authLoading, onClick, tr }: any) => (
   <button onClick={onClick} disabled={loading || authLoading}
     className={`rounded-xl px-3 py-2.5 text-left transition-all active:scale-95 w-full ${!isAuth ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' : online ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white' : 'bg-gradient-to-br from-gray-600 to-gray-700 text-white'} ${loading || authLoading ? 'opacity-50' : 'hover:shadow-lg'}`}
@@ -209,118 +204,58 @@ export default function HomeTabs({ country, lang }: Props) {
   const profileSyncedRef = useRef(false);
   const bookingChannelRef = useRef<any>(null);
 
-  useEffect(() => {
-    aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-      if (bookingChannelRef.current) supabase.removeChannel(bookingChannelRef.current).catch(() => {});
-    };
-  }, []);
-
+  useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; if (bookingChannelRef.current) supabase.removeChannel(bookingChannelRef.current).catch(() => {}); }; }, []);
   useEffect(() => {
     if (authLoading) return;
     if (profile && isAuthenticated && !profileSyncedRef.current) {
       profileSyncedRef.current = true;
-      if (!localStorage.getItem(STORAGE_KEY)) {
-        setOnline(!!profile.is_online);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !!profile.is_online, userId: profile.id, timestamp: Date.now() }));
-      }
+      if (!localStorage.getItem(STORAGE_KEY)) { setOnline(!!profile.is_online); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !!profile.is_online, userId: profile.id, timestamp: Date.now() })); }
     }
-    if (!isAuthenticated && !authLoading && profileSyncedRef.current) {
-      profileSyncedRef.current = false; setOnline(false); localStorage.removeItem(STORAGE_KEY);
-    }
+    if (!isAuthenticated && !authLoading && profileSyncedRef.current) { profileSyncedRef.current = false; setOnline(false); localStorage.removeItem(STORAGE_KEY); }
   }, [authLoading, isAuthenticated, profile]);
 
   useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        try { setOnline(JSON.parse(e.newValue || '{}')?.isOnline || false); } catch { setOnline(false); }
-      }
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+    const handler = (e: StorageEvent) => { if (e.key === STORAGE_KEY) { try { setOnline(JSON.parse(e.newValue || '{}')?.isOnline || false); } catch { setOnline(false); } } };
+    window.addEventListener('storage', handler); return () => window.removeEventListener('storage', handler);
   }, []);
 
-  const fetchWorkerStats = useCallback(async () => {
-    if (!aliveRef.current) return;
-    try {
-      const { data } = await supabase.from('worker_locations').select('worker_id').eq('is_online', true).limit(100);
-      if (data && aliveRef.current) setNearbyCount(data.length);
-    } catch {}
-  }, []);
-
+  const fetchWorkerStats = useCallback(async () => { if (!aliveRef.current) return; try { const { data } = await supabase.from('worker_locations').select('worker_id').eq('is_online', true).limit(100); if (data && aliveRef.current) setNearbyCount(data.length); } catch {} }, []);
   const getLocation = useCallback(async (): Promise<LocationData | null> => {
-    if (navigator?.geolocation) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000, enableHighAccuracy: false })
-        );
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc); fetchWorkerStats(); return loc;
-      } catch {}
-    }
-    const fb = DEFAULT_LOC[country] || DEFAULT_LOC.qa;
-    setUserLocation(fb); fetchWorkerStats(); return fb;
+    if (navigator?.geolocation) { try { const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000, enableHighAccuracy: false })); const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setUserLocation(loc); fetchWorkerStats(); return loc; } catch {} }
+    const fb = DEFAULT_LOC[country] || DEFAULT_LOC.qa; setUserLocation(fb); fetchWorkerStats(); return fb;
   }, [country, fetchWorkerStats]);
-
   useEffect(() => { if (!mountedRef.current) { mountedRef.current = true; getLocation(); } }, [getLocation]);
 
   const toggleOnline = useCallback(async () => {
     if (authLoading || lockRef.current) return;
     if (!isAuthenticated || !profile?.id) { showToast(tr.loginToGoOnline, 'info'); router.push(`/${country}/${lang}/login`); return; }
-    lockRef.current = true; const next = !online;
-    setOnline(next); setLoading(true);
+    lockRef.current = true; const next = !online; setOnline(next); setLoading(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: next, userId: profile.id, timestamp: Date.now() }));
-    try {
-      await supabase.from('profiles').update({ is_online: next, last_online: new Date().toISOString() }).eq('id', profile.id);
-      showToast(next ? tr.on : tr.off);
-    } catch {
-      setOnline(!next); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !next, userId: profile.id, timestamp: Date.now() }));
-      showToast(tr.error, 'error');
-    } finally { setLoading(false); setTimeout(() => lockRef.current = false, 300); }
+    try { await supabase.from('profiles').update({ is_online: next, last_online: new Date().toISOString() }).eq('id', profile.id); showToast(next ? tr.on : tr.off); }
+    catch { setOnline(!next); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !next, userId: profile.id, timestamp: Date.now() })); showToast(tr.error, 'error'); }
+    finally { setLoading(false); setTimeout(() => lockRef.current = false, 300); }
   }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
   const handleQuickHire = useCallback(async () => {
-    if (authLoading || lockRef.current) return;
-    lockRef.current = true; setIsHiring(true);
+    if (authLoading || lockRef.current) return; lockRef.current = true; setIsHiring(true);
     if (!online) { showToast(tr.goOnlineFirst, 'warning'); setIsHiring(false); lockRef.current = false; return; }
     if (!isAuthenticated) { showToast(tr.loginRequired, 'warning'); router.push(`/${country}/${lang}/login`); setIsHiring(false); lockRef.current = false; return; }
-    const loc = await getLocation();
-    if (!loc) { showToast(tr.locationDenied, 'error'); setIsHiring(false); lockRef.current = false; return; }
-    setShowMap(true); setIsHiring(false);
-    setTimeout(() => lockRef.current = false, 300);
+    const loc = await getLocation(); if (!loc) { showToast(tr.locationDenied, 'error'); setIsHiring(false); lockRef.current = false; return; }
+    setShowMap(true); setIsHiring(false); setTimeout(() => lockRef.current = false, 300);
   }, [authLoading, online, isAuthenticated, tr, country, lang, router, getLocation]);
 
-  // ✅ Worker Tap → BookingForm
   const handleWorkerSelect = useCallback((worker: any) => {
-    setSelectedWorker({
-      worker_id: worker.worker_id,
-      profile: worker.profile,
-      latitude: worker.latitude,
-      longitude: worker.longitude,
-      distance: worker.distance,
-      eta: worker.eta,
-      price_estimate: worker.price_estimate || worker.profile?.expected_salary || '100',
-    });
+    setSelectedWorker({ worker_id: worker.worker_id, profile: worker.profile, latitude: worker.latitude, longitude: worker.longitude, distance: worker.distance, eta: worker.eta, price_estimate: worker.price_estimate || worker.profile?.expected_salary || '100' });
     setShowBookingForm(true);
   }, []);
 
   const handleBookingFormClose = useCallback(() => {
-    setShowBookingForm(false);
-    // BookingForm submit হলে waiting state
-    setBookingState('waiting');
-    setShowMap(false);
-    
-    // Realtime listen for worker response
+    setShowBookingForm(false); setBookingState('waiting'); setShowMap(false);
+    showToast(tr.offerSent, 'success');
     if (selectedWorker?.worker_id && profile?.id) {
-      const channel = supabase.channel(`booking-response-${selectedWorker.worker_id}-${profile.id}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', 
-          filter: `worker_id=eq.${selectedWorker.worker_id}` },
-          (payload: any) => {
-            const status = payload.new?.status;
-            if (status === 'accepted') { setBookingState('accepted'); showToast(tr.workerAccepted, 'success'); }
-            else if (status === 'rejected') { setBookingState('rejected'); showToast(tr.workerRejected, 'error'); }
-          }).subscribe();
+      const channel = supabase.channel(`booking-${selectedWorker.worker_id}-${Date.now()}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `worker_id=eq.${selectedWorker.worker_id}` },
+          (payload: any) => { const status = payload.new?.status; if (status === 'accepted') { setBookingState('accepted'); showToast(tr.workerAccepted, 'success'); } else if (status === 'rejected') { setBookingState('rejected'); showToast(tr.workerRejected, 'error'); } }).subscribe();
       bookingChannelRef.current = channel;
     }
   }, [selectedWorker, profile, tr]);
@@ -330,16 +265,13 @@ export default function HomeTabs({ country, lang }: Props) {
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim() || !selectedWorker || !profile) return;
-    try {
-      await supabase.from('chat_messages').insert({ sender_id: profile.id, receiver_id: selectedWorker.worker_id, message: newMessage });
-      setMessages(prev => [...prev, { sender: 'me', text: newMessage }]); setNewMessage('');
-    } catch {}
+    try { await supabase.from('chat_messages').insert({ sender_id: profile.id, receiver_id: selectedWorker.worker_id, message: newMessage }); setMessages(prev => [...prev, { sender: 'me', text: newMessage }]); setNewMessage(''); } catch {}
   }, [newMessage, selectedWorker, profile]);
 
   const handleSOS = useCallback(async () => {
     if (!userLocation || !profile) return;
-    try { await supabase.from('emergency_alerts').insert({ user_id: profile.id, location_text: `${userLocation.lat},${userLocation.lng}`, type: 'sos' }); showToast(tr.emergency + ' ' + tr.suggestions, 'warning'); } catch {}
-  }, [userLocation, profile, tr]);
+    try { await supabase.from('emergency_alerts').insert({ user_id: profile.id, location_text: `${userLocation.lat},${userLocation.lng}`, type: 'sos' }); showToast('SOS Alert Sent!', 'warning'); } catch {}
+  }, [userLocation, profile]);
 
   const handleShare = useCallback(() => {
     if (!userLocation) return;
@@ -348,16 +280,10 @@ export default function HomeTabs({ country, lang }: Props) {
     else { navigator.clipboard.writeText(url); showToast(tr.shareTrip + '!', 'info'); }
   }, [userLocation, tr]);
 
-  // ═══════════════════════════════════════════════
-  // 🎨 RENDER
-  // ═══════════════════════════════════════════════
   return (
     <div className="space-y-3">
-      {/* Top Buttons */}
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={handleQuickHire} disabled={isHiring}
-          className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl px-3 py-2.5 text-white text-left transition-all active:scale-95 w-full disabled:opacity-50 hover:shadow-lg"
-          style={{ minHeight: '48px' }}>
+        <button onClick={handleQuickHire} disabled={isHiring} className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl px-3 py-2.5 text-white text-left transition-all active:scale-95 w-full disabled:opacity-50 hover:shadow-lg" style={{ minHeight: '48px' }}>
           {isHiring ? <Loader2 size={18} className="mb-1 animate-spin" /> : <Zap size={18} className="mb-1" />}
           <p className="text-sm font-bold">{tr.quickHire}</p>
           <p className="text-[10px] opacity-80">{nearbyCount > 0 ? `${nearbyCount} ${tr.workersNearby}` : tr.locating}</p>
@@ -365,42 +291,30 @@ export default function HomeTabs({ country, lang }: Props) {
         <OnlineBtn {...{ online, loading, isAuth: isAuthenticated, authLoading, onClick: toggleOnline, tr }} />
       </div>
 
-      {/* MAP + CATEGORY FILTER */}
       {showMap && userLocation && (
         <div className="space-y-2">
           <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
             <Filter size={14} className="text-gray-400 shrink-0" />
             {ALL_CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selectedCategory === cat.id ? 'bg-blue-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                {getCatName(cat, lang)}
-              </button>
+              <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selectedCategory === cat.id ? 'bg-blue-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{getCatName(cat, lang)}</button>
             ))}
           </div>
           <div className="relative rounded-xl overflow-hidden border shadow-sm" style={{ minHeight: '300px', maxHeight: '350px' }}>
-            <button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90">
-              <X size={16} className="text-gray-600" />
-            </button>
+            <button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90"><X size={16} className="text-gray-600" /></button>
             <LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} onClose={handleCloseMap} onQuickHire={handleWorkerSelect} />
           </div>
         </div>
       )}
 
-      {/* 📋 BOOKING FORM */}
+      {/* ✅ FULL SCREEN BOOKING FORM (Option B) */}
       {showBookingForm && selectedWorker && (
         <BookingForm
           worker={{
-            id: selectedWorker.worker_id,
-            name: selectedWorker.profile?.name || 'Worker',
-            category: selectedWorker.profile?.category || 'General',
-            photo_url: selectedWorker.profile?.photo_url || '',
-            rating: selectedWorker.profile?.rating || 0,
-            expected_salary: String(selectedWorker.price_estimate || selectedWorker.profile?.expected_salary || '100'),
-            phone: selectedWorker.profile?.phone || '',
-            latitude: selectedWorker.latitude,
-            longitude: selectedWorker.longitude,
-            distance: selectedWorker.distance,
-            eta: selectedWorker.eta,
+            id: selectedWorker.worker_id, name: selectedWorker.profile?.name || 'Worker',
+            category: selectedWorker.profile?.category || 'General', photo_url: selectedWorker.profile?.photo_url || '',
+            rating: selectedWorker.profile?.rating || 0, expected_salary: String(selectedWorker.price_estimate || ''),
+            phone: selectedWorker.profile?.phone || '', latitude: selectedWorker.latitude,
+            longitude: selectedWorker.longitude, distance: selectedWorker.distance, eta: selectedWorker.eta,
           }}
           isOpen={showBookingForm}
           onClose={handleBookingFormClose}
@@ -409,13 +323,11 @@ export default function HomeTabs({ country, lang }: Props) {
         />
       )}
 
-      {/* ⏳ WAITING */}
+      {/* Waiting Modal */}
       {bookingState === 'waiting' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 animate-bounce-in" onClick={e => e.stopPropagation()}>
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-              <Loader2 size={36} className="animate-spin text-blue-500" />
-            </div>
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><Loader2 size={36} className="animate-spin text-blue-500" /></div>
             <h3 className="font-bold text-lg">{tr.waitingAccept}</h3>
             <p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} is reviewing your booking</p>
             <button onClick={handleCloseBooking} className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl">{tr.cancelBooking}</button>
@@ -423,19 +335,14 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* 🎉 ACCEPTED */}
+      {/* Accepted Modal */}
       {bookingState === 'accepted' && selectedWorker && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}>
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-            </div>
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto"><svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg></div>
             <h3 className="font-bold text-xl text-green-700">{tr.workerAccepted}</h3>
             <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2">
-              <div className="flex items-center gap-3">
-                {selectedWorker.profile?.photo_url ? <img src={selectedWorker.profile.photo_url} className="w-12 h-12 rounded-full" /> : <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"><Users size={20} /></div>}
-                <div><p className="font-bold">{selectedWorker.profile?.name}</p><p className="text-sm text-gray-500">{selectedWorker.profile?.category}</p></div>
-              </div>
+              <div className="flex items-center gap-3">{selectedWorker.profile?.photo_url ? <img src={selectedWorker.profile.photo_url} className="w-12 h-12 rounded-full" /> : <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"><Users size={20} /></div>}<div><p className="font-bold">{selectedWorker.profile?.name}</p><p className="text-sm text-gray-500">{selectedWorker.profile?.category}</p></div></div>
               <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t"><Clock size={14} /><span>{tr.arrivingIn} ~{selectedWorker.eta || 15} {tr.min}</span></div>
             </div>
             <div className="space-y-2">
@@ -448,33 +355,20 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* ❌ REJECTED */}
+      {/* Rejected Modal */}
       {bookingState === 'rejected' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}>
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-            </div>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto"><svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></div>
             <h3 className="font-bold text-xl text-red-700">{tr.workerRejected}</h3>
             <p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} rejected your booking</p>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left text-sm text-amber-800">
-              <p className="font-semibold">💡 {tr.suggestions}:</p>
-              <ul className="list-disc list-inside mt-1 text-xs space-y-1">
-                <li>Try increasing your offered amount</li>
-                <li>Check worker&apos;s expected salary</li>
-                <li>Find another nearby worker</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <button onClick={() => { setBookingState('idle'); setSelectedWorker(null); setShowMap(true); }}
-                className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]">🔍 {tr.findOthers}</button>
-            </div>
+            <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800 text-left"><p className="font-semibold">💡 {tr.suggestions}:</p><ul className="list-disc list-inside mt-1 text-xs space-y-1"><li>Try increasing your offered amount</li><li>Find another nearby worker</li></ul></div>
+            <button onClick={() => { setBookingState('idle'); setSelectedWorker(null); setShowMap(true); }} className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]">🔍 {tr.findOthers}</button>
             <button onClick={handleCloseBooking} className="text-gray-400 text-sm">{tr.close}</button>
           </div>
         </div>
       )}
 
-      {/* Tracking */}
       {bookingState === 'tracking' && selectedWorker && (
         <div className="bg-white rounded-2xl border shadow-lg p-4 space-y-3">
           <div className="flex items-center justify-between"><h4 className="font-bold">{tr.trackLive}</h4><span className="text-sm text-blue-600 font-medium">{selectedWorker.eta || 15} {tr.min}</span></div>
@@ -486,46 +380,23 @@ export default function HomeTabs({ country, lang }: Props) {
         </div>
       )}
 
-      {/* SOS & Share */}
       {showMap && (
         <div className="flex gap-2">
-          <button onClick={handleSOS} className="flex-1 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95">
-            <AlertTriangle size={14} />{tr.emergency}
-          </button>
-          <button onClick={handleShare} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95">
-            <Share2 size={14} />{tr.shareTrip}
-          </button>
+          <button onClick={handleSOS} className="flex-1 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95"><AlertTriangle size={14} />{tr.emergency}</button>
+          <button onClick={handleShare} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95"><Share2 size={14} />{tr.shareTrip}</button>
         </div>
       )}
 
-      {/* Chat Modal */}
       {showChat && selectedWorker && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowChat(false)}>
           <div className="bg-white rounded-t-2xl w-full max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 border-b">
-              <div className="flex items-center gap-2">
-                {selectedWorker.profile?.photo_url && <img src={selectedWorker.profile.photo_url} className="w-8 h-8 rounded-full" />}
-                <span className="font-bold">{selectedWorker.profile?.name || 'Worker'}</span>
-              </div>
-              <button onClick={() => setShowChat(false)}><X size={20} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[200px]">
-              {messages.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">Start conversation...</p>}
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] p-3 rounded-2xl ${m.sender === 'me' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{m.text}</div>
-                </div>
-              ))}
-            </div>
-            <div className="p-4 border-t flex gap-2">
-              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type..." className="flex-1 p-3 border rounded-xl text-sm" />
-              <button onClick={handleSendMessage} className="px-5 py-3 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} /></button>
-            </div>
+            <div className="flex justify-between items-center p-4 border-b"><div className="flex items-center gap-2">{selectedWorker.profile?.photo_url && <img src={selectedWorker.profile.photo_url} className="w-8 h-8 rounded-full" />}<span className="font-bold">{selectedWorker.profile?.name || 'Worker'}</span></div><button onClick={() => setShowChat(false)}><X size={20} /></button></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[200px]">{messages.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">Start conversation...</p>}{messages.map((m, i) => (<div key={i} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[70%] p-3 rounded-2xl ${m.sender === 'me' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{m.text}</div></div>))}</div>
+            <div className="p-4 border-t flex gap-2"><input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type..." className="flex-1 p-3 border rounded-xl text-sm" /><button onClick={handleSendMessage} className="px-5 py-3 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} /></button></div>
           </div>
         </div>
       )}
 
-      {/* Worker Listener */}
       {isAuthenticated && profile?.id && userLocation && (
         <WorkerBookingListener workerId={profile.id} workerLat={userLocation.lat} workerLng={userLocation.lng} lang={lang} isOnline={online} />
       )}
