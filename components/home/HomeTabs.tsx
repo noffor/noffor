@@ -1,21 +1,14 @@
 // components/home/HomeTabs.tsx
-// 🚀 SUPER SONIC • 42 CATEGORIES • 4 LANGUAGES • UBER GRADE
-// ✅ ALL CATEGORIES TRANSLATED - EN/BN/AR/HI
-// ✅ ZERO CRASH • 1 BILLION USERS READY
-
+// 🚀 PRODUCTION READY • 42 CATEGORIES • 4 LANGUAGES • BOOKING FORM • ACCEPT/REJECT
+// ✅ Quick Hire → Map + Filter → Worker Tap → BookingForm → Submit → Waiting → Accept/Reject
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Wifi, WifiOff, X, Loader2, LogIn, Shield, Zap,
-  MapPin, Clock, Star, MessageCircle, Phone, Share2,
-  AlertTriangle, Calendar, Navigation, Users, ShieldAlert,
-  CheckCircle, Send, Car, Home, Droplets, Paintbrush,
-  Wrench, HardHat, Truck, Utensils, Sparkles, Leaf,
-  UserCheck, Briefcase, Monitor, Camera, Scissors,
-  Settings, Thermometer, Heart, PenTool, ShoppingCart,
-  FileText, GraduationCap
+  Clock, Star, MessageCircle, Phone, Share2,
+  AlertTriangle, Users, MapPin, Filter
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -23,26 +16,9 @@ import WorkerBookingListener from '@/components/worker/WorkerBookingListener';
 import LiveWorkerMap from '@/components/map/LiveWorkerMap';
 import BookingForm from '@/components/BookingForm';
 
-// ═══════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════
 interface Props { country: string; lang: string; }
 interface LocationData { lat: number; lng: number; }
-interface WorkerData {
-  id: string; worker_id: string; name: string; phone?: string;
-  category: string; photo_url: string; rating: number;
-  total_jobs: number; distance: number; eta: number;
-  price_estimate: number; latitude: number; longitude: number;
-  is_verified: boolean; skills: string[];
-}
-interface ServiceType {
-  id: string; icon: any; base_price: number;
-  price_per_km: number; estimated_time: string; workers_available: number;
-}
 
-// ═══════════════════════════════════════════════
-// CONSTANTS
-// ═══════════════════════════════════════════════
 const STORAGE_KEY = 'noffor_employer_online';
 
 const DEFAULT_LOC: Record<string, LocationData> = {
@@ -51,190 +27,128 @@ const DEFAULT_LOC: Record<string, LocationData> = {
   bh: { lat: 26.0667, lng: 50.5577 }, om: { lat: 23.5880, lng: 58.3829 },
 };
 
-// ✅ ৪২ ক্যাটাগরি - সব ভাষায় অনুবাদ
-const CATEGORY_NAMES: Record<string, Record<string, string>> = {
-  driver: { en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
-  electrician: { en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
-  plumber: { en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
-  mason: { en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
-  ac_technician: { en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
-  painter: { en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
-  carpenter: { en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
-  welder: { en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
-  cleaner: { en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
-  cook: { en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
-  helper: { en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
-  gardener: { en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
-  housemaid: { en: 'Housemaid', bn: 'গৃহকর্মী', ar: 'خادمة', hi: 'हाउसमेड' },
-  nanny: { en: 'Nanny', bn: 'আয়া', ar: 'مربية', hi: 'नैनी' },
-  office_assistant: { en: 'Office Assistant', bn: 'অফিস সহকারী', ar: 'مساعد مكتبي', hi: 'ऑफिस असिस्टेंट' },
-  receptionist: { en: 'Receptionist', bn: 'রিসেপশনিস্ট', ar: 'موظف استقبال', hi: 'रिसेप्शनिस्ट' },
-  salesman: { en: 'Salesman', bn: 'সেলসম্যান', ar: 'بائع', hi: 'सेल्समैन' },
-  cashier: { en: 'Cashier', bn: 'ক্যাশিয়ার', ar: 'كاشير', hi: 'कैशियर' },
-  security_guard: { en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
-  nurse: { en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
-  pharmacist: { en: 'Pharmacist', bn: 'ফার্মাসিস্ট', ar: 'صيدلي', hi: 'फार्मासिस्ट' },
-  lab_technician: { en: 'Lab Technician', bn: 'ল্যাব টেকনিশিয়ান', ar: 'فني مختبر', hi: 'लैब तकनीशियन' },
-  physiotherapist: { en: 'Physiotherapist', bn: 'ফিজিওথেরাপিস্ট', ar: 'معالج طبيعي', hi: 'फिजियोथेरेपिस्ट' },
-  mechanic: { en: 'Mechanic', bn: 'মেকানিক', ar: 'ميكانيكي', hi: 'मैकेनिक' },
-  tailor: { en: 'Tailor', bn: 'দর্জি', ar: 'خياط', hi: 'दर्जी' },
-  barista: { en: 'Barista', bn: 'বারিস্তা', ar: 'باريستا', hi: 'बरिस्ता' },
-  photographer: { en: 'Photographer', bn: 'ফটোগ্রাফার', ar: 'مصور', hi: 'फोटोग्राफर' },
-  cctv_technician: { en: 'CCTV Technician', bn: 'সিসিটিভি টেকনিশিয়ান', ar: 'فني كاميرات', hi: 'CCTV तकनीशियन' },
-  gypsum_carpenter: { en: 'Gypsum Carpenter', bn: 'জিপসাম কার্পেন্টার', ar: 'نجار جبس', hi: 'जिप्सम कारपेंटर' },
-  tiles_mason: { en: 'Tiles Mason', bn: 'টাইলস মিস্ত্রি', ar: 'عامل تبليط', hi: 'टाइल्स मिस्त्री' },
-  blacksmith: { en: 'Blacksmith', bn: 'কামার', ar: 'حداد', hi: 'लोहार' },
-  general_labour: { en: 'General Labour', bn: 'সাধারণ শ্রমিক', ar: 'عامل عام', hi: 'सामान्य श्रमिक' },
-  steel_fixer: { en: 'Steel Fixer', bn: 'স্টিল ফিক্সার', ar: 'مثبت حديد', hi: 'स्टील फिक्सर' },
-  scaffolder: { en: 'Scaffolder', bn: 'স্ক্যাফোল্ডার', ar: 'عامل سقالات', hi: 'स्कैफोल्डर' },
-  heavy_driver: { en: 'Heavy Driver', bn: 'ভারী ড্রাইভার', ar: 'سائق ثقيل', hi: 'भारी ड्राइवर' },
-  forklift_operator: { en: 'Forklift Operator', bn: 'ফর্কলিফট অপারেটর', ar: 'مشغل رافعة', hi: 'फोर्कलिफ्ट ऑपरेटर' },
-  crane_operator: { en: 'Crane Operator', bn: 'ক্রেন অপারেটর', ar: 'مشغل رافعة', hi: 'क्रेन ऑपरेटर' },
-  pipe_fitter: { en: 'Pipe Fitter', bn: 'পাইপ ফিটার', ar: 'مركب أنابيب', hi: 'पाइप फिटर' },
-  waiter: { en: 'Waiter', bn: 'ওয়েটার', ar: 'نادل', hi: 'वेटर' },
-  hotel_housekeeping: { en: 'Hotel Housekeeping', bn: 'হোটেল হাউসকিপিং', ar: 'تدبير فندقي', hi: 'होटल हाउसकीपिंग' },
-  beautician: { en: 'Beautician', bn: 'বিউটিশিয়ান', ar: 'خبيرة تجميل', hi: 'ब्यूटीशियन' },
-  barber: { en: 'Barber', bn: 'নাপিত', ar: 'حلاق', hi: 'नाई' },
-};
-
-const getCatName = (id: string, lang: string): string => {
-  return CATEGORY_NAMES[id]?.[lang] || CATEGORY_NAMES[id]?.en || id;
-};
-
-const ALL_SERVICE_TYPES: ServiceType[] = [
-  { id: 'driver', icon: Car, base_price: 50, price_per_km: 5, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'electrician', icon: Zap, base_price: 70, price_per_km: 7, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'plumber', icon: Droplets, base_price: 80, price_per_km: 8, estimated_time: '45-90 min', workers_available: 0 },
-  { id: 'mason', icon: HardHat, base_price: 100, price_per_km: 10, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'ac_technician', icon: Thermometer, base_price: 90, price_per_km: 9, estimated_time: '45-90 min', workers_available: 0 },
-  { id: 'painter', icon: Paintbrush, base_price: 100, price_per_km: 10, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'carpenter', icon: Wrench, base_price: 90, price_per_km: 9, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'welder', icon: Settings, base_price: 120, price_per_km: 12, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'cleaner', icon: Sparkles, base_price: 50, price_per_km: 5, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'cook', icon: Utensils, base_price: 60, price_per_km: 6, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'helper', icon: UserCheck, base_price: 40, price_per_km: 4, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'gardener', icon: Leaf, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'housemaid', icon: Home, base_price: 60, price_per_km: 6, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'nanny', icon: Heart, base_price: 60, price_per_km: 6, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'office_assistant', icon: Briefcase, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'receptionist', icon: Monitor, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'salesman', icon: ShoppingCart, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'cashier', icon: FileText, base_price: 45, price_per_km: 4, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'security_guard', icon: Shield, base_price: 55, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'nurse', icon: Heart, base_price: 80, price_per_km: 8, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'pharmacist', icon: Settings, base_price: 70, price_per_km: 7, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'lab_technician', icon: Settings, base_price: 70, price_per_km: 7, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'physiotherapist', icon: Heart, base_price: 80, price_per_km: 8, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'mechanic', icon: Settings, base_price: 80, price_per_km: 8, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'tailor', icon: Scissors, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'barista', icon: Utensils, base_price: 40, price_per_km: 4, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'photographer', icon: Camera, base_price: 100, price_per_km: 10, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'cctv_technician', icon: Camera, base_price: 90, price_per_km: 9, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'gypsum_carpenter', icon: PenTool, base_price: 100, price_per_km: 10, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'tiles_mason', icon: HardHat, base_price: 110, price_per_km: 11, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'blacksmith', icon: Settings, base_price: 100, price_per_km: 10, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'general_labour', icon: UserCheck, base_price: 40, price_per_km: 4, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'steel_fixer', icon: Settings, base_price: 100, price_per_km: 10, estimated_time: '2-4 hours', workers_available: 0 },
-  { id: 'scaffolder', icon: HardHat, base_price: 90, price_per_km: 9, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'heavy_driver', icon: Truck, base_price: 80, price_per_km: 8, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'forklift_operator', icon: Settings, base_price: 70, price_per_km: 7, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'crane_operator', icon: Settings, base_price: 120, price_per_km: 12, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'pipe_fitter', icon: Droplets, base_price: 80, price_per_km: 8, estimated_time: '1-3 hours', workers_available: 0 },
-  { id: 'waiter', icon: Utensils, base_price: 40, price_per_km: 4, estimated_time: '30-60 min', workers_available: 0 },
-  { id: 'hotel_housekeeping', icon: Sparkles, base_price: 50, price_per_km: 5, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'beautician', icon: Sparkles, base_price: 60, price_per_km: 6, estimated_time: '1-2 hours', workers_available: 0 },
-  { id: 'barber', icon: Scissors, base_price: 30, price_per_km: 3, estimated_time: '30-60 min', workers_available: 0 },
+// ═══════════════════════════════════════════════
+// 42 CATEGORIES - 4 LANGUAGES
+// ═══════════════════════════════════════════════
+const ALL_CATEGORIES = [
+  { id: 'all', en: 'All', bn: 'সব', ar: 'الكل', hi: 'सब' },
+  { id: 'Driver', en: 'Driver', bn: 'ড্রাইভার', ar: 'سائق', hi: 'ड्राइवर' },
+  { id: 'Electrician', en: 'Electrician', bn: 'ইলেকট্রিশিয়ান', ar: 'كهربائي', hi: 'इलेक्ट्रीशियन' },
+  { id: 'Plumber', en: 'Plumber', bn: 'প্লাম্বার', ar: 'سباك', hi: 'प्लंबर' },
+  { id: 'Mason', en: 'Mason', bn: 'রাজমিস্ত্রি', ar: 'بناء', hi: 'राजमिस्त्री' },
+  { id: 'AC Technician', en: 'AC Technician', bn: 'এসি টেকনিশিয়ান', ar: 'فني تكييف', hi: 'एसी तकनीशियन' },
+  { id: 'Painter', en: 'Painter', bn: 'পেইন্টার', ar: 'دهان', hi: 'पेंटर' },
+  { id: 'Carpenter', en: 'Carpenter', bn: 'কার্পেন্টার', ar: 'نجار', hi: 'बढ़ई' },
+  { id: 'Welder', en: 'Welder', bn: 'ওয়েল্ডার', ar: 'لحام', hi: 'वेल्डर' },
+  { id: 'Cleaner', en: 'Cleaner', bn: 'ক্লিনার', ar: 'منظف', hi: 'क्लीनर' },
+  { id: 'Cook', en: 'Cook', bn: 'রাঁধুনি', ar: 'طباخ', hi: 'रसोइया' },
+  { id: 'Helper', en: 'Helper', bn: 'হেল্পার', ar: 'مساعد', hi: 'हेल्पर' },
+  { id: 'Gardener', en: 'Gardener', bn: 'মালী', ar: 'بستاني', hi: 'माली' },
+  { id: 'Housemaid', en: 'Housemaid', bn: 'গৃহকর্মী', ar: 'خادمة', hi: 'हाउसमेड' },
+  { id: 'Nanny', en: 'Nanny', bn: 'আয়া', ar: 'مربية', hi: 'नैनी' },
+  { id: 'Office Assistant', en: 'Office Assistant', bn: 'অফিস সহকারী', ar: 'مساعد مكتبي', hi: 'ऑफिस असिस्टेंट' },
+  { id: 'Receptionist', en: 'Receptionist', bn: 'রিসেপশনিস্ট', ar: 'موظف استقبال', hi: 'रिसेप्शनिस्ट' },
+  { id: 'Salesman', en: 'Salesman', bn: 'সেলসম্যান', ar: 'بائع', hi: 'सेल्समैन' },
+  { id: 'Cashier', en: 'Cashier', bn: 'ক্যাশিয়ার', ar: 'كاشير', hi: 'कैशियर' },
+  { id: 'Security Guard', en: 'Security Guard', bn: 'সিকিউরিটি গার্ড', ar: 'حارس أمن', hi: 'सिक्योरिटी गार्ड' },
+  { id: 'Nurse', en: 'Nurse', bn: 'নার্স', ar: 'ممرض', hi: 'नर्स' },
+  { id: 'Pharmacist', en: 'Pharmacist', bn: 'ফার্মাসিস্ট', ar: 'صيدلي', hi: 'फार्मासिस्ट' },
+  { id: 'Lab Technician', en: 'Lab Technician', bn: 'ল্যাব টেকনিশিয়ান', ar: 'فني مختبر', hi: 'लैब तकनीशियन' },
+  { id: 'Physiotherapist', en: 'Physiotherapist', bn: 'ফিজিওথেরাপিস্ট', ar: 'معالج طبيعي', hi: 'फिजियोथेरेपिस्ट' },
+  { id: 'Mechanic', en: 'Mechanic', bn: 'মেকানিক', ar: 'ميكانيكي', hi: 'मैकेनिक' },
+  { id: 'Tailor', en: 'Tailor', bn: 'দর্জি', ar: 'خياط', hi: 'दर्जी' },
+  { id: 'Barista', en: 'Barista', bn: 'বারিস্তা', ar: 'باريستا', hi: 'बरिस्ता' },
+  { id: 'Photographer', en: 'Photographer', bn: 'ফটোগ্রাফার', ar: 'مصور', hi: 'फोटोग्राफर' },
+  { id: 'CCTV Technician', en: 'CCTV Technician', bn: 'সিসিটিভি টেকনিশিয়ান', ar: 'فني كاميرات', hi: 'CCTV तकनीशियन' },
+  { id: 'Gypsum Carpenter', en: 'Gypsum Carpenter', bn: 'জিপসাম কার্পেন্টার', ar: 'نجار جبس', hi: 'जिप्सम कारपेंटर' },
+  { id: 'Tiles Mason', en: 'Tiles Mason', bn: 'টাইলস মিস্ত্রি', ar: 'عامل تبليط', hi: 'टाइल्स मिस्त्री' },
+  { id: 'Blacksmith', en: 'Blacksmith', bn: 'কামার', ar: 'حداد', hi: 'लोहार' },
+  { id: 'General Labour', en: 'General Labour', bn: 'সাধারণ শ্রমিক', ar: 'عامل عام', hi: 'सामान्य श्रमिक' },
+  { id: 'Steel Fixer', en: 'Steel Fixer', bn: 'স্টিল ফিক্সার', ar: 'مثبت حديد', hi: 'स्टील फिक्सर' },
+  { id: 'Scaffolder', en: 'Scaffolder', bn: 'স্ক্যাফোল্ডার', ar: 'عامل سقالات', hi: 'स्कैफोल्डर' },
+  { id: 'Heavy Driver', en: 'Heavy Driver', bn: 'ভারী ড্রাইভার', ar: 'سائق ثقيل', hi: 'भारी ड्राइवर' },
+  { id: 'Forklift Operator', en: 'Forklift Operator', bn: 'ফর্কলিফট অপারেটর', ar: 'مشغل رافعة', hi: 'फोर्कलिफ्ट ऑपरेटर' },
+  { id: 'Crane Operator', en: 'Crane Operator', bn: 'ক্রেন অপারেটর', ar: 'مشغل رافعة', hi: 'क्रेन ऑपरेटर' },
+  { id: 'Pipe Fitter', en: 'Pipe Fitter', bn: 'পাইপ ফিটার', ar: 'مركب أنابيب', hi: 'पाइप फिटर' },
+  { id: 'Waiter', en: 'Waiter', bn: 'ওয়েটার', ar: 'نادل', hi: 'वेटर' },
+  { id: 'Hotel Housekeeping', en: 'Hotel Housekeeping', bn: 'হোটেল হাউসকিপিং', ar: 'تدبير فندقي', hi: 'होटल हाउसकीपिंग' },
+  { id: 'Beautician', en: 'Beautician', bn: 'বিউটিশিয়ান', ar: 'خبيرة تجميل', hi: 'ब्यूटीशियन' },
+  { id: 'Barber', en: 'Barber', bn: 'নাপিত', ar: 'حلاق', hi: 'नाई' },
 ];
+
+const getCatName = (cat: any, lang: string): string => (cat as any)[lang] || cat.en;
 
 // ═══════════════════════════════════════════════
 // TRANSLATIONS
 // ═══════════════════════════════════════════════
 const T: Record<string, Record<string, string>> = {
   en: {
-    quickHire: '⚡ Quick Hire', online: 'Go Online', offline: 'Go Offline',
-    on: 'ON', off: 'OFF', closeMap: 'Close Map', error: 'Error',
+    quickHire: '⚡ Quick Hire', online: 'Online', offline: 'Offline',
+    on: 'ON', off: 'OFF', closeMap: 'Close', error: 'Error',
     loginToGoOnline: 'Login', locationDenied: 'Location denied',
-    goOnlineFirst: 'Go online first', findingWorker: 'Finding worker...',
-    bookingCreated: 'Worker assigned!', bookingFailed: 'Booking failed',
-    selectService: 'Select Service', bookNow: 'Book Now',
-    surgePricing: 'High demand', workerArriving: 'Arriving in',
-    cancelBooking: 'Cancel', chatWithWorker: 'Chat', callWorker: 'Call',
-    shareTrip: 'Share', emergency: 'SOS', cash: 'Cash', card: 'Card',
-    wallet: 'Wallet', total: 'Total', min: 'min', km: 'km', away: 'away',
-    jobs: 'jobs', verified: 'Verified', nearby: 'nearby',
-    schedule: 'Schedule', today: 'Today', tomorrow: 'Tomorrow',
-    searching: 'Searching...', noWorkers: 'No workers', tryAgain: 'Retry',
-    phoneRequired: 'Add phone', cancel: 'Cancel', loginRequired: 'Login required',
-    workersNearby: 'nearby', locating: 'Locating...', trackWorker: 'Track',
-    workerFound: 'Worker Found!', promoApplied: 'Applied!',
-    sosSent: 'Alert sent', locationShared: 'Shared', promoCode: 'Promo Code',
-    applyPromo: 'Apply',
+    goOnlineFirst: 'Go online first', cancelBooking: 'Cancel',
+    chatWithWorker: 'Chat', callWorker: 'Call', shareTrip: 'Share',
+    emergency: 'SOS', min: 'min', km: 'km', away: 'away',
+    workersNearby: 'nearby', locating: 'Locating...',
+    loginRequired: 'Login required', filterBy: 'Filter:',
+    waitingAccept: 'Waiting for worker to accept...',
+    workerAccepted: '🎉 Worker Accepted!', workerRejected: '❌ Worker Rejected',
+    arrivingIn: 'Arriving in', trackLive: 'Track Live',
+    offerHigher: 'Send New Offer', findOthers: 'Find Other Workers',
+    suggestions: 'Suggestions', close: 'Close',
+    tapWorker: '👆 Tap a worker to book', noWorkers: 'No workers nearby',
   },
   bn: {
     quickHire: '⚡ কুইক হায়ার', online: 'অনলাইন', offline: 'অফলাইন',
     on: 'চালু', off: 'বন্ধ', closeMap: 'বন্ধ', error: 'ত্রুটি',
     loginToGoOnline: 'লগইন', locationDenied: 'লোকেশন নাই',
-    goOnlineFirst: 'অনলাইন হোন', findingWorker: 'শ্রমিক খুঁজছে...',
-    bookingCreated: 'শ্রমিক পেয়েছে!', bookingFailed: 'ব্যর্থ',
-    selectService: 'সেবা নির্বাচন', bookNow: 'বুক করুন',
-    surgePricing: 'অতিরিক্ত চাহিদা', workerArriving: 'আসছে',
-    cancelBooking: 'বাতিল', chatWithWorker: 'চ্যাট', callWorker: 'কল',
-    shareTrip: 'শেয়ার', emergency: 'জরুরি', cash: 'নগদ', card: 'কার্ড',
-    wallet: 'ওয়ালেট', total: 'মোট', min: 'মিনিট', km: 'কিমি', away: 'দূরে',
-    jobs: 'কাজ', verified: 'ভেরিফাইড', nearby: 'কাছাকাছি',
-    schedule: 'সময়', today: 'আজ', tomorrow: 'কাল',
-    searching: 'খুঁজছে...', noWorkers: 'নেই', tryAgain: 'আবার',
-    phoneRequired: 'ফোন দিন', cancel: 'বাতিল', loginRequired: 'লগইন',
-    workersNearby: 'কাছে', locating: 'খুঁজছে...', trackWorker: 'ট্র্যাক',
-    workerFound: 'পাওয়া গেছে!', promoApplied: 'প্রয়োগ!',
-    sosSent: 'সতর্কতা', locationShared: 'শেয়ার', promoCode: 'প্রোমো কোড',
-    applyPromo: 'প্রয়োগ',
+    goOnlineFirst: 'অনলাইন হোন', cancelBooking: 'বাতিল',
+    chatWithWorker: 'চ্যাট', callWorker: 'কল', shareTrip: 'শেয়ার',
+    emergency: 'জরুরি', min: 'মিনিট', km: 'কিমি', away: 'দূরে',
+    workersNearby: 'কাছে', locating: 'খুঁজছে...',
+    loginRequired: 'লগইন', filterBy: 'ফিল্টার:',
+    waitingAccept: 'শ্রমিকের গ্রহণের অপেক্ষায়...',
+    workerAccepted: '🎉 শ্রমিক রাজি!', workerRejected: '❌ শ্রমিক রাজি নয়',
+    arrivingIn: 'আসছেন', trackLive: 'ট্র্যাক',
+    offerHigher: 'নতুন অফার', findOthers: 'অন্য শ্রমিক খুঁজুন',
+    suggestions: 'পরামর্শ', close: 'বন্ধ',
+    tapWorker: '👆 বুক করতে ট্যাপ', noWorkers: 'শ্রমিক নেই',
   },
   ar: {
     quickHire: '⚡ توظيف', online: 'متصل', offline: 'غير متصل',
     on: 'ON', off: 'OFF', closeMap: 'إغلاق', error: 'خطأ',
     loginToGoOnline: 'دخول', locationDenied: 'موقع مرفوض',
-    goOnlineFirst: 'اتصل أولاً', findingWorker: 'بحث...',
-    bookingCreated: 'تم!', bookingFailed: 'فشل',
-    selectService: 'اختر', bookNow: 'احجز',
-    surgePricing: 'طلب عالي', workerArriving: 'قادم',
-    cancelBooking: 'إلغاء', chatWithWorker: 'محادثة', callWorker: 'اتصال',
-    shareTrip: 'مشاركة', emergency: 'طوارئ', cash: 'نقداً', card: 'بطاقة',
-    wallet: 'محفظة', total: 'المجموع', min: 'دقيقة', km: 'كم', away: 'بعيد',
-    jobs: 'عمل', verified: 'موثق', nearby: 'قريب',
-    schedule: 'جدولة', today: 'اليوم', tomorrow: 'غداً',
-    searching: 'بحث...', noWorkers: 'لا يوجد', tryAgain: 'إعادة',
-    phoneRequired: 'أضف هاتف', cancel: 'إلغاء', loginRequired: 'دخول',
-    workersNearby: 'قريب', locating: 'تحديد...', trackWorker: 'تتبع',
-    workerFound: 'تم العثور!', promoApplied: 'تم!',
-    sosSent: 'تم الإرسال', locationShared: 'تم', promoCode: 'كود خصم',
-    applyPromo: 'تطبيق',
+    goOnlineFirst: 'اتصل أولاً', cancelBooking: 'إلغاء',
+    chatWithWorker: 'محادثة', callWorker: 'اتصال', shareTrip: 'مشاركة',
+    emergency: 'طوارئ', min: 'دقيقة', km: 'كم', away: 'بعيد',
+    workersNearby: 'قريب', locating: 'تحديد...',
+    loginRequired: 'دخول', filterBy: 'تصفية:',
+    waitingAccept: 'بانتظار قبول العامل...',
+    workerAccepted: '🎉 قبل العامل!', workerRejected: '❌ رفض العامل',
+    arrivingIn: 'قادم', trackLive: 'تتبع',
+    offerHigher: 'عرض جديد', findOthers: 'ابحث عن غيرهم',
+    suggestions: 'اقتراحات', close: 'إغلاق',
+    tapWorker: '👆 اضغط للحجز', noWorkers: 'لا يوجد',
   },
   hi: {
-    quickHire: '⚡ क्विक', online: 'ऑनलाइन', offline: 'ऑफलाइन',
+    quickHire: '⚡ क्विक', online: 'ऑनलाइन', offline: 'ऑफ',
     on: 'चालू', off: 'बंद', closeMap: 'बंद', error: 'त्रुटि',
     loginToGoOnline: 'लॉगिन', locationDenied: 'लोकेशन नहीं',
-    goOnlineFirst: 'ऑनलाइन हों', findingWorker: 'खोज...',
-    bookingCreated: 'मिल गया!', bookingFailed: 'विफल',
-    selectService: 'सेवा', bookNow: 'बुक करें',
-    surgePricing: 'अधिक मांग', workerArriving: 'आ रहा',
-    cancelBooking: 'रद्द', chatWithWorker: 'चैट', callWorker: 'कॉल',
-    shareTrip: 'शेयर', emergency: 'SOS', cash: 'नकद', card: 'कार्ड',
-    wallet: 'वॉलेट', total: 'कुल', min: 'मिनट', km: 'किमी', away: 'दूर',
-    jobs: 'काम', verified: 'सत्यापित', nearby: 'पास',
-    schedule: 'शेड्यूल', today: 'आज', tomorrow: 'कल',
-    searching: 'खोज...', noWorkers: 'नहीं', tryAgain: 'फिर से',
-    phoneRequired: 'फोन डालें', cancel: 'रद्द', loginRequired: 'लॉगिन',
-    workersNearby: 'पास', locating: 'ढूंढ...', trackWorker: 'ट्रैक',
-    workerFound: 'मिल गया!', promoApplied: 'लागू!',
-    sosSent: 'भेजा', locationShared: 'शेयर', promoCode: 'प्रोमो कोड',
-    applyPromo: 'लागू',
+    goOnlineFirst: 'ऑनलाइन हों', cancelBooking: 'रद्द',
+    chatWithWorker: 'चैट', callWorker: 'कॉल', shareTrip: 'शेयर',
+    emergency: 'SOS', min: 'मिनट', km: 'किमी', away: 'दूर',
+    workersNearby: 'पास', locating: 'ढूंढ...',
+    loginRequired: 'लॉगिन', filterBy: 'फ़िल्टर:',
+    waitingAccept: 'श्रमिक की प्रतीक्षा...',
+    workerAccepted: '🎉 श्रमिक राजी!', workerRejected: '❌ इनकार',
+    arrivingIn: 'आ रहे', trackLive: 'ट्रैक',
+    offerHigher: 'नया ऑफर', findOthers: 'दूसरे खोजें',
+    suggestions: 'सुझाव', close: 'बंद',
+    tapWorker: '👆 बुक करें', noWorkers: 'नहीं',
   },
 };
 
-// ═══════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════
+// Utilities
 let toastId = 0;
 const showToast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
   if (typeof document === 'undefined') return;
@@ -243,24 +157,10 @@ const showToast = (msg: string, type: 'success' | 'error' | 'warning' | 'info' =
   el.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 24px;border-radius:999px;font-size:14px;font-weight:600;color:#fff;background:${colors[type]};box-shadow:0 8px 32px rgba(0,0,0,.3);pointer-events:none;`;
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 2000);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 2500);
 };
 
-const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * 0.0174533;
-  const dLng = (lng2 - lng1) * 0.0174533;
-  const a = Math.sin(dLat * 0.5) ** 2 + Math.cos(lat1 * 0.0174533) * Math.cos(lat2 * 0.0174533) * Math.sin(dLng * 0.5) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
-
-const calcETA = (dist: number): number => Math.max(1, Math.round(dist * 3));
-const calcPrice = (base: number, perKm: number, dist: number, surge: number): number => Math.round((base + dist * perKm) * surge);
-
-// ═══════════════════════════════════════════════
-// MEMOIZED COMPONENTS
-// ═══════════════════════════════════════════════
-
+// Memoized Components
 const OnlineBtn = memo(({ online, loading, isAuth, authLoading, onClick, tr }: any) => (
   <button onClick={onClick} disabled={loading || authLoading}
     className={`rounded-xl px-3 py-2.5 text-left transition-all active:scale-95 w-full ${!isAuth ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' : online ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white' : 'bg-gradient-to-br from-gray-600 to-gray-700 text-white'} ${loading || authLoading ? 'opacity-50' : 'hover:shadow-lg'}`}
@@ -273,19 +173,6 @@ const OnlineBtn = memo(({ online, loading, isAuth, authLoading, onClick, tr }: a
   </button>
 ));
 OnlineBtn.displayName = 'OnlineBtn';
-
-const ServiceCard = memo(({ service, selected, onClick, lang }: { service: ServiceType; selected: boolean; onClick: () => void; lang: string }) => {
-  const Icon = service.icon;
-  return (
-    <button onClick={onClick}
-      className={`relative flex flex-col items-center p-2.5 rounded-xl transition-all active:scale-95 min-w-[72px] ${selected ? 'bg-blue-50 border-2 border-blue-500 shadow-md' : 'bg-white border-2 border-gray-100 hover:border-blue-300'}`}>
-      <Icon size={22} className={selected ? 'text-blue-600' : 'text-gray-600'} />
-      <span className="text-[10px] font-medium mt-1 text-center leading-tight">{getCatName(service.id, lang)}</span>
-      {selected && <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center"><CheckCircle size={10} className="text-white" /></div>}
-    </button>
-  );
-});
-ServiceCard.displayName = 'ServiceCard';
 
 // ═══════════════════════════════════════════════
 // 🚀 MAIN COMPONENT
@@ -307,38 +194,25 @@ export default function HomeTabs({ country, lang }: Props) {
   const [showMap, setShowMap] = useState(false);
   const [isHiring, setIsHiring] = useState(false);
   const [nearbyCount, setNearbyCount] = useState(0);
-  const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
-  const [showServiceSelector, setShowServiceSelector] = useState(false);
-  const [bookingState, setBookingState] = useState<'idle' | 'selecting_service' | 'searching' | 'found' | 'tracking'>('idle');
-  const [selectedWorker, setSelectedWorker] = useState<WorkerData | null>(null);
-  const [surgeMultiplier, setSurgeMultiplier] = useState(1);
-  const [estimatedPrice, setEstimatedPrice] = useState(0);
-  const [workerETA, setWorkerETA] = useState(0);
-  const [workerLocation, setWorkerLocation] = useState<LocationData | null>(null);
-  const [isScheduled, setIsScheduled] = useState(false);
-  const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
-  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet'>('cash');
-  const [isProcessingBooking, setIsProcessingBooking] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const [bookingState, setBookingState] = useState<'idle' | 'waiting' | 'accepted' | 'rejected' | 'tracking'>('idle');
+  const [selectedWorker, setSelectedWorker] = useState<any>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [showBookingForm, setShowBookingForm] = useState(false);
 
   const lockRef = useRef(false);
   const aliveRef = useRef(true);
   const mountedRef = useRef(false);
   const profileSyncedRef = useRef(false);
   const bookingChannelRef = useRef<any>(null);
-  const trackingIntervalRef = useRef<any>(null);
 
   useEffect(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
-      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
       if (bookingChannelRef.current) supabase.removeChannel(bookingChannelRef.current).catch(() => {});
     };
   }, []);
@@ -353,9 +227,7 @@ export default function HomeTabs({ country, lang }: Props) {
       }
     }
     if (!isAuthenticated && !authLoading && profileSyncedRef.current) {
-      profileSyncedRef.current = false;
-      setOnline(false);
-      localStorage.removeItem(STORAGE_KEY);
+      profileSyncedRef.current = false; setOnline(false); localStorage.removeItem(STORAGE_KEY);
     }
   }, [authLoading, isAuthenticated, profile]);
 
@@ -369,224 +241,112 @@ export default function HomeTabs({ country, lang }: Props) {
     return () => window.removeEventListener('storage', handler);
   }, []);
 
-  const fetchWorkerStats = useCallback(async (lat: number, lng: number) => {
+  const fetchWorkerStats = useCallback(async () => {
     if (!aliveRef.current) return;
     try {
-      const { data } = await supabase.from('worker_locations').select('worker_id, latitude, longitude').eq('is_online', true).limit(100);
-      if (!data || !aliveRef.current) return;
-      const nearby = data.filter((w: any) => w.latitude && w.longitude && calcDistance(lat, lng, w.latitude, w.longitude) <= 50);
-      const total = nearby.length;
-      setNearbyCount(total);
-      if (total < 3) setSurgeMultiplier(2.5);
-      else if (total < 5) setSurgeMultiplier(1.8);
-      else if (total < 10) setSurgeMultiplier(1.3);
-      else setSurgeMultiplier(1);
+      const { data } = await supabase.from('worker_locations').select('worker_id').eq('is_online', true).limit(100);
+      if (data && aliveRef.current) setNearbyCount(data.length);
     } catch {}
   }, []);
 
   const getLocation = useCallback(async (): Promise<LocationData | null> => {
-    const key = `loc:${country}`;
-    try {
-      const stored = sessionStorage.getItem(key);
-      if (stored) {
-        const p = JSON.parse(stored);
-        if (Date.now() - p.t < 300000) {
-          setUserLocation({ lat: p.lat, lng: p.lng });
-          fetchWorkerStats(p.lat, p.lng);
-          return { lat: p.lat, lng: p.lng };
-        }
-      }
-    } catch {}
     if (navigator?.geolocation) {
       try {
         const pos = await new Promise<GeolocationPosition>((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000, enableHighAccuracy: false })
         );
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        try { sessionStorage.setItem(key, JSON.stringify({ ...loc, t: Date.now() })); } catch {}
-        setUserLocation(loc);
-        fetchWorkerStats(loc.lat, loc.lng);
-        return loc;
+        setUserLocation(loc); fetchWorkerStats(); return loc;
       } catch {}
     }
     const fb = DEFAULT_LOC[country] || DEFAULT_LOC.qa;
-    setUserLocation(fb);
-    fetchWorkerStats(fb.lat, fb.lng);
-    return fb;
+    setUserLocation(fb); fetchWorkerStats(); return fb;
   }, [country, fetchWorkerStats]);
 
-  useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; getLocation(); }
-  }, [getLocation]);
+  useEffect(() => { if (!mountedRef.current) { mountedRef.current = true; getLocation(); } }, [getLocation]);
 
   const toggleOnline = useCallback(async () => {
     if (authLoading || lockRef.current) return;
     if (!isAuthenticated || !profile?.id) { showToast(tr.loginToGoOnline, 'info'); router.push(`/${country}/${lang}/login`); return; }
-    lockRef.current = true;
-    const next = !online;
-    setOnline(next);
-    setLoading(true);
+    lockRef.current = true; const next = !online;
+    setOnline(next); setLoading(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: next, userId: profile.id, timestamp: Date.now() }));
     try {
       await supabase.from('profiles').update({ is_online: next, last_online: new Date().toISOString() }).eq('id', profile.id);
       showToast(next ? tr.on : tr.off);
     } catch {
-      setOnline(!next);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !next, userId: profile.id, timestamp: Date.now() }));
+      setOnline(!next); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !next, userId: profile.id, timestamp: Date.now() }));
       showToast(tr.error, 'error');
     } finally { setLoading(false); setTimeout(() => lockRef.current = false, 300); }
   }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
-  const handleServiceSelect = useCallback((service: ServiceType) => {
-    setSelectedService(service);
-    if (userLocation) setEstimatedPrice(calcPrice(service.base_price, service.price_per_km, 5, surgeMultiplier));
-  }, [userLocation, surgeMultiplier]);
-
-  const handleQuickHire = useCallback(() => {
+  const handleQuickHire = useCallback(async () => {
     if (authLoading || lockRef.current) return;
-    lockRef.current = true;
-    setIsHiring(true);
+    lockRef.current = true; setIsHiring(true);
     if (!online) { showToast(tr.goOnlineFirst, 'warning'); setIsHiring(false); lockRef.current = false; return; }
     if (!isAuthenticated) { showToast(tr.loginRequired, 'warning'); router.push(`/${country}/${lang}/login`); setIsHiring(false); lockRef.current = false; return; }
-    setShowServiceSelector(true);
-    setBookingState('selecting_service');
-    setIsHiring(false);
+    const loc = await getLocation();
+    if (!loc) { showToast(tr.locationDenied, 'error'); setIsHiring(false); lockRef.current = false; return; }
+    setShowMap(true); setIsHiring(false);
     setTimeout(() => lockRef.current = false, 300);
-  }, [authLoading, online, isAuthenticated, tr, country, lang, router]);
+  }, [authLoading, online, isAuthenticated, tr, country, lang, router, getLocation]);
 
+  // ✅ Worker Tap → BookingForm
   const handleWorkerSelect = useCallback((worker: any) => {
-    if (!userLocation) { showToast(tr.locationDenied, 'error'); return; }
     setSelectedWorker({
-      id: worker.worker_id, worker_id: worker.worker_id,
-      name: worker.profile?.name || 'Worker', phone: worker.profile?.phone || '',
-      category: worker.profile?.category || 'General', photo_url: worker.profile?.photo_url || '',
-      rating: worker.profile?.rating || 0, total_jobs: worker.profile?.total_jobs || 0,
-      distance: worker.distance || 0, eta: worker.eta || 0,
-      price_estimate: worker.price_estimate || 100,
-      latitude: worker.latitude, longitude: worker.longitude,
-      is_verified: worker.profile?.is_verified || false, skills: worker.profile?.skills || [],
+      worker_id: worker.worker_id,
+      profile: worker.profile,
+      latitude: worker.latitude,
+      longitude: worker.longitude,
+      distance: worker.distance,
+      eta: worker.eta,
+      price_estimate: worker.price_estimate || worker.profile?.expected_salary || '100',
     });
     setShowBookingForm(true);
-  }, [userLocation, tr]);
+  }, []);
 
   const handleBookingFormClose = useCallback(() => {
-    if (!isProcessingBooking) { setShowBookingForm(false); setSelectedWorker(null); }
-  }, [isProcessingBooking]);
-
-  const handleBookNow = useCallback(async () => {
-    if (!selectedService || !userLocation || !profile) return;
-    setIsProcessingBooking(true);
-    setBookingState('searching');
-    setShowServiceSelector(false);
-
-    try {
-      const { data: workers } = await supabase.from('worker_locations')
-        .select('*, profiles:worker_id(name, phone, photo_url, rating, total_jobs, is_verified, skills, category)')
-        .eq('is_online', true).limit(50);
-      if (!workers?.length) { showToast(tr.noWorkers, 'error'); setBookingState('idle'); setIsProcessingBooking(false); return; }
-
-      let bestWorker: any = null; let minDist = Infinity;
-      for (const w of workers) {
-        if (!w.latitude || !w.longitude) continue;
-        const dist = calcDistance(userLocation.lat, userLocation.lng, w.latitude, w.longitude);
-        if (dist < minDist) { minDist = dist; bestWorker = w; }
-      }
-      if (!bestWorker) { showToast(tr.noWorkers, 'error'); setBookingState('idle'); setIsProcessingBooking(false); return; }
-
-      const eta = calcETA(minDist);
-      const price = calcPrice(selectedService.base_price, selectedService.price_per_km, minDist, surgeMultiplier) - discount;
-
-      setSelectedWorker({
-        id: bestWorker.worker_id, worker_id: bestWorker.worker_id,
-        name: bestWorker.profiles?.name || 'Worker', phone: bestWorker.profiles?.phone || '',
-        category: bestWorker.profiles?.category || selectedService.id,
-        photo_url: bestWorker.profiles?.photo_url || '', rating: bestWorker.profiles?.rating || 4.5,
-        total_jobs: bestWorker.profiles?.total_jobs || 0, distance: minDist, eta,
-        price_estimate: price, latitude: bestWorker.latitude, longitude: bestWorker.longitude,
-        is_verified: bestWorker.profiles?.is_verified || false, skills: bestWorker.profiles?.skills || [],
-      });
-      setWorkerETA(eta);
-      setEstimatedPrice(price);
-
-      const { data: booking, error } = await supabase.from('bookings').insert({
-        employer_id: profile.id, worker_id: bestWorker.worker_id,
-        employer_location: `POINT(${userLocation.lng} ${userLocation.lat})`,
-        worker_location: `POINT(${bestWorker.longitude} ${bestWorker.latitude})`,
-        status: 'pending', service_type: selectedService.id,
-        price_estimate: price, surge_multiplier: surgeMultiplier,
-        employer_phone: profile.phone, employer_name: profile.name,
-        country, scheduled_time: isScheduled ? scheduledTime : null,
-        payment_method: paymentMethod, job_title: getCatName(selectedService.id, lang),
-        category: selectedService.id, offered_amount: price, total_amount: price,
-        distance_km: minDist, eta_minutes: eta,
-        location_lat: userLocation.lat, location_lng: userLocation.lng,
-        worker_lat: bestWorker.latitude, worker_lon: bestWorker.longitude,
-      }).select().single();
-      if (error) throw error;
-
-      const channel = supabase.channel(`booking-${booking.id}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${booking.id}` },
+    setShowBookingForm(false);
+    // BookingForm submit হলে waiting state
+    setBookingState('waiting');
+    setShowMap(false);
+    
+    // Realtime listen for worker response
+    if (selectedWorker?.worker_id && profile?.id) {
+      const channel = supabase.channel(`booking-response-${selectedWorker.worker_id}-${profile.id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', 
+          filter: `worker_id=eq.${selectedWorker.worker_id}` },
           (payload: any) => {
-            const s = payload.new?.status;
-            if (s === 'accepted') { setBookingState('tracking'); showToast(tr.workerFound, 'success'); }
-            else if (s === 'cancelled') { setBookingState('idle'); showToast('Cancelled', 'warning'); }
+            const status = payload.new?.status;
+            if (status === 'accepted') { setBookingState('accepted'); showToast(tr.workerAccepted, 'success'); }
+            else if (status === 'rejected') { setBookingState('rejected'); showToast(tr.workerRejected, 'error'); }
           }).subscribe();
       bookingChannelRef.current = channel;
+    }
+  }, [selectedWorker, profile, tr]);
 
-      trackingIntervalRef.current = setInterval(async () => {
-        const { data: loc } = await supabase.from('worker_locations').select('latitude, longitude').eq('worker_id', bestWorker.worker_id).single();
-        if (loc && aliveRef.current) {
-          setWorkerLocation({ lat: loc.latitude, lng: loc.longitude });
-          setWorkerETA(calcETA(calcDistance(userLocation.lat, userLocation.lng, loc.latitude, loc.longitude)));
-        }
-      }, 5000);
+  const handleCloseMap = useCallback(() => setShowMap(false), []);
+  const handleCloseBooking = useCallback(() => { setBookingState('idle'); setSelectedWorker(null); }, []);
 
-      setBookingState('found');
-      setTimeout(() => setBookingState('tracking'), 2000);
-    } catch (err: any) {
-      showToast(err.message || tr.bookingFailed, 'error');
-      setBookingState('idle');
-    } finally { setIsProcessingBooking(false); }
-  }, [selectedService, userLocation, profile, surgeMultiplier, isScheduled, scheduledTime, paymentMethod, discount, country, lang, tr]);
-
-  const handleCancelBooking = useCallback(async () => {
-    if (!selectedWorker) return;
+  const handleSendMessage = useCallback(async () => {
+    if (!newMessage.trim() || !selectedWorker || !profile) return;
     try {
-      await supabase.from('bookings').update({ status: 'cancelled' }).eq('worker_id', selectedWorker.worker_id).eq('status', 'pending');
-      setBookingState('idle'); setSelectedWorker(null);
-      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
-      showToast('Cancelled', 'info');
-    } catch { showToast(tr.error, 'error'); }
-  }, [selectedWorker, tr]);
+      await supabase.from('chat_messages').insert({ sender_id: profile.id, receiver_id: selectedWorker.worker_id, message: newMessage });
+      setMessages(prev => [...prev, { sender: 'me', text: newMessage }]); setNewMessage('');
+    } catch {}
+  }, [newMessage, selectedWorker, profile]);
 
   const handleSOS = useCallback(async () => {
     if (!userLocation || !profile) return;
-    try {
-      await supabase.from('emergency_alerts').insert({ user_id: profile.id, location_text: `${userLocation.lat},${userLocation.lng}`, type: 'sos' });
-      showToast(tr.sosSent, 'warning');
-    } catch {}
+    try { await supabase.from('emergency_alerts').insert({ user_id: profile.id, location_text: `${userLocation.lat},${userLocation.lng}`, type: 'sos' }); showToast(tr.emergency + ' ' + tr.suggestions, 'warning'); } catch {}
   }, [userLocation, profile, tr]);
 
   const handleShare = useCallback(() => {
     if (!userLocation) return;
     const url = `https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`;
     if (navigator.share) navigator.share({ title: 'My Location', text: 'I need help here', url });
-    else { navigator.clipboard.writeText(url); showToast(tr.locationShared, 'info'); }
+    else { navigator.clipboard.writeText(url); showToast(tr.shareTrip + '!', 'info'); }
   }, [userLocation, tr]);
-
-  const handleSendMessage = useCallback(async () => {
-    if (!newMessage.trim() || !selectedWorker || !profile) return;
-    try {
-      await supabase.from('chat_messages').insert({ sender_id: profile.id, receiver_id: selectedWorker.worker_id, message: newMessage });
-      setMessages(prev => [...prev, { sender: 'me', text: newMessage }]);
-      setNewMessage('');
-    } catch {}
-  }, [newMessage, selectedWorker, profile]);
-
-  const handleCloseMap = useCallback(() => {
-    setShowMap(false);
-    if (bookingState === 'searching') setBookingState('idle');
-  }, [bookingState]);
 
   // ═══════════════════════════════════════════════
   // 🎨 RENDER
@@ -600,143 +360,157 @@ export default function HomeTabs({ country, lang }: Props) {
           style={{ minHeight: '48px' }}>
           {isHiring ? <Loader2 size={18} className="mb-1 animate-spin" /> : <Zap size={18} className="mb-1" />}
           <p className="text-sm font-bold">{tr.quickHire}</p>
-          <p className="text-[10px] opacity-80">{nearbyCount > 0 ? `${nearbyCount} ${tr.nearby}` : tr.selectService}</p>
+          <p className="text-[10px] opacity-80">{nearbyCount > 0 ? `${nearbyCount} ${tr.workersNearby}` : tr.locating}</p>
         </button>
         <OnlineBtn {...{ online, loading, isAuth: isAuthenticated, authLoading, onClick: toggleOnline, tr }} />
       </div>
 
-      {/* Service Selector */}
-      {showServiceSelector && bookingState === 'selecting_service' && (
-        <div className="bg-white rounded-2xl border shadow-lg p-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg">{tr.selectService}</h3>
-            <button onClick={() => { setShowServiceSelector(false); setBookingState('idle'); }} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
-          </div>
-          {surgeMultiplier > 1 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-              <AlertTriangle size={20} className="text-red-500" />
-              <span className="text-sm text-red-700">{tr.surgePricing} ({surgeMultiplier}x)</span>
-            </div>
-          )}
-          <div className="grid grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto">
-            {ALL_SERVICE_TYPES.map(s => (
-              <ServiceCard key={s.id} service={s} selected={selectedService?.id === s.id} onClick={() => handleServiceSelect(s)} lang={lang} />
+      {/* MAP + CATEGORY FILTER */}
+      {showMap && userLocation && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
+            <Filter size={14} className="text-gray-400 shrink-0" />
+            {ALL_CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selectedCategory === cat.id ? 'bg-blue-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                {getCatName(cat, lang)}
+              </button>
             ))}
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => { setIsScheduled(false); setScheduledTime(null); }} className={`flex-1 py-2 rounded-xl text-sm font-medium ${!isScheduled ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{tr.bookNow}</button>
-            <button onClick={() => { setIsScheduled(true); setShowSchedulePicker(true); }} className={`flex-1 py-2 rounded-xl text-sm font-medium ${isScheduled ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{tr.schedule}</button>
+          <div className="relative rounded-xl overflow-hidden border shadow-sm" style={{ minHeight: '300px', maxHeight: '350px' }}>
+            <button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90">
+              <X size={16} className="text-gray-600" />
+            </button>
+            <LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} onClose={handleCloseMap} onQuickHire={handleWorkerSelect} />
           </div>
-          {showSchedulePicker && (
-            <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-              <div className="flex gap-2">
-                <button onClick={() => { setScheduledTime(new Date()); setShowSchedulePicker(false); }} className="flex-1 py-2 bg-white rounded-lg text-sm">{tr.today}</button>
-                <button onClick={() => { const t = new Date(); t.setDate(t.getDate() + 1); setScheduledTime(t); setShowSchedulePicker(false); }} className="flex-1 py-2 bg-white rounded-lg text-sm">{tr.tomorrow}</button>
+        </div>
+      )}
+
+      {/* 📋 BOOKING FORM */}
+      {showBookingForm && selectedWorker && (
+        <BookingForm
+          worker={{
+            id: selectedWorker.worker_id,
+            name: selectedWorker.profile?.name || 'Worker',
+            category: selectedWorker.profile?.category || 'General',
+            photo_url: selectedWorker.profile?.photo_url || '',
+            rating: selectedWorker.profile?.rating || 0,
+            expected_salary: String(selectedWorker.price_estimate || selectedWorker.profile?.expected_salary || '100'),
+            phone: selectedWorker.profile?.phone || '',
+            latitude: selectedWorker.latitude,
+            longitude: selectedWorker.longitude,
+            distance: selectedWorker.distance,
+            eta: selectedWorker.eta,
+          }}
+          isOpen={showBookingForm}
+          onClose={handleBookingFormClose}
+          country={country}
+          lang={lang}
+        />
+      )}
+
+      {/* ⏳ WAITING */}
+      {bookingState === 'waiting' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 animate-bounce-in" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+              <Loader2 size={36} className="animate-spin text-blue-500" />
+            </div>
+            <h3 className="font-bold text-lg">{tr.waitingAccept}</h3>
+            <p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} is reviewing your booking</p>
+            <button onClick={handleCloseBooking} className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl">{tr.cancelBooking}</button>
+          </div>
+        </div>
+      )}
+
+      {/* 🎉 ACCEPTED */}
+      {bookingState === 'accepted' && selectedWorker && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h3 className="font-bold text-xl text-green-700">{tr.workerAccepted}</h3>
+            <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2">
+              <div className="flex items-center gap-3">
+                {selectedWorker.profile?.photo_url ? <img src={selectedWorker.profile.photo_url} className="w-12 h-12 rounded-full" /> : <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"><Users size={20} /></div>}
+                <div><p className="font-bold">{selectedWorker.profile?.name}</p><p className="text-sm text-gray-500">{selectedWorker.profile?.category}</p></div>
               </div>
-              <input type="time" className="w-full p-2 border rounded-lg" onChange={e => { const [h, m] = e.target.value.split(':'); const d = scheduledTime || new Date(); d.setHours(+h, +m); setScheduledTime(new Date(d)); }} />
+              <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t"><Clock size={14} /><span>{tr.arrivingIn} ~{selectedWorker.eta || 15} {tr.min}</span></div>
             </div>
-          )}
-          {selectedService && estimatedPrice > 0 && (
-            <div className="bg-gray-50 rounded-xl p-4"><div className="flex justify-between font-bold text-lg"><span>{tr.total}</span><span>{estimatedPrice - discount} QAR</span></div></div>
-          )}
-          <div className="flex gap-2">
-            <input type="text" placeholder={tr.promoCode} value={promoCode} onChange={e => setPromoCode(e.target.value)} className="flex-1 px-3 py-2 border rounded-xl text-sm" />
-            <button onClick={() => { setDiscount(20); showToast(tr.promoApplied); }} className="px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-medium">{tr.applyPromo}</button>
+            <div className="space-y-2">
+              <a href={`tel:${selectedWorker.profile?.phone || ''}`} className="w-full py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><Phone size={16} />{tr.callWorker}</a>
+              <button onClick={() => { setShowChat(true); handleCloseBooking(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MessageCircle size={16} />{tr.chatWithWorker}</button>
+              <button onClick={() => setBookingState('tracking')} className="w-full py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MapPin size={16} />{tr.trackLive}</button>
+            </div>
+            <button onClick={handleCloseBooking} className="text-red-500 text-sm">{tr.cancelBooking}</button>
           </div>
-          <div className="flex gap-2">
-            {(['cash', 'card', 'wallet'] as const).map(m => (
-              <button key={m} onClick={() => setPaymentMethod(m)} className={`flex-1 py-2 rounded-xl text-sm font-medium capitalize ${paymentMethod === m ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{tr[m]}</button>
-            ))}
-          </div>
-          <button onClick={handleBookNow} disabled={!selectedService || isProcessingBooking}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-[0.98]">
-            {isProcessingBooking ? <Loader2 size={20} className="animate-spin mx-auto" /> : `${tr.bookNow} • ${estimatedPrice - discount} QAR`}
-          </button>
         </div>
       )}
 
-      {/* Searching */}
-      {bookingState === 'searching' && (
-        <div className="bg-white rounded-xl border p-6 text-center">
-          <Loader2 size={40} className="animate-spin text-blue-500 mx-auto mb-3" />
-          <p className="font-bold text-gray-700">{tr.findingWorker}</p>
-          <p className="text-sm text-gray-400 mt-1">{tr.searching}</p>
-        </div>
-      )}
-
-      {/* Worker Found */}
-      {bookingState === 'found' && selectedWorker && (
-        <div className="bg-white rounded-2xl border shadow-lg p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            {selectedWorker.photo_url ? <img src={selectedWorker.photo_url} className="w-14 h-14 rounded-full object-cover" /> : <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center"><Users size={24} /></div>}
-            <div className="flex-1">
-              <div className="flex items-center gap-2"><h4 className="font-bold">{selectedWorker.name}</h4>{selectedWorker.is_verified && <ShieldAlert size={14} className="text-blue-500" />}</div>
-              <div className="flex items-center gap-1 text-yellow-500"><Star size={14} fill="currentColor" /><span className="text-sm">{selectedWorker.rating}</span><span className="text-xs text-gray-400">• {selectedWorker.total_jobs} {tr.jobs}</span></div>
+      {/* ❌ REJECTED */}
+      {bookingState === 'rejected' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
             </div>
-            <div className="text-right"><p className="font-bold text-lg">{estimatedPrice} QAR</p><p className="text-xs text-gray-500">{selectedWorker.distance}{tr.km} {tr.away}</p></div>
+            <h3 className="font-bold text-xl text-red-700">{tr.workerRejected}</h3>
+            <p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} rejected your booking</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left text-sm text-amber-800">
+              <p className="font-semibold">💡 {tr.suggestions}:</p>
+              <ul className="list-disc list-inside mt-1 text-xs space-y-1">
+                <li>Try increasing your offered amount</li>
+                <li>Check worker&apos;s expected salary</li>
+                <li>Find another nearby worker</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <button onClick={() => { setBookingState('idle'); setSelectedWorker(null); setShowMap(true); }}
+                className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]">🔍 {tr.findOthers}</button>
+            </div>
+            <button onClick={handleCloseBooking} className="text-gray-400 text-sm">{tr.close}</button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600"><Clock size={14} />{tr.workerArriving} <span className="font-bold">{workerETA} {tr.min}</span></div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowChat(true)} className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} />{tr.chatWithWorker}</button>
-            <button className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500 text-white rounded-xl"><Phone size={16} />{tr.callWorker}</button>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-2 py-2 border rounded-xl text-sm"><Share2 size={14} />{tr.shareTrip}</button>
-            <button onClick={handleSOS} className="flex-1 flex items-center justify-center gap-2 py-2 border border-red-200 text-red-600 rounded-xl text-sm"><AlertTriangle size={14} />{tr.emergency}</button>
-          </div>
-          <button onClick={handleCancelBooking} className="w-full py-2 text-red-500 text-sm font-medium">{tr.cancelBooking}</button>
         </div>
       )}
 
       {/* Tracking */}
       {bookingState === 'tracking' && selectedWorker && (
         <div className="bg-white rounded-2xl border shadow-lg p-4 space-y-3">
-          <div className="flex items-center justify-between"><h4 className="font-bold">{tr.trackWorker}</h4><span className="text-sm text-blue-600 font-medium">{workerETA} {tr.min}</span></div>
-          <div className="bg-gray-100 rounded-xl h-2"><div className="bg-blue-500 h-2 rounded-xl transition-all" style={{ width: `${Math.max(10, 100 - workerETA)}%` }} /></div>
+          <div className="flex items-center justify-between"><h4 className="font-bold">{tr.trackLive}</h4><span className="text-sm text-blue-600 font-medium">{selectedWorker.eta || 15} {tr.min}</span></div>
+          <div className="bg-gray-100 rounded-xl h-2"><div className="bg-blue-500 h-2 rounded-xl transition-all" style={{ width: '60%' }} /></div>
           <div className="flex gap-2">
             <button onClick={() => setShowChat(true)} className="flex-1 py-2 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2"><MessageCircle size={16} />{tr.chatWithWorker}</button>
-            <button className="flex-1 py-2 bg-green-500 text-white rounded-xl flex items-center justify-center gap-2"><Phone size={16} />{tr.callWorker}</button>
+            <a href={`tel:${selectedWorker.profile?.phone || ''}`} className="flex-1 py-2 bg-green-500 text-white rounded-xl flex items-center justify-center gap-2"><Phone size={16} />{tr.callWorker}</a>
           </div>
-          <button onClick={handleCancelBooking} className="w-full py-2 text-red-500 text-sm">{tr.cancelBooking}</button>
         </div>
       )}
 
-      {/* Live Map */}
-      {showMap && userLocation && bookingState === 'idle' && (
-        <div className="relative rounded-xl overflow-hidden border shadow-sm" style={{ minHeight: '280px', maxHeight: '320px' }}>
-          <button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90"><X size={16} className="text-gray-600" /></button>
-          <LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} onClose={handleCloseMap} onQuickHire={handleWorkerSelect} />
+      {/* SOS & Share */}
+      {showMap && (
+        <div className="flex gap-2">
+          <button onClick={handleSOS} className="flex-1 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95">
+            <AlertTriangle size={14} />{tr.emergency}
+          </button>
+          <button onClick={handleShare} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95">
+            <Share2 size={14} />{tr.shareTrip}
+          </button>
         </div>
-      )}
-
-      {/* Booking Form Modal */}
-      {showBookingForm && selectedWorker && (
-        <BookingForm
-          worker={{
-            id: selectedWorker.worker_id, name: selectedWorker.name,
-            category: selectedWorker.category, photo_url: selectedWorker.photo_url,
-            rating: selectedWorker.rating, expected_salary: String(selectedWorker.price_estimate),
-            phone: selectedWorker.phone, latitude: selectedWorker.latitude,
-            longitude: selectedWorker.longitude, distance: selectedWorker.distance,
-            eta: selectedWorker.eta,
-          }}
-          isOpen={showBookingForm} onClose={handleBookingFormClose}
-          country={country} lang={lang}
-        />
       )}
 
       {/* Chat Modal */}
       {showChat && selectedWorker && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowChat(false)}>
-          <div className="bg-white rounded-t-2xl w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-t-2xl w-full max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center p-4 border-b">
               <div className="flex items-center gap-2">
-                {selectedWorker.photo_url && <img src={selectedWorker.photo_url} className="w-8 h-8 rounded-full" />}
-                <span className="font-bold">{selectedWorker.name}</span>
+                {selectedWorker.profile?.photo_url && <img src={selectedWorker.profile.photo_url} className="w-8 h-8 rounded-full" />}
+                <span className="font-bold">{selectedWorker.profile?.name || 'Worker'}</span>
               </div>
               <button onClick={() => setShowChat(false)}><X size={20} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[200px]">
+              {messages.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">Start conversation...</p>}
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[70%] p-3 rounded-2xl ${m.sender === 'me' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{m.text}</div>
@@ -744,16 +518,26 @@ export default function HomeTabs({ country, lang }: Props) {
               ))}
             </div>
             <div className="p-4 border-t flex gap-2">
-              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type..." className="flex-1 p-3 border rounded-xl" />
-              <button onClick={handleSendMessage} className="px-4 py-3 bg-blue-500 text-white rounded-xl"><Send size={16} /></button>
+              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type..." className="flex-1 p-3 border rounded-xl text-sm" />
+              <button onClick={handleSendMessage} className="px-5 py-3 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} /></button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Worker Listener */}
       {isAuthenticated && profile?.id && userLocation && (
         <WorkerBookingListener workerId={profile.id} workerLat={userLocation.lat} workerLng={userLocation.lng} lang={lang} isOnline={online} />
       )}
+
+      <style>{`
+        @keyframes bounce-in{0%{transform:scale(0.9);opacity:0}50%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+        @keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        .animate-bounce-in{animation:bounce-in 0.3s ease-out}
+        .animate-slide-up{animation:slide-up 0.3s ease-out}
+        .scrollbar-hide::-webkit-scrollbar{display:none}
+        .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+      `}</style>
     </div>
   );
 }
