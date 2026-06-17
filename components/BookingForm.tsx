@@ -273,7 +273,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang, on
   }, [worker, distanceKm, etaMinutes, location, startDate, startTime, duration, offeredAmount, txt, lang, currencyText, todayText, atText]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
         <WorkerHeader worker={worker} txt={txt} lang={lang} onClose={onClose} />
         <StepIndicator step={step} />

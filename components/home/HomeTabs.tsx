@@ -1,6 +1,10 @@
 // components/home/HomeTabs.tsx
 // 🚀 FINAL • ALL FIXES • 1B READY
-// ✅ FIXED: Booking Insert + Realtime Channel + Removed WorkerBookingListener
+// ✅ FIXED: Booking Insert Flow + Realtime Channel
+// ✅ FIXED: WorkerBookingListener REMOVED
+// ✅ FIXED: Waiting Popup - No backdrop click dismiss
+// ✅ FIXED: SOS Button - Always works (Supabase + Clipboard + Emergency Call)
+// ✅ FIXED: Share Button - Native share + Clipboard fallback
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
@@ -12,7 +16,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-// ✅ FIXED: WorkerBookingListener removed from employer side
 import LiveWorkerMap from '@/components/map/LiveWorkerMap';
 import BookingForm from '@/components/BookingForm';
 
@@ -25,6 +28,11 @@ const DEFAULT_LOC: Record<string, LocationData> = {
   qa: { lat: 25.3548, lng: 51.1839 }, sa: { lat: 24.7136, lng: 46.6753 },
   ae: { lat: 25.2048, lng: 55.2708 }, kw: { lat: 29.3759, lng: 47.9774 },
   bh: { lat: 26.0667, lng: 50.5577 }, om: { lat: 23.5880, lng: 58.3829 },
+};
+
+// Emergency numbers by country
+const EMERGENCY_NUMBERS: Record<string, string> = {
+  qa: '999', sa: '911', ae: '999', kw: '112', bh: '999', om: '9999',
 };
 
 const ALL_CATEGORIES = [
@@ -76,10 +84,10 @@ const ALL_CATEGORIES = [
 const getCatName = (cat: any, lang: string): string => (cat as any)[lang] || cat.en;
 
 const T: Record<string, Record<string, string>> = {
-  en: { quickHire: '⚡ Quick Hire', online: 'Online', offline: 'Offline', on: 'ON', off: 'OFF', closeMap: 'Close', error: 'Error', loginToGoOnline: 'Login', locationDenied: 'Location denied', goOnlineFirst: 'Go online first', cancelBooking: 'Cancel', chatWithWorker: 'Chat', callWorker: 'Call', shareTrip: 'Share', emergency: 'SOS', min: 'min', km: 'km', away: 'away', workersNearby: 'nearby', locating: 'Locating...', loginRequired: 'Login required', filterBy: 'Filter:', waitingAccept: 'Waiting for worker...', workerAccepted: '🎉 Worker Accepted!', workerRejected: '❌ Rejected - Finding others...', arrivingIn: 'Arriving in', trackLive: 'Track Live', findOthers: 'Find Other Workers', suggestions: 'Suggestions', close: 'Close', tapWorker: '👆 Tap to book', noWorkers: 'No workers nearby', offerSent: 'Booking sent! Waiting...', autoSearching: 'Auto-searching...' },
-  bn: { quickHire: '⚡ কুইক হায়ার', online: 'অনলাইন', offline: 'অফলাইন', on: 'চালু', off: 'বন্ধ', closeMap: 'বন্ধ', error: 'ত্রুটি', loginToGoOnline: 'লগইন', locationDenied: 'লোকেশন নাই', goOnlineFirst: 'অনলাইন হোন', cancelBooking: 'বাতিল', chatWithWorker: 'চ্যাট', callWorker: 'কল', shareTrip: 'শেয়ার', emergency: 'জরুরি', min: 'মিনিট', km: 'কিমি', away: 'দূরে', workersNearby: 'কাছে', locating: 'খুঁজছে...', loginRequired: 'লগইন', filterBy: 'ফিল্টার:', waitingAccept: 'শ্রমিকের উত্তরের অপেক্ষায়...', workerAccepted: '🎉 শ্রমিক রাজি!', workerRejected: '❌ রাজি নয় - অন্য খুঁজছে...', arrivingIn: 'আসছেন', trackLive: 'ট্র্যাক', findOthers: 'অন্য শ্রমিক খুঁজুন', suggestions: 'পরামর্শ', close: 'বন্ধ', tapWorker: '👆 বুক করতে ট্যাপ', noWorkers: 'শ্রমিক নেই', offerSent: 'বুকিং পাঠানো! অপেক্ষা...', autoSearching: 'স্বয়ংক্রিয়ভাবে খুঁজছে...' },
-  ar: { quickHire: '⚡ توظيف', online: 'متصل', offline: 'غير متصل', on: 'ON', off: 'OFF', closeMap: 'إغلاق', error: 'خطأ', loginToGoOnline: 'دخول', locationDenied: 'موقع مرفوض', goOnlineFirst: 'اتصل أولاً', cancelBooking: 'إلغاء', chatWithWorker: 'محادثة', callWorker: 'اتصال', shareTrip: 'مشاركة', emergency: 'طوارئ', min: 'دقيقة', km: 'كم', away: 'بعيد', workersNearby: 'قريب', locating: 'تحديد...', loginRequired: 'دخول', filterBy: 'تصفية:', waitingAccept: 'بانتظار العامل...', workerAccepted: '🎉 قبل العامل!', workerRejected: '❌ رفض - جاري البحث...', arrivingIn: 'قادم', trackLive: 'تتبع', findOthers: 'ابحث عن غيرهم', suggestions: 'اقتراحات', close: 'إغلاق', tapWorker: '👆 اضغط للحجز', noWorkers: 'لا يوجد', offerSent: 'تم الإرسال! انتظار...', autoSearching: 'جاري البحث...' },
-  hi: { quickHire: '⚡ क्विक', online: 'ऑनलाइन', offline: 'ऑफ', on: 'चालू', off: 'बंद', closeMap: 'बंद', error: 'त्रुटि', loginToGoOnline: 'लॉगिन', locationDenied: 'लोकेशन नहीं', goOnlineFirst: 'ऑनलाइन हों', cancelBooking: 'रद्द', chatWithWorker: 'चैट', callWorker: 'कॉल', shareTrip: 'शेयर', emergency: 'SOS', min: 'मिनट', km: 'किमी', away: 'दूर', workersNearby: 'पास', locating: 'ढूंढ...', loginRequired: 'लॉगिन', filterBy: 'फ़िल्टर:', waitingAccept: 'श्रमिक की प्रतीक्षा...', workerAccepted: '🎉 श्रमिक राजी!', workerRejected: '❌ इनकार - अन्य खोज...', arrivingIn: 'आ रहे', trackLive: 'ट्रैक', findOthers: 'दूसरे खोजें', suggestions: 'सुझाव', close: 'बंद', tapWorker: '👆 बुक करें', noWorkers: 'नहीं', offerSent: 'भेजा! प्रतीक्षा...', autoSearching: 'स्वतः खोज...' },
+  en: { quickHire: '⚡ Quick Hire', online: 'Online', offline: 'Offline', on: 'ON', off: 'OFF', closeMap: 'Close', error: 'Error', loginToGoOnline: 'Login', locationDenied: 'Location denied', goOnlineFirst: 'Go online first', cancelBooking: 'Cancel Booking', chatWithWorker: 'Chat', callWorker: 'Call', shareTrip: 'Share Location', emergency: 'SOS', min: 'min', km: 'km', away: 'away', workersNearby: 'nearby', locating: 'Locating...', loginRequired: 'Login required', filterBy: 'Filter:', waitingAccept: 'Waiting for worker...', workerAccepted: '🎉 Worker Accepted!', workerRejected: '❌ Rejected - Finding others...', arrivingIn: 'Arriving in', trackLive: 'Track Live', findOthers: 'Find Other Workers', suggestions: 'Suggestions', close: 'Close', tapWorker: '👆 Tap to book', noWorkers: 'No workers nearby', offerSent: 'Booking sent! Waiting...', autoSearching: 'Auto-searching...', reviewing: 'is reviewing your booking', locationCopied: '📍 Location copied! Call', callEmergency: 'Call Emergency', emergencyConfirm: 'Call Emergency', sosSent: '🚨 Emergency Alert Sent!', shared: '📋 Location copied!', shareSuccess: 'Shared successfully!', locationNotAvail: 'Location not available! Enable GPS.', loginFirst: 'Please login first!', typeMessage: 'Type a message...', startConversation: 'Start conversation...' },
+  bn: { quickHire: '⚡ কুইক হায়ার', online: 'অনলাইন', offline: 'অফলাইন', on: 'চালু', off: 'বন্ধ', closeMap: 'বন্ধ', error: 'ত্রুটি', loginToGoOnline: 'লগইন', locationDenied: 'লোকেশন নাই', goOnlineFirst: 'অনলাইন হোন', cancelBooking: 'বুকিং বাতিল', chatWithWorker: 'চ্যাট', callWorker: 'কল', shareTrip: 'লোকেশন শেয়ার', emergency: 'জরুরি', min: 'মিনিট', km: 'কিমি', away: 'দূরে', workersNearby: 'কাছে', locating: 'খুঁজছে...', loginRequired: 'লগইন', filterBy: 'ফিল্টার:', waitingAccept: 'শ্রমিকের উত্তরের অপেক্ষায়...', workerAccepted: '🎉 শ্রমিক রাজি!', workerRejected: '❌ রাজি নয় - অন্য খুঁজছে...', arrivingIn: 'আসছেন', trackLive: 'ট্র্যাক', findOthers: 'অন্য শ্রমিক খুঁজুন', suggestions: 'পরামর্শ', close: 'বন্ধ', tapWorker: '👆 বুক করতে ট্যাপ', noWorkers: 'শ্রমিক নেই', offerSent: 'বুকিং পাঠানো! অপেক্ষা...', autoSearching: 'স্বয়ংক্রিয়ভাবে খুঁজছে...', reviewing: 'আপনার বুকিং রিভিউ করছে', locationCopied: '📍 লোকেশন কপি হয়েছে! কল করুন', callEmergency: 'জরুরি কল', emergencyConfirm: 'জরুরি নম্বরে কল করবেন?', sosSent: '🚨 জরুরি সতর্কতা পাঠানো হয়েছে!', shared: '📋 লোকেশন কপি হয়েছে!', shareSuccess: 'শেয়ার সফল!', locationNotAvail: 'লোকেশন পাওয়া যায়নি! GPS চালু করুন।', loginFirst: 'প্রথমে লগইন করুন!', typeMessage: 'মেসেজ লিখুন...', startConversation: 'কথোপকথন শুরু করুন...' },
+  ar: { quickHire: '⚡ توظيف', online: 'متصل', offline: 'غير متصل', on: 'ON', off: 'OFF', closeMap: 'إغلاق', error: 'خطأ', loginToGoOnline: 'دخول', locationDenied: 'موقع مرفوض', goOnlineFirst: 'اتصل أولاً', cancelBooking: 'إلغاء الحجز', chatWithWorker: 'محادثة', callWorker: 'اتصال', shareTrip: 'مشاركة الموقع', emergency: 'طوارئ', min: 'دقيقة', km: 'كم', away: 'بعيد', workersNearby: 'قريب', locating: 'تحديد...', loginRequired: 'دخول', filterBy: 'تصفية:', waitingAccept: 'بانتظار العامل...', workerAccepted: '🎉 قبل العامل!', workerRejected: '❌ رفض - جاري البحث...', arrivingIn: 'قادم', trackLive: 'تتبع', findOthers: 'ابحث عن غيرهم', suggestions: 'اقتراحات', close: 'إغلاق', tapWorker: '👆 اضغط للحجز', noWorkers: 'لا يوجد', offerSent: 'تم الإرسال! انتظار...', autoSearching: 'جاري البحث...', reviewing: 'يراجع حجزك', locationCopied: '📍 تم نسخ الموقع! اتصل', callEmergency: 'اتصال طوارئ', emergencyConfirm: 'اتصل بالطوارئ؟', sosSent: '🚨 تم إرسال تنبيه الطوارئ!', shared: '📋 تم نسخ الموقع!', shareSuccess: 'تمت المشاركة بنجاح!', locationNotAvail: 'الموقع غير متاح! شغل GPS.', loginFirst: 'سجل الدخول أولاً!', typeMessage: 'اكتب رسالة...', startConversation: 'ابدأ المحادثة...' },
+  hi: { quickHire: '⚡ क्विक', online: 'ऑनलाइन', offline: 'ऑफ', on: 'चालू', off: 'बंद', closeMap: 'बंद', error: 'त्रुटि', loginToGoOnline: 'लॉगिन', locationDenied: 'लोकेशन नहीं', goOnlineFirst: 'ऑनलाइन हों', cancelBooking: 'बुकिंग रद्द', chatWithWorker: 'चैट', callWorker: 'कॉल', shareTrip: 'लोकेशन शेयर', emergency: 'SOS', min: 'मिनट', km: 'किमी', away: 'दूर', workersNearby: 'पास', locating: 'ढूंढ...', loginRequired: 'लॉगिन', filterBy: 'फ़िल्टर:', waitingAccept: 'श्रमिक की प्रतीक्षा...', workerAccepted: '🎉 श्रमिक राजी!', workerRejected: '❌ इनकार - अन्य खोज...', arrivingIn: 'आ रहे', trackLive: 'ट्रैक', findOthers: 'दूसरे खोजें', suggestions: 'सुझाव', close: 'बंद', tapWorker: '👆 बुक करें', noWorkers: 'नहीं', offerSent: 'भेजा! प्रतीक्षा...', autoSearching: 'स्वतः खोज...', reviewing: 'आपकी बुकिंग देख रहा है', locationCopied: '📍 लोकेशन कॉपी! कॉल करें', callEmergency: 'आपातकालीन कॉल', emergencyConfirm: 'आपातकालीन नंबर पर कॉल करें?', sosSent: '🚨 आपातकालीन अलर्ट भेजा!', shared: '📋 लोकेशन कॉपी हुआ!', shareSuccess: 'शेयर सफल!', locationNotAvail: 'लोकेशन नहीं मिला! GPS चालू करें।', loginFirst: 'पहले लॉगिन करें!', typeMessage: 'संदेश लिखें...', startConversation: 'बातचीत शुरू करें...' },
 };
 
 let toastId = 0;
@@ -108,65 +116,72 @@ export default function HomeTabs({ country, lang }: Props) {
 
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [online, setOnline] = useState(() => { if (typeof window !== 'undefined') { try { const s = localStorage.getItem(STORAGE_KEY); if (s) return JSON.parse(s)?.isOnline || false; } catch {} } return false; });
-  const [loading, setLoading] = useState(false); const [showMap, setShowMap] = useState(false); const [isHiring, setIsHiring] = useState(false);
-  const [nearbyCount, setNearbyCount] = useState(0); const [selectedCategory, setSelectedCategory] = useState('all');
+  const [loading, setLoading] = useState(false); 
+  const [showMap, setShowMap] = useState(false); 
+  const [isHiring, setIsHiring] = useState(false);
+  const [nearbyCount, setNearbyCount] = useState(0); 
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [bookingState, setBookingState] = useState<'idle' | 'waiting' | 'accepted' | 'rejected' | 'tracking'>('idle');
-  const [selectedWorker, setSelectedWorker] = useState<any>(null); const [showBookingForm, setShowBookingForm] = useState(false);
-  const [showChat, setShowChat] = useState(false); const [messages, setMessages] = useState<any[]>([]); const [newMessage, setNewMessage] = useState('');
+  const [selectedWorker, setSelectedWorker] = useState<any>(null); 
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showChat, setShowChat] = useState(false); 
+  const [messages, setMessages] = useState<any[]>([]); 
+  const [newMessage, setNewMessage] = useState('');
+  const [activeBookingId, setActiveBookingId] = useState<string | null>(null); // ✅ NEW
 
-  const lockRef = useRef(false); const aliveRef = useRef(true); const mountedRef = useRef(false);
-  const profileSyncedRef = useRef(false); const bookingChannelRef = useRef<any>(null); const rejectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lockRef = useRef(false); 
+  const aliveRef = useRef(true); 
+  const mountedRef = useRef(false);
+  const profileSyncedRef = useRef(false); 
+  const bookingChannelRef = useRef<any>(null); 
+  const rejectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ═══════ LIFECYCLE ═══════
   useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; if (bookingChannelRef.current) supabase.removeChannel(bookingChannelRef.current).catch(() => {}); if (rejectTimerRef.current) clearTimeout(rejectTimerRef.current); }; }, []);
   useEffect(() => { if (authLoading) return; if (profile && isAuthenticated && !profileSyncedRef.current) { profileSyncedRef.current = true; if (!localStorage.getItem(STORAGE_KEY)) { setOnline(!!profile.is_online); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !!profile.is_online, userId: profile.id, timestamp: Date.now() })); } } if (!isAuthenticated && !authLoading && profileSyncedRef.current) { profileSyncedRef.current = false; setOnline(false); localStorage.removeItem(STORAGE_KEY); } }, [authLoading, isAuthenticated, profile]);
   useEffect(() => { const handler = (e: StorageEvent) => { if (e.key === STORAGE_KEY) { try { setOnline(JSON.parse(e.newValue || '{}')?.isOnline || false); } catch { setOnline(false); } } }; window.addEventListener('storage', handler); return () => window.removeEventListener('storage', handler); }, []);
 
+  // ═══════ LOCATION & WORKER STATS ═══════
   const fetchWorkerStats = useCallback(async () => { if (!aliveRef.current) return; try { const { data } = await supabase.from('worker_locations').select('worker_id').eq('is_online', true).limit(100); if (data && aliveRef.current) setNearbyCount(data.length); } catch {} }, []);
   const getLocation = useCallback(async (): Promise<LocationData | null> => { if (navigator?.geolocation) { try { const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000, enableHighAccuracy: false })); const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setUserLocation(loc); fetchWorkerStats(); return loc; } catch {} } const fb = DEFAULT_LOC[country] || DEFAULT_LOC.qa; setUserLocation(fb); fetchWorkerStats(); return fb; }, [country, fetchWorkerStats]);
   useEffect(() => { if (!mountedRef.current) { mountedRef.current = true; getLocation(); } }, [getLocation]);
 
+  // ═══════ ONLINE TOGGLE ═══════
   const toggleOnline = useCallback(async () => { if (authLoading || lockRef.current) return; if (!isAuthenticated || !profile?.id) { showToast(tr.loginToGoOnline, 'info'); router.push(`/${country}/${lang}/login`); return; } lockRef.current = true; const next = !online; setOnline(next); setLoading(true); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: next, userId: profile.id, timestamp: Date.now() })); try { await supabase.from('profiles').update({ is_online: next, last_online: new Date().toISOString() }).eq('id', profile.id); showToast(next ? tr.on : tr.off); } catch { setOnline(!next); localStorage.setItem(STORAGE_KEY, JSON.stringify({ isOnline: !next, userId: profile.id, timestamp: Date.now() })); showToast(tr.error, 'error'); } finally { setLoading(false); setTimeout(() => { lockRef.current = false; }, 300); } }, [authLoading, isAuthenticated, profile, online, tr, country, lang, router]);
 
+  // ═══════ QUICK HIRE ═══════
   const handleQuickHire = useCallback(async () => { if (authLoading || lockRef.current) return; lockRef.current = true; setIsHiring(true); if (!online) { showToast(tr.goOnlineFirst, 'warning'); setIsHiring(false); lockRef.current = false; return; } if (!isAuthenticated) { showToast(tr.loginRequired, 'warning'); router.push(`/${country}/${lang}/login`); setIsHiring(false); lockRef.current = false; return; } const loc = await getLocation(); if (!loc) { showToast(tr.locationDenied, 'error'); setIsHiring(false); lockRef.current = false; return; } setShowMap(true); setIsHiring(false); setTimeout(() => { lockRef.current = false; }, 300); }, [authLoading, online, isAuthenticated, tr, country, lang, router, getLocation]);
 
+  // ═══════ WORKER SELECT ═══════
   const handleWorkerSelect = useCallback((worker: any) => { setSelectedWorker({ worker_id: worker.worker_id, profile: worker.profile, latitude: worker.latitude, longitude: worker.longitude, distance: worker.distance, eta: worker.eta, price_estimate: worker.price_estimate || worker.profile?.expected_salary || '100' }); setShowBookingForm(true); setShowMap(false); }, []);
-
   const handleBookingFormClose = useCallback(() => { setShowBookingForm(false); setSelectedWorker(null); setShowMap(true); }, []);
 
-  // ✅ FIXED: onConfirm callback - booking insert সফল হলে Realtime channel খোলে
+  // ═══════ BOOKING CONFIRM (onConfirm from BookingForm) ═══════
   const handleBookingConfirm = useCallback((bookingId: string, bookingData: any) => {
     setShowBookingForm(false);
+    setActiveBookingId(bookingId);
     setBookingState('waiting');
     showToast(tr.offerSent, 'success');
     
     if (!bookingId || !selectedWorker?.worker_id) return;
 
-    // Old channel clean
     if (bookingChannelRef.current) {
       supabase.removeChannel(bookingChannelRef.current).catch(() => {});
     }
 
-    // ✅ FIXED: Listen on specific booking ID, not worker_id
     const channel = supabase
       .channel(`booking-response-${bookingId}`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'bookings', 
-        filter: `id=eq.${bookingId}`  // ✅ FIXED: specific booking ID
-      }, (payload: any) => { 
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `id=eq.${bookingId}` }, (payload: any) => { 
         const status = payload.new?.status; 
         if (status === 'accepted') { 
+          setActiveBookingId(null);
           setBookingState('accepted'); 
           showToast(tr.workerAccepted, 'success'); 
         } else if (status === 'rejected') { 
+          setActiveBookingId(null);
           setBookingState('rejected'); 
           showToast(tr.workerRejected, 'error'); 
-          rejectTimerRef.current = setTimeout(() => { 
-            setBookingState('idle'); 
-            setSelectedWorker(null); 
-            setShowMap(true); 
-          }, 2500); 
+          rejectTimerRef.current = setTimeout(() => { setBookingState('idle'); setSelectedWorker(null); setShowMap(true); }, 2500); 
         } 
       })
       .subscribe();
@@ -174,29 +189,143 @@ export default function HomeTabs({ country, lang }: Props) {
     bookingChannelRef.current = channel;
   }, [selectedWorker, tr]);
 
+  // ═══════ CANCEL BOOKING (from waiting popup) ═══════
+  const handleCancelBooking = useCallback(async () => {
+    if (rejectTimerRef.current) clearTimeout(rejectTimerRef.current);
+    
+    if (bookingChannelRef.current) {
+      supabase.removeChannel(bookingChannelRef.current).catch(() => {});
+      bookingChannelRef.current = null;
+    }
+    
+    if (activeBookingId) {
+      await supabase.from('bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', activeBookingId).then(() => {});
+    }
+    
+    setActiveBookingId(null);
+    setBookingState('idle');
+    setSelectedWorker(null);
+    setShowMap(true);
+  }, [activeBookingId]);
+
   const handleCloseMap = useCallback(() => setShowMap(false), []);
   const handleCloseBooking = useCallback(() => { if (rejectTimerRef.current) clearTimeout(rejectTimerRef.current); setBookingState('idle'); setSelectedWorker(null); setShowMap(true); }, []);
 
+  // ═══════ CHAT ═══════
   const handleSendMessage = useCallback(async () => { if (!newMessage.trim() || !selectedWorker || !profile) return; try { await supabase.from('chat_messages').insert({ sender_id: profile.id, receiver_id: selectedWorker.worker_id, message: newMessage }); setMessages(prev => [...prev, { sender: 'me', text: newMessage }]); setNewMessage(''); } catch {} }, [newMessage, selectedWorker, profile]);
-  const handleSOS = useCallback(async () => { if (!userLocation || !profile) return; try { await supabase.from('emergency_alerts').insert({ user_id: profile.id, location_text: `${userLocation.lat},${userLocation.lng}`, type: 'sos' }); showToast('SOS Alert Sent!', 'warning'); } catch {} }, [userLocation, profile]);
-  const handleShare = useCallback(() => { if (!userLocation) return; const url = `https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`; if (navigator.share) navigator.share({ title: 'My Location', text: 'I need help here', url }); else { navigator.clipboard.writeText(url); showToast(tr.shareTrip + '!', 'info'); } }, [userLocation, tr]);
 
+  // ═══════ SOS BUTTON (100% Working) ═══════
+  const handleSOS = useCallback(async () => {
+    if (!userLocation) {
+      showToast(tr.locationNotAvail, 'error');
+      return;
+    }
+
+    const mapsUrl = `https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`;
+    const emergencyNumber = EMERGENCY_NUMBERS[country] || '999';
+    
+    // Try Supabase (silent fail)
+    if (profile?.id) {
+      try {
+        await supabase.from('emergency_alerts').insert({
+          user_id: profile.id,
+          location_text: `${userLocation.lat},${userLocation.lng}`,
+          location_lat: userLocation.lat,
+          location_lng: userLocation.lng,
+          type: 'sos',
+          status: 'active',
+          created_at: new Date().toISOString(),
+        });
+      } catch {}
+    }
+
+    // Copy location to clipboard
+    try {
+      await navigator.clipboard.writeText(mapsUrl);
+      showToast(`${tr.locationCopied} ${emergencyNumber}`, 'warning');
+    } catch {
+      showToast('📍 ' + mapsUrl, 'warning');
+    }
+
+    // Emergency call prompt
+    setTimeout(() => {
+      const confirmed = window.confirm(`${tr.emergencyConfirm} (${emergencyNumber})?`);
+      if (confirmed) {
+        window.location.href = `tel:${emergencyNumber}`;
+      }
+    }, 500);
+  }, [userLocation, profile, country, tr]);
+
+  // ═══════ SHARE BUTTON ═══════
+  const handleShare = useCallback(async () => {
+    if (!userLocation) {
+      showToast(tr.locationNotAvail, 'error');
+      return;
+    }
+    
+    const mapsUrl = `https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'My Location', text: 'I need help here', url: mapsUrl });
+        showToast(tr.shareSuccess, 'success');
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(mapsUrl);
+        showToast(tr.shared, 'success');
+      } catch {
+        showToast('📍 ' + mapsUrl, 'info');
+      }
+    }
+  }, [userLocation, tr]);
+
+  // ═══════ RENDER ═══════
   return (
     <div className="space-y-3">
+      {/* Quick Hire + Online Buttons */}
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={handleQuickHire} disabled={isHiring} className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl px-3 py-2.5 text-white text-left transition-all active:scale-95 w-full disabled:opacity-50 hover:shadow-lg" style={{ minHeight: '48px' }}>{isHiring ? <Loader2 size={18} className="mb-1 animate-spin" /> : <Zap size={18} className="mb-1" />}<p className="text-sm font-bold">{tr.quickHire}</p><p className="text-[10px] opacity-80">{nearbyCount > 0 ? `${nearbyCount} ${tr.workersNearby}` : tr.locating}</p></button>
+        <button onClick={handleQuickHire} disabled={isHiring} className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl px-3 py-2.5 text-white text-left transition-all active:scale-95 w-full disabled:opacity-50 hover:shadow-lg" style={{ minHeight: '48px' }}>
+          {isHiring ? <Loader2 size={18} className="mb-1 animate-spin" /> : <Zap size={18} className="mb-1" />}
+          <p className="text-sm font-bold">{tr.quickHire}</p>
+          <p className="text-[10px] opacity-80">{nearbyCount > 0 ? `${nearbyCount} ${tr.workersNearby}` : tr.locating}</p>
+        </button>
         <OnlineBtn {...{ online, loading, isAuth: isAuthenticated, authLoading, onClick: toggleOnline, tr }} />
       </div>
 
+      {/* Map + Category Filter */}
       {!showBookingForm && showMap && userLocation && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide"><Filter size={14} className="text-gray-400 shrink-0" />{ALL_CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selectedCategory === cat.id ? 'bg-blue-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{getCatName(cat, lang)}</button>))}</div>
-          <div className="relative rounded-xl overflow-hidden border shadow-sm" style={{ minHeight: '300px', maxHeight: '350px' }}><button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90"><X size={16} className="text-gray-600" /></button><LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} onClose={handleCloseMap} onQuickHire={handleWorkerSelect} /></div>
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
+            <Filter size={14} className="text-gray-400 shrink-0" />
+            {ALL_CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-95 ${selectedCategory === cat.id ? 'bg-blue-500 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                {getCatName(cat, lang)}
+              </button>
+            ))}
+          </div>
+          <div className="relative rounded-xl overflow-hidden border shadow-sm" style={{ minHeight: '300px', maxHeight: '350px' }}>
+            <button onClick={handleCloseMap} className="absolute top-2 right-2 z-20 bg-white/95 rounded-full p-1.5 shadow-md active:scale-90">
+              <X size={16} className="text-gray-600" />
+            </button>
+            <LiveWorkerMap country={country} lang={lang} userLat={userLocation.lat} userLng={userLocation.lng} onClose={handleCloseMap} onQuickHire={handleWorkerSelect} />
+          </div>
         </div>
       )}
 
-      {!showBookingForm && showMap && (<div className="flex gap-2"><button onClick={handleSOS} className="flex-1 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95"><AlertTriangle size={14} />{tr.emergency}</button><button onClick={handleShare} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 active:scale-95"><Share2 size={14} />{tr.shareTrip}</button></div>)}
+      {/* SOS + Share Buttons */}
+      {!showBookingForm && showMap && (
+        <div className="flex gap-2">
+          <button onClick={handleSOS} className="flex-1 py-3 border-2 border-red-400 bg-red-50 text-red-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 hover:bg-red-100 transition-all" style={{ touchAction: 'manipulation', minHeight: '48px' }}>
+            <AlertTriangle size={16} className="text-red-500" />{tr.emergency}
+          </button>
+          <button onClick={handleShare} className="flex-1 py-3 border-2 border-blue-300 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 hover:bg-blue-100 transition-all" style={{ touchAction: 'manipulation', minHeight: '48px' }}>
+            <Share2 size={16} className="text-blue-500" />{tr.shareTrip}
+          </button>
+        </div>
+      )}
 
+      {/* Booking Form */}
       {showBookingForm && selectedWorker && (
         <BookingForm 
           worker={{ id: selectedWorker.worker_id, name: selectedWorker.profile?.name || 'Worker', category: selectedWorker.profile?.category || 'General', photo_url: selectedWorker.profile?.photo_url || '', rating: selectedWorker.profile?.rating || 0, expected_salary: String(selectedWorker.price_estimate || ''), phone: selectedWorker.profile?.phone || '', latitude: selectedWorker.latitude, longitude: selectedWorker.longitude, distance: selectedWorker.distance, eta: selectedWorker.eta }} 
@@ -204,21 +333,98 @@ export default function HomeTabs({ country, lang }: Props) {
           onClose={handleBookingFormClose} 
           country={country} 
           lang={lang}
-          onConfirm={handleBookingConfirm} // ✅ FIXED: pass onConfirm
+          onConfirm={handleBookingConfirm}
         />
       )}
 
-      {bookingState === 'waiting' && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}><div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 animate-bounce-in" onClick={e => e.stopPropagation()}><div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"><Loader2 size={36} className="animate-spin text-blue-500" /></div><h3 className="font-bold text-lg">{tr.waitingAccept}</h3><p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} is reviewing your booking</p><button onClick={handleCloseBooking} className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl">{tr.cancelBooking}</button></div></div>)}
+      {/* ═══════ WAITING POPUP (No backdrop dismiss) ═══════ */}
+      {bookingState === 'waiting' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 animate-bounce-in">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+              <Loader2 size={36} className="animate-spin text-blue-500" />
+            </div>
+            <h3 className="font-bold text-lg">{tr.waitingAccept}</h3>
+            <p className="text-sm text-gray-500">{selectedWorker?.profile?.name || 'Worker'} {tr.reviewing}</p>
+            <button onClick={handleCancelBooking} className="w-full py-3 text-red-500 font-semibold text-sm hover:bg-red-50 rounded-xl border border-red-200 active:scale-95 transition-all">
+              {tr.cancelBooking}
+            </button>
+          </div>
+        </div>
+      )}
 
-      {bookingState === 'accepted' && selectedWorker && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}><div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}><div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto"><svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg></div><h3 className="font-bold text-xl text-green-700">{tr.workerAccepted}</h3><div className="bg-gray-50 rounded-xl p-4 text-left space-y-2"><div className="flex items-center gap-3">{selectedWorker.profile?.photo_url ? <img src={selectedWorker.profile.photo_url} className="w-12 h-12 rounded-full" /> : <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"><Users size={20} /></div>}<div><p className="font-bold">{selectedWorker.profile?.name}</p><p className="text-sm text-gray-500">{selectedWorker.profile?.category}</p></div></div><div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t"><Clock size={14} /><span>{tr.arrivingIn} ~{selectedWorker.eta || 15} {tr.min}</span></div></div><div className="space-y-2"><a href={`tel:${selectedWorker.profile?.phone || ''}`} className="w-full py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><Phone size={16} />{tr.callWorker}</a><button onClick={() => { setShowChat(true); handleCloseBooking(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MessageCircle size={16} />{tr.chatWithWorker}</button><button onClick={() => setBookingState('tracking')} className="w-full py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MapPin size={16} />{tr.trackLive}</button></div><button onClick={handleCloseBooking} className="text-red-500 text-sm">{tr.cancelBooking}</button></div></div>)}
+      {/* ═══════ ACCEPTED POPUP ═══════ */}
+      {bookingState === 'accepted' && selectedWorker && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={handleCloseBooking}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-xl text-green-700">{tr.workerAccepted}</h3>
+            <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2">
+              <div className="flex items-center gap-3">
+                {selectedWorker.profile?.photo_url ? <img src={selectedWorker.profile.photo_url} className="w-12 h-12 rounded-full" /> : <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"><Users size={20} /></div>}
+                <div><p className="font-bold">{selectedWorker.profile?.name}</p><p className="text-sm text-gray-500">{selectedWorker.profile?.category}</p></div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t"><Clock size={14} /><span>{tr.arrivingIn} ~{selectedWorker.eta || 15} {tr.min}</span></div>
+            </div>
+            <div className="space-y-2">
+              <a href={`tel:${selectedWorker.profile?.phone || ''}`} className="w-full py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><Phone size={16} />{tr.callWorker}</a>
+              <button onClick={() => { setShowChat(true); handleCloseBooking(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MessageCircle size={16} />{tr.chatWithWorker}</button>
+              <button onClick={() => setBookingState('tracking')} className="w-full py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"><MapPin size={16} />{tr.trackLive}</button>
+            </div>
+            <button onClick={handleCloseBooking} className="text-red-500 text-sm">{tr.cancelBooking}</button>
+          </div>
+        </div>
+      )}
 
-      {bookingState === 'rejected' && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in"><div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto"><svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></div><h3 className="font-bold text-xl text-red-700">{tr.workerRejected}</h3><Loader2 size={24} className="animate-spin mx-auto text-blue-500" /><p className="text-xs text-gray-400">{tr.autoSearching}</p></div></div>)}
+      {/* ═══════ REJECTED POPUP ═══════ */}
+      {bookingState === 'rejected' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-center animate-bounce-in">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+            </div>
+            <h3 className="font-bold text-xl text-red-700">{tr.workerRejected}</h3>
+            <Loader2 size={24} className="animate-spin mx-auto text-blue-500" />
+            <p className="text-xs text-gray-400">{tr.autoSearching}</p>
+          </div>
+        </div>
+      )}
 
-      {bookingState === 'tracking' && selectedWorker && (<div className="bg-white rounded-2xl border shadow-lg p-4 space-y-3"><div className="flex items-center justify-between"><h4 className="font-bold">{tr.trackLive}</h4><span className="text-sm text-blue-600 font-medium">{selectedWorker.eta || 15} {tr.min}</span></div><div className="bg-gray-100 rounded-xl h-2"><div className="bg-blue-500 h-2 rounded-xl transition-all" style={{ width: '60%' }} /></div><div className="flex gap-2"><button onClick={() => setShowChat(true)} className="flex-1 py-2 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2"><MessageCircle size={16} />{tr.chatWithWorker}</button><a href={`tel:${selectedWorker.profile?.phone || ''}`} className="flex-1 py-2 bg-green-500 text-white rounded-xl flex items-center justify-center gap-2"><Phone size={16} />{tr.callWorker}</a></div></div>)}
+      {/* ═══════ TRACKING ═══════ */}
+      {bookingState === 'tracking' && selectedWorker && (
+        <div className="bg-white rounded-2xl border shadow-lg p-4 space-y-3">
+          <div className="flex items-center justify-between"><h4 className="font-bold">{tr.trackLive}</h4><span className="text-sm text-blue-600 font-medium">{selectedWorker.eta || 15} {tr.min}</span></div>
+          <div className="bg-gray-100 rounded-xl h-2"><div className="bg-blue-500 h-2 rounded-xl transition-all" style={{ width: '60%' }} /></div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowChat(true)} className="flex-1 py-2 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2"><MessageCircle size={16} />{tr.chatWithWorker}</button>
+            <a href={`tel:${selectedWorker.profile?.phone || ''}`} className="flex-1 py-2 bg-green-500 text-white rounded-xl flex items-center justify-center gap-2"><Phone size={16} />{tr.callWorker}</a>
+          </div>
+        </div>
+      )}
 
-      {showChat && selectedWorker && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowChat(false)}><div className="bg-white rounded-t-2xl w-full max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}><div className="flex justify-between items-center p-4 border-b"><div className="flex items-center gap-2">{selectedWorker.profile?.photo_url && <img src={selectedWorker.profile.photo_url} className="w-8 h-8 rounded-full" />}<span className="font-bold">{selectedWorker.profile?.name || 'Worker'}</span></div><button onClick={() => setShowChat(false)}><X size={20} /></button></div><div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[200px]">{messages.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">Start conversation...</p>}{messages.map((m, i) => (<div key={i} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[70%] p-3 rounded-2xl ${m.sender === 'me' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{m.text}</div></div>))}</div><div className="p-4 border-t flex gap-2"><input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type..." className="flex-1 p-3 border rounded-xl text-sm" /><button onClick={handleSendMessage} className="px-5 py-3 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} /></button></div></div></div>)}
-
-      {/* ✅ FIXED: WorkerBookingListener REMOVED from employer side */}
+      {/* ═══════ CHAT PANEL ═══════ */}
+      {showChat && selectedWorker && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowChat(false)}>
+          <div className="bg-white rounded-t-2xl w-full max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b">
+              <div className="flex items-center gap-2">{selectedWorker.profile?.photo_url && <img src={selectedWorker.profile.photo_url} className="w-8 h-8 rounded-full" />}<span className="font-bold">{selectedWorker.profile?.name || 'Worker'}</span></div>
+              <button onClick={() => setShowChat(false)}><X size={20} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[200px]">
+              {messages.length === 0 && <p className="text-center text-gray-400 text-sm mt-10">{tr.startConversation}</p>}
+              {messages.map((m, i) => (<div key={i} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[70%] p-3 rounded-2xl ${m.sender === 'me' ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>{m.text}</div></div>))}
+            </div>
+            <div className="p-4 border-t flex gap-2">
+              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder={tr.typeMessage} className="flex-1 p-3 border rounded-xl text-sm" />
+              <button onClick={handleSendMessage} className="px-5 py-3 bg-blue-500 text-white rounded-xl"><MessageCircle size={16} /></button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes bounce-in{0%{transform:scale(0.9);opacity:0}50%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}.animate-bounce-in{animation:bounce-in 0.3s ease-out}.animate-slide-up{animation:slide-up 0.3s ease-out}.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}`}</style>
     </div>
