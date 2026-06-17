@@ -1,120 +1,128 @@
 // components/layout/Sidebar.tsx
-// 🚀 ১২ মেইন ক্যাটাগরি + More 30+ → শুধু OTHER ৩০
+"use client";
 import React, { useMemo } from 'react';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { categories } from '@/lib/config';
-import { getText, LangCode } from '@/lib/language';
-import { Grid3X3, ChevronRight } from 'lucide-react';
 
-// ═══════════════════════════════════════════════════════════
-// Helper: Get category name by language from config
-// ═══════════════════════════════════════════════════════════
+interface SidebarProps {
+  country: string;
+  lang: string;
+  onMoreClick?: () => void;
+}
+
 const getCatName = (cat: any, lang: string): string => {
-  const key = `name${lang.charAt(0).toUpperCase() + lang.slice(1)}`;
-  return (cat as any)[key] || cat.nameEn || cat.name || cat.slug;
+  if (lang === 'en') return cat.nameEn || cat.name || '';
+  const key = 'name' + lang.charAt(0).toUpperCase() + lang.slice(1);
+  return (cat as any)[key] || cat.nameEn || cat.name || '';
 };
 
-// ═══════════════════════════════════════════════════════════
-// Category Item (Memoized)
-// ═══════════════════════════════════════════════════════════
-const CategoryItem = React.memo(({ cat, lang, rest }: { cat: any; lang: string; rest: string }) => {
-  const displayName = useMemo(() => getCatName(cat, lang), [cat, lang]);
-  const iconSrc = useMemo(() => cat.icon || `/categories/${cat.slug}.png`, [cat.icon, cat.slug]);
+const mainCategoriesCache = categories.filter(c => (c as any).isMain === true);
+
+// 📌 বাম সাইডবার — ক্যাটাগরি লিস্ট
+export const LeftSidebar = React.memo(({ country, lang }: Omit<SidebarProps, 'onMoreClick'>) => {
+  const cats = useMemo(() => mainCategoriesCache.slice(0, 8), []); // প্রথম ৮টা
 
   return (
-    <Link
-      href={`${rest}/category/${cat.slug}`}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 no-underline transition-all active:scale-[0.98] group"
-      style={{ transform: 'translateZ(0)' }}
-    >
-      <img
-        src={iconSrc}
-        alt={displayName}
-        className="w-5 h-5 object-contain flex-shrink-0 group-hover:scale-110 transition-transform rounded"
-        loading="lazy"
-        decoding="async"
-        onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
-      />
-      <span className="truncate text-xs lg:text-sm">{displayName}</span>
-    </Link>
+    <div className="w-56 shrink-0">
+      <div className="bg-white rounded-xl border p-3 sticky top-20">
+        <h3 className="text-sm font-bold text-gray-800 mb-3">
+          {lang === 'bn' ? 'ক্যাটাগরি' : lang === 'ar' ? 'الفئات' : 'Categories'}
+        </h3>
+        <div className="space-y-1">
+          {cats.map(cat => (
+            <Link
+              key={cat.slug}
+              href={`/${country}/${lang}/category/${cat.slug}`}
+              prefetch={false}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all group"
+            >
+              <div className="w-6 h-6 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                <img
+                  src={cat.icon || `/categories/${cat.slug}.png`}
+                  alt={getCatName(cat, lang)}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
+                />
+              </div>
+              <span className="truncate">{getCatName(cat, lang)}</span>
+              <ChevronRight size={12} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+          ))}
+        </div>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('openAllCategories'))}
+          className="w-full mt-2 text-xs text-orange-600 font-medium hover:text-orange-700 flex items-center justify-center gap-1 py-2 rounded-lg hover:bg-orange-50 transition"
+        >
+          {lang === 'bn' ? 'আরও দেখুন' : 'View All'} <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
   );
 });
-CategoryItem.displayName = 'CategoryItem';
+LeftSidebar.displayName = 'LSB';
 
-// ═══════════════════════════════════════════════════════════
-// Sidebar — ✅ ১২ মেইন + "More 30+" → Only OTHER categories
-// ═══════════════════════════════════════════════════════════
-const Sidebar = React.memo(({ country, lang, onMoreClick }: { 
-  country: string; 
-  lang: string; 
-  onMoreClick?: () => void;
-}) => {
-  const t = useMemo(() => (key: string) => getText(lang as LangCode, key), [lang]);
-  const rest = useMemo(() => `/${country}/${lang}`, [country, lang]);
-  
-  // ✅ শুধু মেইন ১২ ক্যাটাগরি (isMain: true)
-  const mainCats = useMemo(() => 
-    categories.filter(c => (c as any).isMain === true), 
-  []);
-  
-  // ✅ বাকি ৩০ OTHER ক্যাটাগরির কাউন্ট
-  const otherCount = useMemo(() => 
-    categories.filter(c => (c as any).isMain !== true).length, 
-  []);
+// 📌 ডান সাইডবার — স্ট্যাট/ইনফো (বর্তমানে খালি, পরে ইউজ করা যাবে)
+export const RightSidebar = React.memo(({ country, lang }: Omit<SidebarProps, 'onMoreClick'>) => {
+  return (
+    <div className="w-64 shrink-0 hidden xl:block">
+      <div className="bg-white rounded-xl border p-3 sticky top-20">
+        <h3 className="text-sm font-bold text-gray-800 mb-3">
+          {lang === 'bn' ? 'তথ্য' : 'Info'}
+        </h3>
+        <p className="text-xs text-gray-400">
+          {lang === 'bn' ? 'শীঘ্রই আসছে...' : 'Coming soon...'}
+        </p>
+      </div>
+    </div>
+  );
+});
+RightSidebar.displayName = 'RSB';
 
-  // "More" লেবেল ৪ ভাষায়
-  const moreLabel = useMemo(() => {
-    switch (lang) {
-      case 'bn': return `আরও ${otherCount}+`;
-      case 'ar': return `المزيد ${otherCount}+`;
-      case 'hi': return `और ${otherCount}+`;
-      default: return `More ${otherCount}+`;
-    }
-  }, [lang, otherCount]);
+// পুরনো Sidebar (যদি অন্য কোথাও ইউজ হয়)
+const Sidebar = React.memo(({ country, lang, onMoreClick }: SidebarProps) => {
+  const cats = useMemo(() => mainCategoriesCache, []);
 
   return (
-    <div
-      className="bg-white rounded-xl border shadow-sm overflow-hidden sticky top-20"
-      style={{ contain: 'layout style paint', transform: 'translateZ(0)' }}
-    >
-      {/* Header */}
-      <div className="px-3 py-2.5 border-b bg-gradient-to-r from-orange-50 to-white flex items-center gap-2">
-        <Grid3X3 size={16} className="text-orange-500" />
-        <h3 className="text-sm font-bold text-gray-700">{t('categories')}</h3>
-        <span className="text-xs text-gray-400 ml-auto">{mainCats.length}</span>
-      </div>
-
-      {/* ✅ ১২ মেইন ক্যাটাগরি */}
-      <div className="py-1">
-        {mainCats.map(cat => (
-          <CategoryItem key={cat.slug} cat={cat} lang={lang} rest={rest} />
-        ))}
-      </div>
-
-      {/* ✅ Divider + More Button → Opens Only OTHER 30 */}
-      <div className="border-t border-gray-100">
-        {onMoreClick ? (
+    <div className="w-56 shrink-0">
+      <div className="bg-white rounded-xl border p-3 sticky top-20">
+        <h3 className="text-sm font-bold text-gray-800 mb-3">
+          {lang === 'bn' ? 'ক্যাটাগরি' : 'Categories'}
+        </h3>
+        <div className="space-y-1">
+          {cats.map(cat => (
+            <Link
+              key={cat.slug}
+              href={`/${country}/${lang}/category/${cat.slug}`}
+              prefetch={false}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all"
+            >
+              <div className="w-6 h-6 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                <img
+                  src={cat.icon || `/categories/${cat.slug}.png`}
+                  alt={getCatName(cat, lang)}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/categories/default.png'; }}
+                />
+              </div>
+              <span className="truncate">{getCatName(cat, lang)}</span>
+            </Link>
+          ))}
+        </div>
+        {onMoreClick && (
           <button
             onClick={onMoreClick}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-all active:scale-[0.98] group"
+            className="w-full mt-2 text-xs text-orange-600 font-medium hover:text-orange-700 flex items-center justify-center gap-1 py-2 rounded-lg hover:bg-orange-50 transition"
           >
-            <span className="text-xs lg:text-sm">{moreLabel}</span>
-            <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            {lang === 'bn' ? 'আরও দেখুন' : 'View All'} <ChevronRight size={14} />
           </button>
-        ) : (
-          <Link
-            href={`${rest}/categories`}
-            className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 no-underline transition-all active:scale-[0.98] group"
-          >
-            <span className="text-xs lg:text-sm">{moreLabel}</span>
-            <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-          </Link>
         )}
       </div>
     </div>
   );
 });
-
 Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

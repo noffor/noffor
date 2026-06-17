@@ -3,6 +3,7 @@
 // ✅ FIXED: Mobile duplicate Quick Hire removed
 // ✅ FIXED: Infinite skeleton for unauthenticated users
 // ✅ FIXED: WorkerBookingListener removed from employer page
+// ✅ FIXED: Split sidebar into Left/Right components
 "use client";
 import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -15,9 +16,9 @@ import { useAuth } from '@/context/AuthContext';
 
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
+import { LeftSidebar, RightSidebar } from '@/components/layout/Sidebar'; // ✅ নতুন ইম্পোর্ট
 
 // ✅ Lazy load heavy components
-const Sidebar = lazy(() => import('@/components/layout/Sidebar'));
 const UnifiedList = lazy(() => import('@/components/home/UnifiedList'));
 const HomeTabs = lazy(() => import('@/components/home/HomeTabs'));
 const LiveWorkerMap = lazy(() => import('@/components/map/LiveWorkerMap'));
@@ -262,9 +263,13 @@ function HomePage() {
   }, [country]);
 
   useEffect(() => {
-    return () => { 
+    // Listen for custom event to open all categories
+    const handler = () => setShowAllCategories(true);
+    window.addEventListener('openAllCategories', handler);
+    return () => {
       alive.current = false; 
-      if (loginToastTimerRef.current) clearTimeout(loginToastTimerRef.current); 
+      if (loginToastTimerRef.current) clearTimeout(loginToastTimerRef.current);
+      window.removeEventListener('openAllCategories', handler);
     };
   }, []);
 
@@ -295,7 +300,6 @@ function HomePage() {
   const handleMoreClick = useCallback(() => setShowAllCategories(true), []);
   const handleCloseAllCategories = useCallback(() => setShowAllCategories(false), []);
 
-  // ✅ ফিক্সড — শুধু mounted চেক করবে, authLoading চেক করবে না
   if (!mounted) return <HomeSkeleton />;
 
   const isDesktop = !isMobile;
@@ -315,6 +319,7 @@ function HomePage() {
       
       <main className="max-w-7xl mx-auto px-3 lg:px-4 py-3">
         {isDesktop ? (
+          /* ═══════════ DESKTOP VIEW — NEW LAYOUT ═══════════ */
           <div className="hidden lg:block">
             <div className="flex items-center gap-2 mb-3">
               <button onClick={toggleMap} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${showMap ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}>
@@ -334,34 +339,37 @@ function HomePage() {
                 <HeroBanner country={country} lang={lang} />
               </Suspense>
             )}
+            
+            {/* ✅ নতুন লেআউট: Left Sidebar | Labor List | Employer List | Right Sidebar */}
             <div className="flex gap-4 mt-4">
-              <div className="w-56 shrink-0">
-                <Suspense fallback={<div className="w-56 h-96 bg-gray-100 animate-pulse rounded-xl" />}>
-                  <Sidebar country={country} lang={lang} onMoreClick={handleMoreClick} />
-                </Suspense>
-              </div>
+              <LeftSidebar country={country} lang={lang} />
+              
               <div className="flex-1 min-w-0 space-y-4">
                 <div className="bg-white rounded-xl p-4 border">
                   <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
                     <UnifiedList type="labor" country={country} lang={lang} />
                   </Suspense>
                 </div>
+              </div>
+              
+              <div className="flex-1 min-w-0 space-y-4">
                 <div className="bg-white rounded-xl p-4 border">
                   <Suspense fallback={<div className="h-48 bg-gray-100 animate-pulse rounded-xl" />}>
                     <UnifiedList type="employer" country={country} lang={lang} />
                   </Suspense>
                 </div>
               </div>
+              
+              <RightSidebar country={country} lang={lang} />
             </div>
           </div>
         ) : (
-          /* ═══════════ MOBILE VIEW - FIXED ═══════════ */
+          /* ═══════════ MOBILE VIEW ═══════════ */
           <div className="lg:hidden">
             <Suspense fallback={<div className="h-40 bg-gray-200 animate-pulse rounded-xl mb-3" />}>
               <HeroBanner country={country} lang={lang} />
             </Suspense>
             
-            {/* ✅ HomeTabs - Quick Hire + Online (শুধু এটাই) — WorkerBookingListener আর HomeTabs-এর ভেতর থেকে সরানো হয়েছে */}
             <div className="mt-3">
               <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse rounded-xl" />}>
                 <HomeTabs country={country} lang={lang} />
@@ -406,8 +414,6 @@ function HomePage() {
           </div>
         )}
       </main>
-      
-      {/* ✅ FIXED: WorkerBookingListener সম্পূর্ণরূপে রিমুভ — Employer সাইডে এটা প্রয়োজন নেই */}
       
       <AllCategoriesPage isOpen={showAllCategories} onClose={handleCloseAllCategories} country={country} lang={lang} />
       <MobileNav country={country} lang={lang} />
