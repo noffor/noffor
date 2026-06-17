@@ -1,6 +1,7 @@
 // app/[country]/[lang]/page.tsx
 // 🚀 SUPER SONIC • 1B USERS • ZERO LAG • NO CRASH
 // ✅ FIXED: Mobile duplicate Quick Hire removed
+// ✅ FIXED: Infinite skeleton for unauthenticated users
 "use client";
 import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -293,8 +294,8 @@ function HomePage() {
   const handleMoreClick = useCallback(() => setShowAllCategories(true), []);
   const handleCloseAllCategories = useCallback(() => setShowAllCategories(false), []);
 
+  // ✅ ফিক্সড — শুধু mounted চেক করবে, authLoading চেক করবে না
   if (!mounted) return <HomeSkeleton />;
-  if (authLoading && !isAuthenticated) return <HomeSkeleton />;
 
   const isDesktop = !isMobile;
   const txt = T[lang] || T.en;

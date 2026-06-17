@@ -351,10 +351,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [state.profile?.role]
   );
 
-  // ✅ loading: শুধুমাত্র তখনই true যখন initial check শেষ হয়নি এবং state.loading true
+  // ✅ ফিক্সড — initialCheckDone false হলেও loading false:
   const loading = useMemo(
-    () => state.loading || !initialCheckDone,
-    [state.loading, initialCheckDone]
+    () => state.loading,
+    [state.loading]
   );
 
   const value = useMemo((): AuthContextType => ({
