@@ -1,5 +1,5 @@
 // components/BookingForm.tsx
-// 🚀 FIXED • Full Screen • Sticky Buttons • No Map Overlay • Mobile Perfect
+// 🚀 SUPER SONIC • BODY SCROLL LOCK • STICKY BUTTONS • 4 LANGUAGES • 1B READY
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef, startTransition } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -96,12 +96,10 @@ interface BookingFormProps {
 }
 
 const StepIndicator = React.memo(({ step }: { step: number }) => (
-  <div className="flex items-center px-4 py-3 gap-2">
+  <div className="flex items-center px-4 py-3 gap-2 shrink-0">
     {[1, 2, 3].map((s) => (
       <div key={s} className="flex items-center gap-2 flex-1">
-        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${step >= s ? 'bg-green-600 text-white scale-110' : 'bg-gray-200 text-gray-400'}`}>
-          {step > s ? '✓' : s}
-        </div>
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${step >= s ? 'bg-green-600 text-white scale-110' : 'bg-gray-200 text-gray-400'}`}>{step > s ? '✓' : s}</div>
         {s < 3 && <div className={`flex-1 h-1 rounded-full transition-colors duration-300 ${step > s ? 'bg-green-500' : 'bg-gray-200'}`} />}
       </div>
     ))}
@@ -110,7 +108,7 @@ const StepIndicator = React.memo(({ step }: { step: number }) => (
 StepIndicator.displayName = 'StepIndicator';
 
 const WorkerHeader = React.memo(({ worker, txt, lang, onClose }: { worker: Worker; txt: Record<string, string>; lang: string; onClose: () => void }) => (
-  <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex items-center justify-between z-10 rounded-t-2xl">
+  <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex items-center justify-between z-10 rounded-t-2xl shrink-0">
     <div className="flex items-center gap-3 min-w-0">
       <img src={worker.photo_url || '/default-avatar.png'} alt={worker.name} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-100 flex-shrink-0" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).src = '/default-avatar.png'; }} />
       <div className="min-w-0">
@@ -134,15 +132,35 @@ const InputField = React.memo(({ label, value, onChange, type = 'text', icon, pl
 ));
 InputField.displayName = 'InputField';
 
-// ═══════════════════════════════════════════════
-// 🚀 MAIN BOOKING FORM - FIXED
-// ═══════════════════════════════════════════════
 export default function BookingForm({ worker, isOpen, onClose, country, lang }: BookingFormProps) {
   const router = useRouter();
   const txt = useMemo(() => T[lang] || T.en, [lang]);
   const currencyText = useMemo(() => lang === 'bn' ? 'রিয়াল' : lang === 'ar' ? 'ريال' : lang === 'hi' ? 'रियाल' : 'QAR', [lang]);
   const todayText = useMemo(() => lang === 'bn' ? 'আজ' : lang === 'ar' ? 'اليوم' : lang === 'hi' ? 'आज' : 'Today', [lang]);
   const atText = useMemo(() => lang === 'bn' ? 'এ' : lang === 'ar' ? 'في' : lang === 'hi' ? 'पर' : 'at', [lang]);
+  
+  // ✅ Body Scroll Lock
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    };
+  }, [isOpen]);
   
   if (!worker || !isOpen) return null;
   
@@ -240,20 +258,15 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
   }, [worker, distanceKm, etaMinutes, location, startDate, startTime, duration, offeredAmount, txt, lang, currencyText, todayText, atText]);
 
   return (
-    // ✅ FIX 1: Higher z-index (z-[100]) to prevent Map overlay
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center" onClick={onClose}>
-      
-      {/* ✅ FIX 2: Full screen on mobile with flex column for sticky buttons */}
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
         
-        {/* Header - Fixed top */}
         <WorkerHeader worker={worker} txt={txt} lang={lang} onClose={onClose} />
         <StepIndicator step={step} />
 
-        {/* ✅ FIX 3: Scrollable content area */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 overscroll-contain">
           {step === 1 && (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 py-3">
               <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.job_details}</h3>
               <InputField label={txt.your_name} value={name} onChange={setName} icon={<User size={16} />} />
               <InputField label={txt.phone} value={phone} onChange={setPhone} type="tel" />
@@ -269,7 +282,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
           )}
 
           {step === 2 && (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 py-3">
               <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.schedule_payment}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <InputField label={txt.start_date} value={startDate} onChange={setStartDate} type="date" icon={<Calendar size={16} />} />
@@ -284,9 +297,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
                 <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">{txt.payment_method}</label>
                 <div className="flex gap-2">
                   {['cash', 'online'].map(m => (
-                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all active:scale-95 ${paymentMethod === m ? 'bg-green-600 text-white border-green-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-                      {m === 'cash' ? `💵 ${txt.cash}` : `💳 ${txt.online}`}
-                    </button>
+                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all active:scale-95 ${paymentMethod === m ? 'bg-green-600 text-white border-green-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{m === 'cash' ? `💵 ${txt.cash}` : `💳 ${txt.online}`}</button>
                   ))}
                 </div>
               </div>
@@ -294,7 +305,7 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
           )}
 
           {step === 3 && (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 py-3">
               <h3 className="font-bold text-base sm:text-lg text-gray-800">{txt.review_confirm}</h3>
               <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-2">
                 {reviewItems.map((item, i) => (
@@ -311,28 +322,23 @@ export default function BookingForm({ worker, isOpen, onClose, country, lang }: 
           )}
         </div>
 
-        {/* ✅ FIX 4: Sticky Bottom Buttons - সবসময় visible */}
-        <div className="sticky bottom-0 bg-white border-t p-4 rounded-b-2xl">
+        <div className="sticky bottom-0 bg-white border-t p-4 rounded-b-2xl shrink-0">
           <div className="flex gap-3">
             {step > 1 && (
-              <button onClick={prevStep} className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 active:scale-95 transition-all">
-                {txt.back}
-              </button>
+              <button onClick={prevStep} className="px-4 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 active:scale-95 transition-all">{txt.back}</button>
             )}
             {step < 3 ? (
-              <button onClick={nextStep} className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 active:scale-[0.98] transition-all">
-                {txt.next}
-              </button>
+              <button onClick={nextStep} className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 active:scale-[0.98] transition-all">{txt.next}</button>
             ) : (
               <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-3 bg-green-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-50 active:scale-[0.98] transition-all">
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                {submitting ? txt.submitting : txt.confirm}
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}{submitting ? txt.submitting : txt.confirm}
               </button>
             )}
           </div>
         </div>
 
       </div>
+      <style>{`@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}.animate-slide-up{animation:slide-up 0.3s ease-out}`}</style>
     </div>
   );
 }
