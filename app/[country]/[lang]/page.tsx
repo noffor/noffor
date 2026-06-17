@@ -2,6 +2,7 @@
 // 🚀 SUPER SONIC • 1B USERS • ZERO LAG • NO CRASH
 // ✅ FIXED: Mobile duplicate Quick Hire removed
 // ✅ FIXED: Infinite skeleton for unauthenticated users
+// ✅ FIXED: WorkerBookingListener removed from employer page
 "use client";
 import React, { useState, useEffect, useCallback, useRef, useMemo, startTransition, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -360,7 +361,7 @@ function HomePage() {
               <HeroBanner country={country} lang={lang} />
             </Suspense>
             
-            {/* ✅ HomeTabs - Quick Hire + Online (শুধু এটাই) */}
+            {/* ✅ HomeTabs - Quick Hire + Online (শুধু এটাই) — WorkerBookingListener আর HomeTabs-এর ভেতর থেকে সরানো হয়েছে */}
             <div className="mt-3">
               <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse rounded-xl" />}>
                 <HomeTabs country={country} lang={lang} />
@@ -405,6 +406,8 @@ function HomePage() {
           </div>
         )}
       </main>
+      
+      {/* ✅ FIXED: WorkerBookingListener সম্পূর্ণরূপে রিমুভ — Employer সাইডে এটা প্রয়োজন নেই */}
       
       <AllCategoriesPage isOpen={showAllCategories} onClose={handleCloseAllCategories} country={country} lang={lang} />
       <MobileNav country={country} lang={lang} />
